@@ -3,9 +3,10 @@ package http
 import (
 	"bytes"
 	"fmt"
+	"net/http"
+
 	"github.com/apiqube/cli/core/plan"
 	"github.com/apiqube/cli/plugins"
-	"net/http"
 )
 
 func init() {
@@ -25,7 +26,6 @@ func (p Plugin) Execute(step plan.StepConfig, ctx interface{}) (plugins.PluginRe
 	}
 	client := &http.Client{}
 	resp, err := client.Do(req)
-
 	if err != nil {
 		return plugins.PluginResult{Success: false}, err
 	}

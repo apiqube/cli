@@ -35,7 +35,7 @@ func SavePlan(plan *ExecutionPlan) error {
 		return err
 	}
 
-	return os.WriteFile(".testman/plan.json", data, 0644)
+	return os.WriteFile(".testman/plan.json", data, 0o644)
 }
 
 func LoadPlan() (*ExecutionPlan, error) {
