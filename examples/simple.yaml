@@ -1,0 +1,41 @@
+version: "1"
+
+tests:
+  - name: "User Registration"
+    description: "Test the registration of a new user"
+    type: "http"
+    method: "POST"
+    url: "https://api.example.com/register"
+    headers:
+      Content-Type: "application/json"
+    body:
+      username: "testuser"
+      password: "testpass"
+      email: "test@example.com"
+    expected_response:
+      status_code: 201
+      body:
+        message: "User registered successfully"
+    flags:
+      - "verbose"
+      - "debug"
+
+  - name: "User Login"
+    description: "Test user login functionality"
+    type: "http"
+    method: "POST"
+    url: "https://api.example.com/login"
+    headers:
+      Content-Type: "application/json"
+    body:
+      username: "testuser"
+      password: "testpass"
+    expected_response:
+      status_code: 200
+      body:
+        message: "Login successful"
+    flags:
+      - "verbose"
+    use_case:
+      - "normal_flow"
+      - "edge_case_invalid_credentials"
