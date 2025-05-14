@@ -74,6 +74,13 @@ jobs:
           echo "tag=$TAG"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
+      - name: Build binary with version info
+        env:
+          VERSION: ${{ steps.get_tag.outputs.tag }}
+        run: |
+          mkdir -p bin
+          go build -ldflags "-X github.com/apiqube/cli/cmd.version=$VERSION" -o ./bin/qube ./cmd
+
       - name: Create GitHub Release (if not exists)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
