@@ -70,7 +70,7 @@ jobs:
       - name: Get latest tag or fallback
         id: get_tag
         run: |
-          TAG=$(git describe --tags --abbrev=0 || echo "v0.0.1")
+          TAG=$(git describe --tags --abbrev=0 || echo "v1.0.0")
           echo "tag=$TAG"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 

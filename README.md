@@ -8,15 +8,15 @@ Part of the [ApiQube](https://github.com/apiqube) ecosystem.
 
 ## 🚀 Features
 
-- 🔌 **Plugin architecture** — extend Qube with custom actions
-- 🧪 **Test execution engine** — define `use-cases`, test flows, and assertions via YAML
-- 🛠️ **Docker-native** — spin up containers, stub databases, and environments for each test
-- 🗂️ **Plan builder** — build and apply test execution plans (like `kubectl apply`)
-- 🔥 **Load testing support** — stress your services with real use cases
-- 📊 **Live metric collection** — Prometheus integration, metrics agents for Go, JS, Python
-- 🖥️ **Future Wails UI** — desktop testing studio with visual flow and live dashboards
-- 📡 **CI-ready** — easily integrate with GitHub Actions / GitLab CI
-- 🧙 **Interactive CLI** — powered by [Bubbletea](https://github.com/charmbracelet/bubbletea)
+-  **Plugin architecture** — extend Qube with custom actions
+-  **Test execution engine** — define `use-cases`, test flows, and assertions via YAML
+-  **Docker-native** — spin up containers, stub databases, and environments for each test
+-  **Plan builder** — build and apply test execution plans (like `kubectl apply`)
+-  **Load testing support** — stress your services with real use cases
+-  **Live metric collection** — Prometheus integration, metrics agents for Go, JS, Python
+-  **Future Wails UI** — desktop testing studio with visual flow and live dashboards
+-  **CI-ready** — easily integrate with GitHub Actions / GitLab CI
+-  **Interactive CLI** — powered by [Bubbletea](https://github.com/charmbracelet/bubbletea)
 
 ---
 
