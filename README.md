@@ -1,4 +1,4 @@
-# 🧱 ApiQube CLI
+# ApiQube CLI
 
 **ApiQube** is a powerful, plugin-extensible CLI tool for building, executing, and monitoring tests for modern microservice applications — from simple HTTP APIs to complex multi-container systems.
 
