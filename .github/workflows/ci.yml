@@ -79,7 +79,7 @@ jobs:
           VERSION: ${{ steps.get_tag.outputs.tag }}
         run: |
           mkdir -p bin
-          go build -ldflags "-X github.com/apiqube/cli/cmd.version=$VERSION" -o ./bin/qube ./cmd
+          go build -ldflags "-X github.com/apiqube/cli/cmd.version=$VERSION" -o ./bin/qube .
 
       - name: Create GitHub Release (if not exists)
         env:
