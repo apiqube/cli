@@ -1,0 +1,29 @@
+linters:
+  enable:
+    - govet
+    - gofmt
+    - misspell
+    - unconvert
+    - unparam
+    - revive
+    - unused
+    - gocritic
+
+linters-settings:
+  govet:
+    enable:
+      - shadow
+      - loopclosure
+
+  gofmt:
+    simplify: true
+
+  misspell:
+    locale: US
+
+run:
+  skip-dirs:
+    - "gen"
+    - "tests"
+  skip-files:
+    - ".*\\.pb\\.go

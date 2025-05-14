@@ -1,0 +1,35 @@
+version: '3'
+
+vars:
+  BINARY_NAME: qube
+  BUILD_DIR: ./bin
+  MAIN: .
+  VERSION:
+    sh: git describe --tags --abbrev=0 2>/dev/null || echo "dev"
+
+tasks:
+  default:
+    cmds:
+      - task: build
+
+  build:
+    desc: 🔧 Build Qube CLI
+    cmds:
+      - echo "🔧 Building {{.BINARY_NAME}} version {{.VERSION}}"
+      - go build -ldflags="-X github.com/apiqube/cli/cmd.version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-{{.VERSION}}.exe {{.MAIN}}
+
+  clean:
+    desc: 🧹 Clean build directory
+    cmds:
+      - echo "🧹 Cleaning..."
+      - rm -f {{.BUILD_DIR}}/*.exe
+
+  run:
+    desc: 🚀 Run CLI
+    cmds:
+      - ./bin/{{.BINARY_NAME}}.exe
+
+  dev:
+    desc: 👨‍💻 Watch mode (requires reflex or air)
+    cmds:
+      - reflex -r '\.go$$' -s -- sh -c "task build && task run"

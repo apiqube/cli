@@ -1,0 +1,117 @@
+name: Test, Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24.2'
+
+      - name: Ensure go mod tidy has zero output
+        run: go mod tidy -v && git diff --exit-code
+
+  release:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    outputs:
+      tag: ${{ steps.get_tag.outputs.tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24.2'
+
+      - name: Run go-semantic-release
+        uses: go-semantic-release/action@v1
+        with:
+          hooks: goreleaser
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch tags
+        run: git fetch --tags
+
+      - name: Get latest tag or fallback
+        id: get_tag
+        run: |
+          TAG=$(git describe --tags --abbrev=0 || echo "v1.0.0")
+          echo "tag=$TAG"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release (if not exists)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.get_tag.outputs.tag }}
+        run: |
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists, skipping creation."
+          else
+            gh release create "$VERSION" --generate-notes
+          fi
+
+
+      - name: Create GitHub Release (if not exists)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.get_tag.outputs.tag }}
+        run: |
+          if [ -n "$VERSION" ]; then
+            gh release view "$VERSION" >/dev/null 2>&1 || \
+            gh release create "$VERSION" --generate-notes
+          else
+            echo "No new tag created, skipping release step."
+          fi
+
+  docker-push:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.QUIZWARS_DOCKER_USERNAME }}
+          password: ${{ secrets.QUIZWARS_DOCKER_PASSWORD }}
+
+      - name: Build & Push Docker image
+        run: |
+          TAG=${{ needs.release.outputs.tag }}
+          if [ -z "$TAG" ]; then
+            echo "No tag available for Docker image. Skipping push."
+            exit 0
+          fi
+          IMAGE=davidmovas/quizwars-lobby-service
+          docker build -t $IMAGE:$TAG .
+          docker tag $IMAGE:$TAG $IMAGE:latest
+          docker push $IMAGE:$TAG
+          docker push $IMAGE:latest
+
+    
