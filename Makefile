@@ -5,6 +5,9 @@ BUILD_DIR=./bin
 
 .PHONY: build clean
 
+install:
+	go install github.com/apiqube/cli@latest
+
 build:
 	@echo "🔧 Building $(BINARY_NAME) version $(VERSION)"
 	go build \
