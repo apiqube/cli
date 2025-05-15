@@ -18,7 +18,7 @@ var (
 			Foreground(lipgloss.Color("#5fd700"))
 
 	errorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#ff0000")).
+			Foreground(lipgloss.Color("#d70000")).
 			Bold(true)
 
 	warningStyle = lipgloss.NewStyle().
@@ -26,8 +26,7 @@ var (
 			Bold(true)
 
 	infoStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00afff")).
-			Bold(false)
+			Foreground(lipgloss.Color("#00afff"))
 
 	snippetStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("230")).
@@ -41,12 +40,10 @@ var (
 				Background(lipgloss.Color("236"))
 
 	progressTextStyle = lipgloss.NewStyle().
-				Bold(true).
 				Foreground(lipgloss.Color("255"))
 
 	loaderStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("212")).
-			Bold(true)
+			Foreground(lipgloss.Color("212"))
 
 	spinnerStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#ff0087"))

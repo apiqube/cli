@@ -19,13 +19,13 @@ var applyCmd = &cobra.Command{
 	Short:         "Apply resources from manifest file",
 	SilenceErrors: true,
 	SilenceUsage:  true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		ui.Init()
 
 		file, err := cmd.Flags().GetString("file")
 		if err != nil {
 			ui.Errorf("Failed to parse --file: %s", err.Error())
-			return err
+			return
 		}
 
 		ui.Printf("Applying manifests from: %s", file)
@@ -33,8 +33,9 @@ var applyCmd = &cobra.Command{
 
 		mans, err := yaml.LoadManifestsFromDir(file)
 		if err != nil {
+			ui.Spinner(false)
 			ui.Errorf("Failed to load manifests: %s", err.Error())
-			return err
+			return
 		}
 
 		ui.Spinner(false)
@@ -49,7 +50,7 @@ var applyCmd = &cobra.Command{
 
 		if err = depends.GeneratePlan(mans); err != nil {
 			ui.Errorf("Failed to generate plan: %s", err.Error())
-			return err
+			return
 		}
 
 		ui.Spinner(false)
@@ -58,13 +59,11 @@ var applyCmd = &cobra.Command{
 
 		if err := yaml.SaveManifestsAsCombined(mans...); err != nil {
 			ui.Error("Failed to save manifests: " + err.Error())
-			return err
+			return
 		}
 
 		ui.Spinner(false)
 		ui.Println("Manifests applied successfully")
-
-		return nil
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
 		time.Sleep(time.Millisecond * 500)

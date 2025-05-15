@@ -15,6 +15,10 @@ type ExecutionPlan struct {
 }
 
 func GeneratePlan(manifests []manifests.Manifest) error {
+	if len(manifests) == 0 {
+		return fmt.Errorf("no manifests to generate plan")
+	}
+
 	graph, _, err := BuildDependencyGraph(manifests)
 	if err != nil {
 		return err

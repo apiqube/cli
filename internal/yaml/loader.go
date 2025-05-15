@@ -39,13 +39,17 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 
 		for _, m := range parsedManifests {
 			if _, ok := manifestsSet[m.GetID()]; ok {
-				ui.Errorf("Duplicate manifest: %s", m.GetID())
+				ui.Warningf("Duplicate manifest: %s", m.GetID())
 				continue
 			}
 
 			manifestsSet[m.GetID()] = struct{}{}
 			result = append(result, m)
 		}
+	}
+
+	if len(result) == 0 {
+		return nil, fmt.Errorf("manifests not found in %s", dir)
 	}
 
 	return result, nil
