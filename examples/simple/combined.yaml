@@ -1,26 +1,46 @@
 version: 1
-kind: HttpLoadTest
+kind: Service
 metadata:
-    name: simple-http-load-test
+    name: simple-service
     namespace: default
 dependsOn:
-    - default.HttpTest.simple-http-test
+    - default.Server.simple-server
 spec:
-    cases:
-        - name: user-login
-          method: GET
-          endpoint: /login
-          body:
-            email: example_email
-            password: example_password
-          expected:
-            code: 200
-        - name: user-fetch
-          method: GET
-          endpoint: /users/{id}
-          expected:
-            code: 404
-            message: User not found
+    containers:
+        - name: users-service
+          containerName: users
+          dockerfile: some_path
+          image: some_path
+          ports:
+            - 8080:8080
+            - 50051:50051
+          env:
+            clean: clean-command
+            db_url: postgres:5432
+            run: run-command
+          replicas: 3
+          healthPath: /health
+        - name: auth-service
+          containerName: auth
+          dockerfile: some_path
+          image: some_path
+          ports:
+            - 8081:8081
+            - 50052:50052
+          env:
+            db_url: postgres:5432
+          replicas: 6
+          healthPath: /health
+---
+version: 1
+kind: Server
+metadata:
+    name: simple-server
+    namespace: default
+spec:
+    baseUrl: http://localhost:8080
+    headers:
+        Content-Type: application/json
 ---
 version: 1
 kind: HttpTest
@@ -64,45 +84,25 @@ spec:
             message: User not found
 ---
 version: 1
-kind: Server
+kind: HttpLoadTest
 metadata:
-    name: simple-server
-    namespace: default
-spec:
-    baseUrl: http://localhost:8080
-    headers:
-        Content-Type: application/json
----
-version: 1
-kind: Service
-metadata:
-    name: simple-service
+    name: simple-http-load-test
     namespace: default
 dependsOn:
-    - default.Server.simple-server
+    - default.HttpTest.simple-http-test
 spec:
-    containers:
-        - name: users-service
-          containerName: users
-          dockerfile: some_path
-          image: some_path
-          ports:
-            - 8080:8080
-            - 50051:50051
-          env:
-            clean: clean-command
-            db_url: postgres:5432
-            run: run-command
-          replicas: 3
-          healthPath: /health
-        - name: auth-service
-          containerName: auth
-          dockerfile: some_path
-          image: some_path
-          ports:
-            - 8081:8081
-            - 50052:50052
-          env:
-            db_url: postgres:5432
-          replicas: 6
-          healthPath: /health
+    cases:
+        - name: user-login
+          method: GET
+          endpoint: /login
+          body:
+            email: example_email
+            password: example_password
+          expected:
+            code: 200
+        - name: user-fetch
+          method: GET
+          endpoint: /users/{id}
+          expected:
+            code: 404
+            message: User not found
