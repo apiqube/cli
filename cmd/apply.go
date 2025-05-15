@@ -5,7 +5,6 @@ import (
 	"github.com/apiqube/cli/internal/ui"
 	"github.com/apiqube/cli/internal/yaml"
 	"github.com/spf13/cobra"
-	"slices"
 	"time"
 )
 
@@ -38,15 +37,7 @@ var applyCmd = &cobra.Command{
 			return
 		}
 
-		ui.Spinner(false)
 		ui.Printf("Loaded %d manifests", len(mans))
-
-		slices.Reverse(mans)
-		for i, man := range mans {
-			ui.Printf("#%d ID: %s", i+1, man.GetID())
-		}
-
-		ui.Spinner(true, "Generating execution plan")
 
 		if err = depends.GeneratePlan(mans); err != nil {
 			ui.Errorf("Failed to generate plan: %s", err.Error())

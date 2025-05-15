@@ -19,6 +19,7 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 	var manifestsSet = make(map[string]struct{})
 	var parsedManifests []manifests.Manifest
 	var result []manifests.Manifest
+	var counter int
 
 	var content []byte
 
@@ -39,12 +40,14 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 
 		for _, m := range parsedManifests {
 			if _, ok := manifestsSet[m.GetID()]; ok {
-				ui.Warningf("Duplicate manifest: %s", m.GetID())
-				continue
+				ui.Infof("Manifest: %s loaded", m.GetID())
+			} else {
+				ui.Infof("Manifest: %s cached", m.GetID())
+				manifestsSet[m.GetID()] = struct{}{}
+				result = append(result, m)
 			}
 
-			manifestsSet[m.GetID()] = struct{}{}
-			result = append(result, m)
+			counter++
 		}
 	}
 
