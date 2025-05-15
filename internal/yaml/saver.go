@@ -3,22 +3,30 @@ package yaml
 import (
 	"bytes"
 	"fmt"
-	"os"
-	"path/filepath"
-
+	"github.com/adrg/xdg"
 	"github.com/apiqube/cli/internal/manifests"
 	"gopkg.in/yaml.v3"
+	"os"
+	"path/filepath"
 )
 
-func SaveManifests(dir string, manifests ...manifests.Manifest) error {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("failed to create dir: %w", err)
+func SaveManifestsAsCombined(mans ...manifests.Manifest) error {
+	fileName := fmt.Sprintf("/combined-%s.yaml", mans[0].GetNamespace())
+
+	filePath, err := xdg.DataFile(manifests.CombinedManifestsDirPath + fileName)
+	if err != nil {
+		panic(err)
+	}
+
+	if err = os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return err
 	}
 
 	var buf bytes.Buffer
+	var data []byte
 
-	for i, manifest := range manifests {
-		data, err := yaml.Marshal(manifest)
+	for i, manifest := range mans {
+		data, err = yaml.Marshal(manifest)
 		if err != nil {
 			return fmt.Errorf("failed to marshal manifest %d: %w", i, err)
 		}
@@ -30,8 +38,7 @@ func SaveManifests(dir string, manifests ...manifests.Manifest) error {
 		buf.Write(data)
 	}
 
-	outputPath := filepath.Join(dir, "combined.yaml")
-	if err := os.WriteFile(outputPath, buf.Bytes(), 0o644); err != nil {
+	if err = os.WriteFile(filePath, buf.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 

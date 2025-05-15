@@ -3,6 +3,7 @@ package depends
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/adrg/xdg"
 	"os"
 	"path/filepath"
 
@@ -13,7 +14,7 @@ type ExecutionPlan struct {
 	Order []string `json:"order"`
 }
 
-func GeneratePlan(outPath string, manifests []manifests.Manifest) error {
+func GeneratePlan(manifests []manifests.Manifest) error {
 	graph, _, err := BuildDependencyGraph(manifests)
 	if err != nil {
 		return err
@@ -24,10 +25,14 @@ func GeneratePlan(outPath string, manifests []manifests.Manifest) error {
 		return err
 	}
 
-	return SaveExecutionPlan(outPath, order)
+	return SaveExecutionPlan(manifests[0].GetNamespace(), order)
 }
 
-func SaveExecutionPlan(path string, order []string) error {
+func SaveExecutionPlan(namespace string, order []string) error {
+	if namespace == "" {
+		namespace = "default"
+	}
+
 	plan := ExecutionPlan{Order: order}
 
 	data, err := json.MarshalIndent(plan, "", "  ")
@@ -35,9 +40,16 @@ func SaveExecutionPlan(path string, order []string) error {
 		return fmt.Errorf("failed to marshal plan: %w", err)
 	}
 
-	if err = os.MkdirAll(path, 0o755); err != nil {
-		return fmt.Errorf("failed to create dir: %w", err)
+	fileName := fmt.Sprintf("/plan-%s.json", namespace)
+
+	filePath, err := xdg.DataFile(manifests.ExecutionPlansDirPath + fileName)
+	if err != nil {
+		return fmt.Errorf("failed to build path: %w", err)
 	}
 
-	return os.WriteFile(filepath.Join(path, "execution-plan.json"), data, 0o644)
+	if err = os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return err
+	}
+
+	return os.WriteFile(filePath, data, 0o644)
 }

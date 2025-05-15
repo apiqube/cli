@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"fmt"
+	"github.com/apiqube/cli/internal/ui"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,18 +11,19 @@ import (
 )
 
 func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
-	var mans []manifests.Manifest
-
 	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	var manifest manifests.Manifest
+	var manifestsSet = make(map[string]struct{})
+	var parsedManifests []manifests.Manifest
+	var result []manifests.Manifest
+
 	var content []byte
 
 	for _, file := range files {
-		if file.IsDir() || file.Name() == "combined.yaml" || (!strings.HasSuffix(file.Name(), ".yaml") && !strings.HasSuffix(file.Name(), ".yml")) {
+		if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yaml") && !strings.HasSuffix(file.Name(), ".yml")) {
 			continue
 		}
 
@@ -30,13 +32,21 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 			return nil, err
 		}
 
-		manifest, err = ParseManifest(content)
+		parsedManifests, err = ParseManifests(content)
 		if err != nil {
 			return nil, fmt.Errorf("in file %s: %w", file.Name(), err)
 		}
 
-		mans = append(mans, manifest)
+		for _, m := range parsedManifests {
+			if _, ok := manifestsSet[m.GetID()]; ok {
+				ui.Errorf("Duplicate manifest: %s", m.GetID())
+				continue
+			}
+
+			manifestsSet[m.GetID()] = struct{}{}
+			result = append(result, m)
+		}
 	}
 
-	return mans, nil
+	return result, nil
 }

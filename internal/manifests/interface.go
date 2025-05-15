@@ -1,6 +1,11 @@
 package manifests
 
 const (
+	CombinedManifestsDirPath = "qube/manifests/combined"
+	ExecutionPlansDirPath    = "qube/plans/"
+)
+
+const (
 	DefaultNamespace = "default"
 
 	ServerManifestKind       = "Server"

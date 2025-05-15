@@ -47,7 +47,7 @@ var applyCmd = &cobra.Command{
 
 		ui.Spinner(true, "Generating execution plan")
 
-		if err = depends.GeneratePlan("./examples/simple", mans); err != nil {
+		if err = depends.GeneratePlan(mans); err != nil {
 			ui.Errorf("Failed to generate plan: %s", err.Error())
 			return err
 		}
@@ -56,7 +56,7 @@ var applyCmd = &cobra.Command{
 		ui.Print("Execution plan generated successfully")
 		ui.Spinner(true, "Saving manifests...")
 
-		if err := yaml.SaveManifests(file, mans...); err != nil {
+		if err := yaml.SaveManifestsAsCombined(mans...); err != nil {
 			ui.Error("Failed to save manifests: " + err.Error())
 			return err
 		}
