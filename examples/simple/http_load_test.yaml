@@ -1,0 +1,27 @@
+version: 1
+
+kind: HttpLoadTest
+
+metadata:
+  name: simple-http-load-test
+
+spec:
+  cases:
+    - name: user-login
+      method: GET
+      endpoint: /login
+      body:
+        email: "example_email"
+        password: "example_password"
+      expected:
+        code: 200
+
+    - name: user-fetch
+      method: GET
+      endpoint: /users/{id}
+      expected:
+        code: 404
+        message: "User not found"
+
+dependsOn:
+  - default.HttpTest.simple-http-test
