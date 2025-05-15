@@ -2,6 +2,11 @@ package manifests
 
 const (
 	DefaultNamespace = "default"
+
+	ServerManifestKind       = "Server"
+	ServiceManifestKind      = "Service"
+	HttpTestManifestKind     = "HttpTest"
+	HttpLoadTestManifestKind = "HttpLoadTest"
 )
 
 type Manifest interface {
@@ -13,10 +18,6 @@ type Manifest interface {
 
 type Defaultable[T Manifest] interface {
 	Default() T
-}
-
-type RawManifest struct {
-	Kind string `yaml:"kind"`
 }
 
 type Metadata struct {
