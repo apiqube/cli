@@ -1,4 +1,4 @@
-package manifests
+package manifest
 
 const (
 	CombinedManifestsDirPath = "qube/manifests/combined"

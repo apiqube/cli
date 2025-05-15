@@ -3,11 +3,12 @@ package yaml
 import (
 	"bytes"
 	"fmt"
-	"github.com/apiqube/cli/internal/manifests"
-	"github.com/apiqube/cli/internal/manifests/kinds/load"
-	"github.com/apiqube/cli/internal/manifests/kinds/server"
-	"github.com/apiqube/cli/internal/manifests/kinds/service"
-	"github.com/apiqube/cli/internal/manifests/kinds/tests"
+
+	"github.com/apiqube/cli/internal/manifest"
+	"github.com/apiqube/cli/internal/manifest/kinds/load"
+	"github.com/apiqube/cli/internal/manifest/kinds/server"
+	"github.com/apiqube/cli/internal/manifest/kinds/service"
+	"github.com/apiqube/cli/internal/manifest/kinds/tests"
 	"github.com/apiqube/cli/internal/ui"
 	"gopkg.in/yaml.v3"
 )
@@ -16,9 +17,9 @@ type RawManifest struct {
 	Kind string `yaml:"kind"`
 }
 
-func ParseManifests(data []byte) ([]manifests.Manifest, error) {
+func ParseManifests(data []byte) ([]manifest.Manifest, error) {
 	docs := bytes.Split(data, []byte("\n---"))
-	var results []manifests.Manifest
+	var results []manifest.Manifest
 
 	for _, doc := range docs {
 		doc = bytes.TrimSpace(doc)
@@ -28,45 +29,45 @@ func ParseManifests(data []byte) ([]manifests.Manifest, error) {
 
 		var raw RawManifest
 		if err := yaml.Unmarshal(doc, &raw); err != nil {
-			return nil, fmt.Errorf("failed to decode raw manifest: %w", err)
+			return nil, fmt.Errorf("failed to decode raw s: %w", err)
 		}
 
-		var manifest manifests.Manifest
+		var m manifest.Manifest
 
 		switch raw.Kind {
-		case manifests.ServerManifestKind:
-			var m server.Server
-			if err := yaml.Unmarshal(doc, m.Default()); err != nil {
+		case manifest.ServerManifestKind:
+			var s server.Server
+			if err := yaml.Unmarshal(doc, s.Default()); err != nil {
 				return nil, err
 			}
-			manifest = &m
+			m = &s
 
-		case manifests.ServiceManifestKind:
-			var m service.Service
-			if err := yaml.Unmarshal(doc, m.Default()); err != nil {
+		case manifest.ServiceManifestKind:
+			var s service.Service
+			if err := yaml.Unmarshal(doc, s.Default()); err != nil {
 				return nil, err
 			}
-			manifest = &m
+			m = &s
 
-		case manifests.HttpTestManifestKind:
-			var m tests.Http
-			if err := yaml.Unmarshal(doc, m.Default()); err != nil {
+		case manifest.HttpTestManifestKind:
+			var h tests.Http
+			if err := yaml.Unmarshal(doc, h.Default()); err != nil {
 				return nil, err
 			}
-			manifest = &m
+			m = &h
 
-		case manifests.HttpLoadTestManifestKind:
-			var m load.Http
-			if err := yaml.Unmarshal(doc, m.Default()); err != nil {
+		case manifest.HttpLoadTestManifestKind:
+			var h load.Http
+			if err := yaml.Unmarshal(doc, h.Default()); err != nil {
 				return nil, err
 			}
-			manifest = &m
+			m = &h
 
 		default:
-			ui.Errorf("Unknown manifest kind %s", raw.Kind)
+			ui.Errorf("Unknown s kind %s", raw.Kind)
 		}
 
-		results = append(results, manifest)
+		results = append(results, m)
 	}
 
 	return results, nil

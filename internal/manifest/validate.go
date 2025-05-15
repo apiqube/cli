@@ -1,4 +1,4 @@
-package manifests
+package manifest
 
 import "github.com/asaskevich/govalidator"
 

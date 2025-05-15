@@ -3,22 +3,23 @@ package yaml
 import (
 	"bytes"
 	"fmt"
-	"github.com/adrg/xdg"
-	"github.com/apiqube/cli/internal/manifests"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
+
+	"github.com/adrg/xdg"
+	"github.com/apiqube/cli/internal/manifest"
+	"gopkg.in/yaml.v3"
 )
 
-func SaveManifestsAsCombined(mans ...manifests.Manifest) error {
+func SaveManifestsAsCombined(mans ...manifest.Manifest) error {
 	fileName := fmt.Sprintf("/combined-%s.yaml", mans[0].GetNamespace())
 
-	filePath, err := xdg.DataFile(manifests.CombinedManifestsDirPath + fileName)
+	filePath, err := xdg.DataFile(manifest.CombinedManifestsDirPath + fileName)
 	if err != nil {
 		panic(err)
 	}
 
-	if err = os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+	if err = os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
 		return err
 	}
 

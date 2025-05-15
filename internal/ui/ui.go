@@ -101,6 +101,14 @@ func Stop() {
 	}
 }
 
+func StopWithTimeout(timeout time.Duration) {
+	if instance != nil && instance.initialized {
+		time.AfterFunc(timeout, func() {
+			Stop()
+		})
+	}
+}
+
 func IsEnabled() bool {
 	return instance != nil && instance.enabled
 }

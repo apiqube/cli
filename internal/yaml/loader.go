@@ -2,23 +2,24 @@ package yaml
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/internal/ui"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/apiqube/cli/internal/manifests"
+	"github.com/apiqube/cli/internal/ui"
+
+	"github.com/apiqube/cli/internal/manifest"
 )
 
-func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
+func LoadManifestsFromDir(dir string) ([]manifest.Manifest, error) {
 	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	var manifestsSet = make(map[string]struct{})
-	var parsedManifests []manifests.Manifest
-	var result []manifests.Manifest
+	manifestsSet := make(map[string]struct{})
+	var parsedManifests []manifest.Manifest
+	var result []manifest.Manifest
 	var counter int
 
 	var content []byte

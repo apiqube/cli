@@ -3,33 +3,34 @@ package depends
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/adrg/xdg"
 	"os"
 	"path/filepath"
 
-	"github.com/apiqube/cli/internal/manifests"
+	"github.com/adrg/xdg"
+
+	"github.com/apiqube/cli/internal/manifest"
 )
 
 type ExecutionPlan struct {
 	Order []string `json:"order"`
 }
 
-func GeneratePlan(manifests []manifests.Manifest) error {
+func GeneratePlan(manifests []manifest.Manifest) ([]string, error) {
 	if len(manifests) == 0 {
-		return fmt.Errorf("no manifests to generate plan")
+		return nil, fmt.Errorf("no manifests to generate plan")
 	}
 
 	graph, _, err := BuildDependencyGraph(manifests)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	order, err := TopoSort(graph)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return SaveExecutionPlan(manifests[0].GetNamespace(), order)
+	return order, nil
 }
 
 func SaveExecutionPlan(namespace string, order []string) error {
@@ -46,12 +47,12 @@ func SaveExecutionPlan(namespace string, order []string) error {
 
 	fileName := fmt.Sprintf("/plan-%s.json", namespace)
 
-	filePath, err := xdg.DataFile(manifests.ExecutionPlansDirPath + fileName)
+	filePath, err := xdg.DataFile(manifest.ExecutionPlansDirPath + fileName)
 	if err != nil {
 		return fmt.Errorf("failed to build path: %w", err)
 	}
 
-	if err = os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+	if err = os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
 		return err
 	}
 

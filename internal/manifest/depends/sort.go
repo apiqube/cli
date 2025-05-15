@@ -3,7 +3,7 @@ package depends
 import (
 	"fmt"
 
-	"github.com/apiqube/cli/internal/manifests"
+	"github.com/apiqube/cli/internal/manifest"
 )
 
 func TopoSort(graph map[string][]string) ([]string, error) {
@@ -39,13 +39,13 @@ func TopoSort(graph map[string][]string) ([]string, error) {
 	return result, nil
 }
 
-func SortManifestsByExecutionOrder(mans []manifests.Manifest, order []string) ([]manifests.Manifest, error) {
-	idMap := make(map[string]manifests.Manifest)
+func SortManifestsByExecutionOrder(mans []manifest.Manifest, order []string) ([]manifest.Manifest, error) {
+	idMap := make(map[string]manifest.Manifest)
 	for _, m := range mans {
 		idMap[m.GetID()] = m
 	}
 
-	sorted := make([]manifests.Manifest, 0, len(order))
+	sorted := make([]manifest.Manifest, 0, len(order))
 
 	for _, id := range order {
 		m, ok := idMap[id]

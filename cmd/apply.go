@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"github.com/apiqube/cli/internal/manifests/depends"
+	"time"
+
+	"github.com/apiqube/cli/internal/manifest/depends"
 	"github.com/apiqube/cli/internal/ui"
 	"github.com/apiqube/cli/internal/yaml"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 func init() {
@@ -20,6 +21,7 @@ var applyCmd = &cobra.Command{
 	SilenceUsage:  true,
 	Run: func(cmd *cobra.Command, args []string) {
 		ui.Init()
+		defer ui.StopWithTimeout(time.Millisecond * 250)
 
 		file, err := cmd.Flags().GetString("file")
 		if err != nil {
@@ -37,12 +39,15 @@ var applyCmd = &cobra.Command{
 			return
 		}
 
+		ui.Spinner(false)
 		ui.Printf("Loaded %d manifests", len(mans))
 
-		if err = depends.GeneratePlan(mans); err != nil {
+		var order []string
+		if order, err = depends.GeneratePlan(mans); err != nil {
 			ui.Errorf("Failed to generate plan: %s", err.Error())
 			return
 		}
+		_ = order
 
 		ui.Spinner(false)
 		ui.Print("Execution plan generated successfully")
@@ -55,9 +60,5 @@ var applyCmd = &cobra.Command{
 
 		ui.Spinner(false)
 		ui.Println("Manifests applied successfully")
-	},
-	PostRun: func(cmd *cobra.Command, args []string) {
-		time.Sleep(time.Millisecond * 500)
-		ui.Stop()
 	},
 }

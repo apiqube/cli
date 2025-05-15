@@ -3,13 +3,13 @@ package server
 import (
 	"fmt"
 
-	"github.com/apiqube/cli/internal/manifests"
-	"github.com/apiqube/cli/internal/manifests/kinds"
+	"github.com/apiqube/cli/internal/manifest"
+	"github.com/apiqube/cli/internal/manifest/kinds"
 )
 
 var (
-	_ manifests.Manifest             = (*Server)(nil)
-	_ manifests.Defaultable[*Server] = (*Server)(nil)
+	_ manifest.Manifest             = (*Server)(nil)
+	_ manifest.Defaultable[*Server] = (*Server)(nil)
 )
 
 type Server struct {
@@ -42,7 +42,7 @@ func (s *Server) GetDependsOn() []string {
 }
 
 func (s *Server) Default() *Server {
-	s.Namespace = manifests.DefaultNamespace
+	s.Namespace = manifest.DefaultNamespace
 	s.Spec.Headers = map[string]string{
 		"Content-Type": "application/json",
 	}
