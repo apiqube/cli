@@ -1,7 +1,9 @@
 package tests
 
 import (
+	"fmt"
 	"github.com/apiqube/cli/internal/manifests"
+	"github.com/apiqube/cli/internal/manifests/kinds"
 	"time"
 )
 
@@ -9,16 +11,16 @@ var _ manifests.Manifest = (*Http)(nil)
 var _ manifests.Defaultable[*Http] = (*Http)(nil)
 
 type Http struct {
-	manifests.BaseManifest `yaml:",inline"`
+	kinds.BaseManifest `yaml:",inline"`
 
 	Spec struct {
-		Cases []HttpCase `yaml:"cases" valid:"required,length(1|100)"`
+		Server string     `yaml:"server,omitempty"`
+		Cases  []HttpCase `yaml:"cases" valid:"required,length(1|100)"`
 	} `yaml:"spec" valid:"required"`
-
-	DependsOn []string `yaml:"dependsOn,omitempty"`
 }
 
 type HttpCase struct {
+	Name     string                 `yaml:"name" valid:"required"`
 	Method   string                 `yaml:"method" valid:"required,uppercase,in(GET|POST|PUT|DELETE)"`
 	Endpoint string                 `yaml:"endpoint,omitempty"`
 	Url      string                 `yaml:"url,omitempty"`
@@ -40,6 +42,10 @@ type HttpExpect struct {
 type HttpExtractRule struct {
 	Path  string `yaml:"path,omitempty"`
 	Value string `yaml:"value,omitempty"`
+}
+
+func (h *Http) GetID() string {
+	return fmt.Sprintf("%s.%s.%s", h.Namespace, h.Kind, h.Name)
 }
 
 func (h *Http) GetKind() string {

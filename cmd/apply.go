@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/apiqube/cli/internal/manifests/depends"
 	"github.com/apiqube/cli/internal/yaml"
 	"github.com/spf13/cobra"
 )
@@ -25,18 +26,39 @@ var applyCmd = &cobra.Command{
 
 		fmt.Println("Applying manifest from:", file)
 
-		manifests, err := yaml.LoadManifestsFromDir(file)
+		mans, err := yaml.LoadManifestsFromDir(file)
 		if err != nil {
 			return err
 		}
 
-		for i, manifest := range manifests {
-			fmt.Printf("%d\nKind: %s\nName: %s\nNamespace: %s\n",
-				i+1, manifest.GetKind(), manifest.GetName(), manifest.GetNamespace(),
-			)
+		if err = depends.GeneratePlan("./examples", mans); err != nil {
+			return err
 		}
 
-		if err := yaml.SaveManifests(file, manifests...); err != nil {
+		graph, _, err := depends.BuildDependencyGraph(mans)
+		if err != nil {
+			return err
+		}
+
+		order, err := depends.TopoSort(graph)
+		if err != nil {
+			return err
+		}
+
+		sortedMans, err := depends.SortManifestsByExecutionOrder(mans, order)
+		if err != nil {
+			return err
+		}
+
+		for _, m := range sortedMans {
+			fmt.Printf("ManifestID: %s\n", m.GetID())
+		}
+
+		if err = depends.SaveExecutionPlan("./examples", order); err != nil {
+			return err
+		}
+
+		if err := yaml.SaveManifests(file, mans...); err != nil {
 			return err
 		}
 

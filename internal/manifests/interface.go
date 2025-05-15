@@ -10,6 +10,7 @@ const (
 )
 
 type Manifest interface {
+	GetID() string
 	GetKind() string
 	GetName() string
 	GetNamespace() string
@@ -18,9 +19,4 @@ type Manifest interface {
 
 type Defaultable[T Manifest] interface {
 	Default() T
-}
-
-type Metadata struct {
-	Name      string `yaml:"name" valid:"required,alpha"`
-	Namespace string `yaml:"namespace" valid:"required,alpha"`
 }

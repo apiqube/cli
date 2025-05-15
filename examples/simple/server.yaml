@@ -4,7 +4,6 @@ kind: Server
 
 metadata:
   name: simple-server
-  namespace: simple-server-space
 
 spec:
   baseUrl: "http://localhost:8080"

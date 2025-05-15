@@ -1,23 +1,25 @@
 package service
 
-import "github.com/apiqube/cli/internal/manifests"
+import (
+	"fmt"
+	"github.com/apiqube/cli/internal/manifests"
+	"github.com/apiqube/cli/internal/manifests/kinds"
+)
 
 var _ manifests.Manifest = (*Service)(nil)
 var _ manifests.Defaultable[*Service] = (*Service)(nil)
 
 type Service struct {
-	manifests.BaseManifest `yaml:",inline"`
+	kinds.BaseManifest `yaml:",inline"`
 
 	Spec struct {
 		Containers []Container `yaml:"containers" valid:"required,length(1|50)"`
 	} `yaml:"spec" valid:"required"`
-
-	DependsOn []string `yaml:"dependsOn,omitempty"`
 }
 
 type Container struct {
 	Name          string            `yaml:"name" valid:"required"`
-	ContainerName string            `yaml:"container_name,omitempty"`
+	ContainerName string            `yaml:"containerName,omitempty"`
 	Dockerfile    string            `yaml:"dockerfile,omitempty"`
 	Image         string            `yaml:"image,omitempty"`
 	Ports         []string          `yaml:"ports,omitempty"`
@@ -25,11 +27,15 @@ type Container struct {
 	Command       string            `yaml:"command,omitempty"`
 	Depends       *ContainerDepend  `yaml:"depends,omitempty"`
 	Replicas      int               `yaml:"replicas,omitempty" valid:"length(0|25)"`
-	HealthPath    string            `yaml:"health_path,omitempty"`
+	HealthPath    string            `yaml:"healthPath,omitempty"`
 }
 
 type ContainerDepend struct {
 	Depends []string `yaml:"depends,omitempty" valid:"required,length(1|25)"`
+}
+
+func (s *Service) GetID() string {
+	return fmt.Sprintf("%s.%s.%s", s.Namespace, s.Kind, s.Name)
 }
 
 func (s *Service) GetKind() string {

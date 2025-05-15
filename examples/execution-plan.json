@@ -1,0 +1,8 @@
+{
+  "order": [
+    "default.Server.simple-server",
+    "default.Service.simple-service",
+    "default.HttpTest.simple-http-test",
+    "default.HttpLoadTest.simple-http-load-test"
+  ]
+}

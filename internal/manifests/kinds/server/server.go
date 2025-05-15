@@ -1,17 +1,25 @@
 package server
 
-import "github.com/apiqube/cli/internal/manifests"
+import (
+	"fmt"
+	"github.com/apiqube/cli/internal/manifests"
+	"github.com/apiqube/cli/internal/manifests/kinds"
+)
 
 var _ manifests.Manifest = (*Server)(nil)
 var _ manifests.Defaultable[*Server] = (*Server)(nil)
 
 type Server struct {
-	manifests.BaseManifest `yaml:",inline"`
+	kinds.BaseManifest `yaml:",inline"`
 
 	Spec struct {
 		BaseUrl string            `yaml:"baseUrl" valid:"required,url"`
 		Headers map[string]string `yaml:"headers,omitempty"`
 	} `yaml:"spec" valid:"required"`
+}
+
+func (s *Server) GetID() string {
+	return fmt.Sprintf("%s.%s.%s", s.Namespace, s.Kind, s.Name)
 }
 
 func (s *Server) GetKind() string {

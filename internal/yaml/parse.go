@@ -3,10 +3,10 @@ package yaml
 import (
 	"fmt"
 	"github.com/apiqube/cli/internal/manifests"
-	"github.com/apiqube/cli/internal/manifests/load"
-	"github.com/apiqube/cli/internal/manifests/server"
-	"github.com/apiqube/cli/internal/manifests/service"
-	"github.com/apiqube/cli/internal/manifests/tests"
+	"github.com/apiqube/cli/internal/manifests/kinds/load"
+	"github.com/apiqube/cli/internal/manifests/kinds/server"
+	"github.com/apiqube/cli/internal/manifests/kinds/service"
+	"github.com/apiqube/cli/internal/manifests/kinds/tests"
 	"gopkg.in/yaml.v3"
 )
 
