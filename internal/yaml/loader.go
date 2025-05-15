@@ -20,7 +20,7 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 	var content []byte
 
 	for _, file := range files {
-		if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yaml") && !strings.HasSuffix(file.Name(), ".yml")) {
+		if file.IsDir() || file.Name() == "combined.yaml" || (!strings.HasSuffix(file.Name(), ".yaml") && !strings.HasSuffix(file.Name(), ".yml")) {
 			continue
 		}
 

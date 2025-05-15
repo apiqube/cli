@@ -20,39 +20,43 @@ func ParseManifest(data []byte) (manifests.Manifest, error) {
 		return nil, fmt.Errorf("failed to read kind: %w", err)
 	}
 
+	var manifest manifests.Manifest
+
 	switch raw.Kind {
 	case manifests.ServerManifestKind:
 		var m server.Server
-		if err := yaml.Unmarshal(data, &m); err != nil {
+
+		if err := yaml.Unmarshal(data, m.Default()); err != nil {
 			return nil, err
 		}
 
-		return m.Default(), nil
+		manifest = &m
 	case manifests.ServiceManifestKind:
 		var m service.Service
-		if err := yaml.Unmarshal(data, &m); err != nil {
+		if err := yaml.Unmarshal(data, m.Default()); err != nil {
 			return nil, err
 		}
 
-		return m.Default(), nil
-
+		manifest = &m
 	case manifests.HttpTestManifestKind:
 		var m tests.Http
-		if err := yaml.Unmarshal(data, &m); err != nil {
+		if err := yaml.Unmarshal(data, m.Default()); err != nil {
 			return nil, err
 		}
 
-		return m.Default(), nil
+		manifest = &m
 	case manifests.HttpLoadTestManifestKind:
 		var m load.Http
 
-		if err := yaml.Unmarshal(data, &m); err != nil {
+		if err := yaml.Unmarshal(data, m.Default()); err != nil {
 			return nil, err
 		}
 
-		return m.Default(), nil
+		manifest = &m
 
 	default:
 		return nil, fmt.Errorf("unsupported kind: %s", raw.Kind)
 	}
+
+	return manifest, nil
 }

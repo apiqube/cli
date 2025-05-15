@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	applyCmd.Flags().StringP("file", "f", "", "Path to manifest file")
+	applyCmd.Flags().StringP("file", "f", ".", "Path to manifest file")
 	rootCmd.AddCommand(applyCmd)
 }
 
@@ -31,9 +31,13 @@ var applyCmd = &cobra.Command{
 		}
 
 		for i, manifest := range manifests {
-			fmt.Printf("%d\nKind: %s\nName: %s\n Namespace: %s\n",
-				i, manifest.GetKind(), manifest.GetName(), manifest.GetNamespace(),
+			fmt.Printf("%d\nKind: %s\nName: %s\nNamespace: %s\n",
+				i+1, manifest.GetKind(), manifest.GetName(), manifest.GetNamespace(),
 			)
+		}
+
+		if err := yaml.SaveManifests(file, manifests...); err != nil {
+			return err
 		}
 
 		return nil
