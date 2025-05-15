@@ -2,8 +2,9 @@ package ui
 
 import (
 	"fmt"
-	"github.com/charmbracelet/lipgloss"
 	"time"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 var (
@@ -49,13 +50,6 @@ var (
 
 	spinnerStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#ff0087"))
-
-	packageActionStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("99")).
-				Bold(true)
-
-	packageNameStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("231"))
 )
 
 func getStyle(t MessageType) lipgloss.Style {
@@ -73,11 +67,6 @@ func getStyle(t MessageType) lipgloss.Style {
 	default:
 		return logStyle
 	}
-}
-
-func formatWithTimestamp(msg string) string {
-	now := time.Now().Format("15:04:05")
-	return timestampStyle.Render(now) + " " + msg
 }
 
 func printStyled(t MessageType, a ...interface{}) {

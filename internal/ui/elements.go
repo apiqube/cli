@@ -2,9 +2,10 @@ package ui
 
 import (
 	"fmt"
-	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"time"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 func Progress(percent float64, text ...string) {
@@ -311,22 +312,6 @@ func renderLoader(text string) string {
 		text = "Processing..."
 	}
 	return loaderStyle.Render("↻ " + text)
-}
-
-func (m *uiModel) replaceLastProgress(percent float64, text string) {
-	for i := len(m.elements) - 1; i >= 0; i-- {
-		if m.elements[i].elementType == TypeProgress {
-			m.elements[i].progress = percent
-			m.elements[i].progressText = text
-			return
-		}
-	}
-
-	m.elements = append(m.elements, Element{
-		elementType:  TypeProgress,
-		progress:     percent,
-		progressText: text,
-	})
 }
 
 func renderSnippet(code string) string {

@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"slices"
+	"time"
+
 	"github.com/apiqube/cli/internal/manifests/depends"
 	"github.com/apiqube/cli/internal/ui"
 	"github.com/apiqube/cli/internal/yaml"
 	"github.com/spf13/cobra"
-	"slices"
-	"time"
 )
 
 func init() {

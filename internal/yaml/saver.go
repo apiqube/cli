@@ -3,14 +3,15 @@ package yaml
 import (
 	"bytes"
 	"fmt"
-	"github.com/apiqube/cli/internal/manifests"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
+
+	"github.com/apiqube/cli/internal/manifests"
+	"gopkg.in/yaml.v3"
 )
 
 func SaveManifests(dir string, manifests ...manifests.Manifest) error {
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create dir: %w", err)
 	}
 
@@ -30,7 +31,7 @@ func SaveManifests(dir string, manifests ...manifests.Manifest) error {
 	}
 
 	outputPath := filepath.Join(dir, "combined.yaml")
-	if err := os.WriteFile(outputPath, buf.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(outputPath, buf.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 

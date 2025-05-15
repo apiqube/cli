@@ -2,12 +2,15 @@ package service
 
 import (
 	"fmt"
+
 	"github.com/apiqube/cli/internal/manifests"
 	"github.com/apiqube/cli/internal/manifests/kinds"
 )
 
-var _ manifests.Manifest = (*Service)(nil)
-var _ manifests.Defaultable[*Service] = (*Service)(nil)
+var (
+	_ manifests.Manifest              = (*Service)(nil)
+	_ manifests.Defaultable[*Service] = (*Service)(nil)
+)
 
 type Service struct {
 	kinds.BaseManifest `yaml:",inline"`

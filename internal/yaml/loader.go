@@ -2,10 +2,11 @@ package yaml
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/internal/manifests"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/apiqube/cli/internal/manifests"
 )
 
 func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {

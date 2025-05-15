@@ -3,9 +3,10 @@ package depends
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/apiqube/cli/internal/manifests"
 	"os"
 	"path/filepath"
+
+	"github.com/apiqube/cli/internal/manifests"
 )
 
 type ExecutionPlan struct {
@@ -34,9 +35,9 @@ func SaveExecutionPlan(path string, order []string) error {
 		return fmt.Errorf("failed to marshal plan: %w", err)
 	}
 
-	if err = os.MkdirAll(path, 0755); err != nil {
+	if err = os.MkdirAll(path, 0o755); err != nil {
 		return fmt.Errorf("failed to create dir: %w", err)
 	}
 
-	return os.WriteFile(filepath.Join(path, "execution-plan.json"), data, 0644)
+	return os.WriteFile(filepath.Join(path, "execution-plan.json"), data, 0o644)
 }

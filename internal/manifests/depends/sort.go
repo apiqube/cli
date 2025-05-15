@@ -2,6 +2,7 @@ package depends
 
 import (
 	"fmt"
+
 	"github.com/apiqube/cli/internal/manifests"
 )
 

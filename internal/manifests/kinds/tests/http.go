@@ -2,13 +2,16 @@ package tests
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/apiqube/cli/internal/manifests"
 	"github.com/apiqube/cli/internal/manifests/kinds"
-	"time"
 )
 
-var _ manifests.Manifest = (*Http)(nil)
-var _ manifests.Defaultable[*Http] = (*Http)(nil)
+var (
+	_ manifests.Manifest           = (*Http)(nil)
+	_ manifests.Defaultable[*Http] = (*Http)(nil)
+)
 
 type Http struct {
 	kinds.BaseManifest `yaml:",inline"`

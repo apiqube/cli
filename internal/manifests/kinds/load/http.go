@@ -2,13 +2,16 @@ package load
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/apiqube/cli/internal/manifests"
 	"github.com/apiqube/cli/internal/manifests/kinds"
-	"time"
 )
 
-var _ manifests.Manifest = (*Http)(nil)
-var _ manifests.Defaultable[*Http] = (*Http)(nil)
+var (
+	_ manifests.Manifest           = (*Http)(nil)
+	_ manifests.Defaultable[*Http] = (*Http)(nil)
+)
 
 type Http struct {
 	kinds.BaseManifest `yaml:",inline"`
@@ -53,11 +56,11 @@ func (h *Http) GetKind() string {
 }
 
 func (h *Http) GetName() string {
-	return h.Metadata.Name
+	return h.Name
 }
 
 func (h *Http) GetNamespace() string {
-	return h.Metadata.Namespace
+	return h.Namespace
 }
 
 func (h *Http) GetDependsOn() []string {

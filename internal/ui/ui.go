@@ -2,9 +2,10 @@ package ui
 
 import (
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
 	"sync"
 	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 type MessageType int
@@ -57,7 +58,6 @@ type UI struct {
 	wg          sync.WaitGroup
 	initialized bool
 	ready       chan struct{}
-	keepOutput  bool
 }
 
 func Init() {
