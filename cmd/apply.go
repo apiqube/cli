@@ -1,13 +1,12 @@
 package cmd
 
 import (
-	"slices"
-	"time"
-
 	"github.com/apiqube/cli/internal/manifests/depends"
 	"github.com/apiqube/cli/internal/ui"
 	"github.com/apiqube/cli/internal/yaml"
 	"github.com/spf13/cobra"
+	"slices"
+	"time"
 )
 
 func init() {
@@ -16,14 +15,12 @@ func init() {
 }
 
 var applyCmd = &cobra.Command{
-	Use:   "apply",
-	Short: "Apply resources from manifest file",
+	Use:           "apply",
+	Short:         "Apply resources from manifest file",
+	SilenceErrors: true,
+	SilenceUsage:  true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ui.Init()
-		defer func() {
-			time.Sleep(time.Millisecond * 100)
-			ui.Stop()
-		}()
 
 		file, err := cmd.Flags().GetString("file")
 		if err != nil {
@@ -68,5 +65,9 @@ var applyCmd = &cobra.Command{
 		ui.Println("Manifests applied successfully")
 
 		return nil
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		time.Sleep(time.Millisecond * 500)
+		ui.Stop()
 	},
 }
