@@ -44,6 +44,23 @@ func (v *Values) GetNamespace() string {
 	return v.Namespace
 }
 
+func (v *Values) Index() any {
+	return map[string]any{
+		"version":   v.Version,
+		"kind":      v.Kind,
+		"name":      v.Name,
+		"namespace": v.Namespace,
+
+		"hash":        v.Meta.Hash,
+		"createdAt":   v.Meta.CreatedAt,
+		"createdBy":   v.Meta.CreatedBy,
+		"updatedAt":   v.Meta.UpdatedAt,
+		"updatedBy":   v.Meta.UpdatedBy,
+		"userBy":      v.Meta.UsedBy,
+		"lastApplied": v.Meta.LastApplied,
+	}
+}
+
 func (v *Values) GetMeta() manifests.Meta {
 	return v.Meta
 }

@@ -41,6 +41,23 @@ func (s *Server) GetNamespace() string {
 	return s.Namespace
 }
 
+func (s *Server) Index() any {
+	return map[string]any{
+		"version":   s.Version,
+		"kind":      s.Kind,
+		"name":      s.Name,
+		"namespace": s.Namespace,
+
+		"hash":        s.Meta.Hash,
+		"createdAt":   s.Meta.CreatedAt,
+		"createdBy":   s.Meta.CreatedBy,
+		"updatedAt":   s.Meta.UpdatedAt,
+		"updatedBy":   s.Meta.UpdatedBy,
+		"userBy":      s.Meta.UsedBy,
+		"lastApplied": s.Meta.LastApplied,
+	}
+}
+
 func (s *Server) GetMeta() manifests.Meta {
 	return s.Meta
 }

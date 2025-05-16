@@ -26,6 +26,7 @@ type Manifest interface {
 	GetKind() string
 	GetName() string
 	GetNamespace() string
+	Index() any
 }
 
 type Dependencies interface {

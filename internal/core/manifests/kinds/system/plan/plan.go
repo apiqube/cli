@@ -56,6 +56,23 @@ func (p *Plan) GetNamespace() string {
 	return p.Namespace
 }
 
+func (p *Plan) Index() any {
+	return map[string]any{
+		"version":   p.Version,
+		"kind":      p.Kind,
+		"name":      p.Name,
+		"namespace": p.Namespace,
+
+		"hash":        p.Meta.Hash,
+		"createdAt":   p.Meta.CreatedAt,
+		"createdBy":   p.Meta.CreatedBy,
+		"updatedAt":   p.Meta.UpdatedAt,
+		"updatedBy":   p.Meta.UpdatedBy,
+		"userBy":      p.Meta.UsedBy,
+		"lastApplied": p.Meta.LastApplied,
+	}
+}
+
 func (p *Plan) GetMeta() manifests.Meta {
 	return p.Meta
 }

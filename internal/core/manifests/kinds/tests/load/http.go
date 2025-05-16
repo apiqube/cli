@@ -75,6 +75,24 @@ func (h *Http) GetNamespace() string {
 	return h.Namespace
 }
 
+func (h *Http) Index() any {
+	return map[string]any{
+		"version":   h.Version,
+		"kind":      h.Kind,
+		"name":      h.Name,
+		"namespace": h.Namespace,
+		"dependsOn": h.DependsOn,
+
+		"hash":        h.Meta.Hash,
+		"createdAt":   h.Meta.CreatedAt,
+		"createdBy":   h.Meta.CreatedBy,
+		"updatedAt":   h.Meta.UpdatedAt,
+		"updatedBy":   h.Meta.UpdatedBy,
+		"userBy":      h.Meta.UsedBy,
+		"lastApplied": h.Meta.LastApplied,
+	}
+}
+
 func (h *Http) GetDependsOn() []string {
 	return h.DependsOn
 }
