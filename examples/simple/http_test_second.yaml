@@ -1,27 +1,11 @@
 version: 1
 kind: HttpTest
 metadata:
-  name: simple-http-test
+  name: not-simple-http-test
+  namespace: not-simple
 spec:
   server: simple-server
   cases:
-    - name: user-register
-      method: POST
-      endpoint: /register
-      headers:
-        type: some_data
-        Authorization: some_jwt_token
-      body:
-        username: "example_username"
-        email: "example_email"
-        password: "example_password"
-      expected:
-        code: 201
-        message: "User successfully registered"
-      timeout: 1s
-      async: true
-      repeats: 20
-
     - name: user-login
       method: GET
       endpoint: /login

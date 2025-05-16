@@ -1,0 +1,13 @@
+version: 1
+
+kind: Values
+metadata:
+  name: values
+
+spec:
+  users:
+    username: ["Max", "Carl", "John", "Alex"]
+    email:
+      - "email_1@gmail.com"
+      - "email_2@mail.com"
+      - "email_3@dog.io"
