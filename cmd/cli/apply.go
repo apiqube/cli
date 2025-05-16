@@ -2,8 +2,9 @@ package cli
 
 import (
 	"github.com/apiqube/cli/internal/core/manifests/depends"
-	"github.com/apiqube/cli/internal/core/yaml"
-	"github.com/apiqube/cli/internal/ui"
+	"github.com/apiqube/cli/internal/core/manifests/loader"
+	"github.com/apiqube/cli/internal/core/store"
+	"github.com/apiqube/cli/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +28,7 @@ var applyCmd = &cobra.Command{
 		ui.Printf("Applying manifests from: %s", file)
 		ui.Spinner(true, "Loading manifests")
 
-		mans, err := yaml.LoadManifestsFromDir(file)
+		mans, err := loader.LoadManifestsFromDir(file)
 		if err != nil {
 			ui.Spinner(false)
 			ui.Errorf("Failed to load manifests: %s", err.Error())
@@ -49,7 +50,7 @@ var applyCmd = &cobra.Command{
 		ui.Print("Execution plan generated successfully")
 		ui.Spinner(true, "Saving manifests...")
 
-		if err := yaml.SaveManifestsAsCombined(mans...); err != nil {
+		if err := store.SaveManifests(mans...); err != nil {
 			ui.Error("Failed to save manifests: " + err.Error())
 			return
 		}

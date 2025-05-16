@@ -3,10 +3,11 @@ package depends
 import (
 	"container/heap"
 	"fmt"
-	"github.com/apiqube/cli/internal/collections"
 	"strings"
 
-	"github.com/apiqube/cli/internal/manifests"
+	"github.com/apiqube/cli/internal/core/collections"
+
+	"github.com/apiqube/cli/internal/core/manifests"
 )
 
 var priorityOrder = map[string]int{

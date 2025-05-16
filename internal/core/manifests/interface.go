@@ -1,22 +1,24 @@
 package manifests
 
 import (
-	"github.com/apiqube/cli/internal/manifests/kinds"
 	"time"
-)
-
-const (
-	CombinedManifestsDirPath = "qube/manifests/combined"
-	ExecutionPlansDirPath    = "qube/plans/"
 )
 
 const (
 	DefaultNamespace = "default"
 
-	ServerManifestKind       = "Server"
-	ServiceManifestKind      = "Service"
-	HttpTestManifestKind     = "HttpTest"
-	HttpLoadTestManifestKind = "HttpLoadTest"
+	PlanManifestKind            = "Plan"
+	ValuesManifestLind          = "Values"
+	ServerManifestKind          = "Server"
+	ServiceManifestKind         = "Service"
+	HttpTestManifestKind        = "HttpTest"
+	HttpLoadTestManifestKind    = "HttpLoadTest"
+	GRPCTestManifestKind        = "GRPCTest"
+	GRPCLoadTestManifestKind    = "GRPCLoadTest"
+	WSTestManifestKind          = "WSTest"
+	WSLoadTestManifestKind      = "WSLoadTest"
+	GRAPHQLTestManifestKind     = "GraphQLTest"
+	GRAPHQLLoadTestManifestKind = "GraphQLLoadTest"
 )
 
 type Manifest interface {
@@ -24,10 +26,15 @@ type Manifest interface {
 	GetKind() string
 	GetName() string
 	GetNamespace() string
+}
+
+type Dependencies interface {
 	GetDependsOn() []string
 }
 
-var _ kinds.Meta
+type MetaTable interface {
+	GetMeta() Meta
+}
 
 type Meta interface {
 	GetHash() string
@@ -56,8 +63,8 @@ type Meta interface {
 	SetLastApplied(lastApplied time.Time)
 }
 
-type Defaultable[T Manifest] interface {
-	Default() T
+type Defaultable interface {
+	Default()
 }
 
 type Prepare interface {

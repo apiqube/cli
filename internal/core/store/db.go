@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/adrg/xdg"
-	"github.com/apiqube/cli/internal/manifests"
-	"github.com/apiqube/cli/internal/ui"
-	parcer "github.com/apiqube/cli/internal/yaml"
+	"github.com/apiqube/cli/internal/core/manifests"
+	parcer "github.com/apiqube/cli/internal/core/yaml"
 	"github.com/dgraph-io/badger/v4"
 	"gopkg.in/yaml.v3"
 )
@@ -19,64 +17,35 @@ const (
 	BadgerDatabaseDirPath = "qube/storage"
 )
 
-var (
+const (
 	manifestListKeyPrefix = "manifest_list:"
 )
 
-var (
-	instance *Storage
-	once     sync.Once
-)
-
 type Storage struct {
-	db          *badger.DB
-	enabled     bool
-	initialized bool
+	db *badger.DB
 }
 
-func Init() {
-	once.Do(func() {
-		path, err := xdg.DataFile(BadgerDatabaseDirPath)
-		if err != nil {
-			ui.Errorf("Failed to open database: %v", err)
-			return
-		}
-
-		if err = os.MkdirAll(path, os.ModePerm); err != nil {
-			ui.Errorf("Failed to create database: %v", err)
-			return
-		}
-
-		db, err := badger.Open(badger.DefaultOptions(path).WithLogger(nil))
-		if err != nil {
-			ui.Errorf("Failed to open database: %v", err)
-			return
-		}
-
-		instance = &Storage{
-			db:          db,
-			enabled:     true,
-			initialized: true,
-		}
-	})
-}
-
-func Stop() {
-	if instance != nil && instance.initialized {
-		instance.enabled = false
-		instance.initialized = false
-		if err := instance.db.Close(); err != nil {
-			ui.Errorf("Failed to close database: %v", err)
-		}
-		instance = nil
+func NewStorage() (*Storage, error) {
+	path, err := xdg.DataFile(BadgerDatabaseDirPath)
+	if err != nil {
+		return nil, fmt.Errorf("error getting data file path: %v", err)
 	}
+
+	if err = os.MkdirAll(path, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("error creating data file path: %v", err)
+	}
+
+	db, err := badger.Open(badger.DefaultOptions(path).WithLogger(nil))
+	if err != nil {
+		return nil, fmt.Errorf("error opening database: %v", err)
+	}
+
+	return &Storage{
+		db: db,
+	}, nil
 }
 
-func IsEnabled() bool {
-	return instance != nil && instance.enabled
-}
-
-func LoadManifestList() ([]string, error) {
+func (s *Storage) LoadManifestList() ([]string, error) {
 	if !IsEnabled() {
 		return nil, nil
 	}
@@ -101,11 +70,7 @@ func LoadManifestList() ([]string, error) {
 	return manifestList, err
 }
 
-func SaveManifests(mans ...manifests.Manifest) error {
-	if !IsEnabled() {
-		return nil
-	}
-
+func (s *Storage) SaveManifests(mans ...manifests.Manifest) error {
 	return instance.db.Update(func(txn *badger.Txn) error {
 		var data []byte
 		var err error
@@ -129,11 +94,7 @@ func SaveManifests(mans ...manifests.Manifest) error {
 	})
 }
 
-func LoadManifests(ids ...string) ([]manifests.Manifest, error) {
-	if !IsEnabled() {
-		return nil, nil
-	}
-
+func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 	var results []manifests.Manifest
 	var rErr error
 
@@ -169,12 +130,4 @@ func LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 	})
 
 	return results, errors.Join(rErr, err)
-}
-
-func genManifestKey(id string) []byte {
-	return []byte(id)
-}
-
-func genManifestListKey(id string) []byte {
-	return []byte(fmt.Sprintf("%s%s", manifestListKeyPrefix, id))
 }

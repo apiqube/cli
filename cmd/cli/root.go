@@ -2,10 +2,11 @@ package cli
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/apiqube/cli/internal/core/store"
 	"github.com/apiqube/cli/internal/ui"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 var rootCmd = &cobra.Command{

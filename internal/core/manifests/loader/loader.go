@@ -1,4 +1,4 @@
-package yaml
+package loader
 
 import (
 	"fmt"
@@ -6,9 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/apiqube/cli/internal/ui"
+	"github.com/apiqube/cli/internal/core/manifests/parsing"
 
-	"github.com/apiqube/cli/internal/manifests"
+	"github.com/apiqube/cli/ui"
+
+	"github.com/apiqube/cli/internal/core/manifests"
 )
 
 func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
@@ -34,7 +36,7 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 			return nil, err
 		}
 
-		parsedManifests, err = ParseManifests(content)
+		parsedManifests, err = parsing.ParseManifests(content)
 		if err != nil {
 			return nil, fmt.Errorf("in file %s: %w", file.Name(), err)
 		}

@@ -1,15 +1,15 @@
-package yaml
+package parsing
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/apiqube/cli/internal/manifests"
-	"github.com/apiqube/cli/internal/manifests/kinds/load"
-	"github.com/apiqube/cli/internal/manifests/kinds/server"
-	"github.com/apiqube/cli/internal/manifests/kinds/service"
-	"github.com/apiqube/cli/internal/manifests/kinds/tests"
-	"github.com/apiqube/cli/internal/ui"
+	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/manifests/kinds/load"
+	"github.com/apiqube/cli/internal/core/manifests/kinds/servers"
+	"github.com/apiqube/cli/internal/core/manifests/kinds/services"
+	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
+	"github.com/apiqube/cli/ui"
 	"gopkg.in/yaml.v3"
 )
 
@@ -36,14 +36,14 @@ func ParseManifests(data []byte) ([]manifests.Manifest, error) {
 
 		switch raw.Kind {
 		case manifests.ServerManifestKind:
-			var s server.Server
+			var s servers.Server
 			if err := yaml.Unmarshal(doc, s.Default()); err != nil {
 				return nil, err
 			}
 			m = &s
 
 		case manifests.ServiceManifestKind:
-			var s service.Service
+			var s services.Service
 			if err := yaml.Unmarshal(doc, s.Default()); err != nil {
 				return nil, err
 			}
