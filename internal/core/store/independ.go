@@ -42,8 +42,7 @@ func IsEnabled() bool {
 }
 
 func LoadManifestList() ([]string, error) {
-	if !IsEnabled() {
-		ui.Errorf("Database instance not ready")
+	if !isEnabled() {
 		return nil, nil
 	}
 
@@ -51,8 +50,7 @@ func LoadManifestList() ([]string, error) {
 }
 
 func SaveManifests(mans ...manifests.Manifest) error {
-	if !IsEnabled() {
-		ui.Errorf("Database instance not ready")
+	if !isEnabled() {
 		return nil
 	}
 
@@ -60,10 +58,41 @@ func SaveManifests(mans ...manifests.Manifest) error {
 }
 
 func LoadManifests(ids ...string) ([]manifests.Manifest, error) {
-	if !IsEnabled() {
-		ui.Errorf("Database instance not ready")
+	if !isEnabled() {
 		return nil, nil
 	}
 
 	return instance.LoadManifests(ids...)
+}
+
+func CheckManifestHash(hash string) (bool, error) {
+	if !isEnabled() {
+		return false, nil
+	}
+
+	return instance.CheckManifestHash(hash)
+}
+
+func LoadManifestHashes() ([]string, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.LoadManifestHashes()
+}
+
+func SaveManifestHash(hash string) error {
+	if !isEnabled() {
+		return nil
+	}
+
+	return instance.SaveManifestHash(hash)
+}
+
+func isEnabled() bool {
+	if !IsEnabled() {
+		ui.Errorf("Database instance not ready")
+		return false
+	}
+	return true
 }

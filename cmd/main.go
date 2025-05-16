@@ -1,19 +1,16 @@
 package main
 
 import (
-	"time"
-
+	"github.com/apiqube/cli/cmd/cli"
 	"github.com/apiqube/cli/internal/core/store"
-	"github.com/apiqube/cli/internal/ui"
-	"github.com/dgraph-io/badger/v4/badger/cmd"
+	"github.com/apiqube/cli/ui"
+	"time"
 )
 
 func main() {
 	ui.Init()
-	defer ui.StopWithTimeout(time.Microsecond * 250)
-
 	store.Init()
 	defer store.Stop()
-
-	cmd.Execute()
+	cli.Execute()
+	ui.StopWithTimeout(time.Second)
 }

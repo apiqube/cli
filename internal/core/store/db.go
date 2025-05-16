@@ -3,12 +3,12 @@ package store
 import (
 	"errors"
 	"fmt"
+	"github.com/apiqube/cli/internal/core/manifests/parsing"
 	"os"
 	"strings"
 
 	"github.com/adrg/xdg"
 	"github.com/apiqube/cli/internal/core/manifests"
-	parcer "github.com/apiqube/cli/internal/core/yaml"
 	"github.com/dgraph-io/badger/v4"
 	"gopkg.in/yaml.v3"
 )
@@ -19,6 +19,7 @@ const (
 
 const (
 	manifestListKeyPrefix = "manifest_list:"
+	manifestHashKeyPrefix = "manifest_hash:"
 )
 
 type Storage struct {
@@ -115,7 +116,7 @@ func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 			var mans []manifests.Manifest
 
 			if err = item.Value(func(data []byte) error {
-				if mans, err = parcer.ParseManifests(data); err != nil {
+				if mans, err = parsing.ParseYamlManifests(data); err != nil {
 					return err
 				}
 
@@ -130,4 +131,59 @@ func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 	})
 
 	return results, errors.Join(rErr, err)
+}
+
+func (s *Storage) CheckManifestHash(hash string) (bool, error) {
+	var result = true
+	var err error
+
+	err = instance.db.View(func(txn *badger.Txn) error {
+		_, err = txn.Get(genManifestHashKey(hash))
+		if errors.Is(err, badger.ErrKeyNotFound) {
+			result = false
+			return nil
+		} else if err != nil {
+			return fmt.Errorf("error getting manifest hash: %v", err)
+		}
+
+		return err
+	})
+
+	return result, err
+}
+
+func (s *Storage) LoadManifestHashes() ([]string, error) {
+	var results []string
+	var rErr error
+
+	err := instance.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.Prefix = []byte(manifestHashKeyPrefix)
+
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		for it.Rewind(); it.Valid(); it.Next() {
+			key := it.Item().Key()
+			results = append(results, strings.TrimPrefix(string(key), manifestHashKeyPrefix))
+		}
+
+		return nil
+	})
+
+	return results, errors.Join(rErr, err)
+}
+
+func (s *Storage) SaveManifestHash(hash string) error {
+	var err error
+
+	err = instance.db.Update(func(txn *badger.Txn) error {
+		return txn.Set(genManifestHashKey(hash), []byte(hash))
+	})
+
+	if err != nil {
+		return fmt.Errorf("error saving manifest hash: %v", err)
+	}
+
+	return nil
 }

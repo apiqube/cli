@@ -3,12 +3,12 @@ package parsing
 import (
 	"bytes"
 	"fmt"
+	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/kinds/load"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/servers"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/services"
-	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
+	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/load"
 	"github.com/apiqube/cli/ui"
 	"gopkg.in/yaml.v3"
 )
@@ -17,7 +17,7 @@ type RawManifest struct {
 	Kind string `yaml:"kind"`
 }
 
-func ParseManifests(data []byte) ([]manifests.Manifest, error) {
+func ParseYamlManifests(data []byte) ([]manifests.Manifest, error) {
 	docs := bytes.Split(data, []byte("\n---"))
 	var results []manifests.Manifest
 
@@ -37,34 +37,34 @@ func ParseManifests(data []byte) ([]manifests.Manifest, error) {
 		switch raw.Kind {
 		case manifests.ServerManifestKind:
 			var s servers.Server
-			if err := yaml.Unmarshal(doc, s.Default()); err != nil {
+			if err := s.UnmarshalYAML(doc); err != nil {
 				return nil, err
 			}
 			m = &s
 
 		case manifests.ServiceManifestKind:
 			var s services.Service
-			if err := yaml.Unmarshal(doc, s.Default()); err != nil {
+			if err := s.UnmarshalYAML(doc); err != nil {
 				return nil, err
 			}
 			m = &s
 
 		case manifests.HttpTestManifestKind:
-			var h tests.Http
-			if err := yaml.Unmarshal(doc, h.Default()); err != nil {
+			var h api.Http
+			if err := h.UnmarshalYAML(doc); err != nil {
 				return nil, err
 			}
 			m = &h
 
 		case manifests.HttpLoadTestManifestKind:
 			var h load.Http
-			if err := yaml.Unmarshal(doc, h.Default()); err != nil {
+			if err := h.UnmarshalYAML(doc); err != nil {
 				return nil, err
 			}
 			m = &h
 
 		default:
-			ui.Errorf("Unknown s kind %s", raw.Kind)
+			ui.Errorf("Unknown manifest kind %s", raw.Kind)
 		}
 
 		results = append(results, m)

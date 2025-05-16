@@ -36,7 +36,6 @@ var applyCmd = &cobra.Command{
 		}
 
 		ui.Spinner(false)
-		ui.Printf("Loaded %d manifests", len(mans))
 
 		var result *depends.GraphResult
 		if result, err = depends.BuildGraphWithPriority(mans); err != nil {
@@ -44,7 +43,9 @@ var applyCmd = &cobra.Command{
 			return
 		}
 
-		_ = result
+		for i, order := range result.ExecutionOrder {
+			ui.Printf("#Order %d %s", i+1, order)
+		}
 
 		ui.Spinner(false)
 		ui.Print("Execution plan generated successfully")

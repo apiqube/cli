@@ -45,14 +45,16 @@ func BuildGraphWithPriority(mans []manifests.Manifest) (*GraphResult, error) {
 		}
 	}
 
-	for _, node := range mans {
-		id := node.GetID()
-		for _, depID := range node.GetDependsOn() {
-			if depID == id {
-				return nil, fmt.Errorf("dependency error: %s manifest cannot depend on itself", id)
+	for _, man := range mans {
+		if dep, has := man.(manifests.Dependencies); has {
+			id := man.GetID()
+			for _, depID := range dep.GetDependsOn() {
+				if depID == id {
+					return nil, fmt.Errorf("dependency error: %s manifest cannot depend on itself", id)
+				}
+				graph[depID] = append(graph[depID], id)
+				inDegree[id]++
 			}
-			graph[depID] = append(graph[depID], id)
-			inDegree[id]++
 		}
 	}
 
