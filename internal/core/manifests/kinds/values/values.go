@@ -21,7 +21,7 @@ type Values struct {
 		Content `yaml:",inline" json:",inline"`
 	} `yaml:"spec" valid:"required"`
 
-	Meta kinds.Meta `yaml:"-" json:"meta"`
+	Meta *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 type Content struct {

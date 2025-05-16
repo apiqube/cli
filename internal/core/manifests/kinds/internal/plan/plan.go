@@ -22,7 +22,7 @@ type Plan struct {
 		Hooks  Hooks  `yaml:"hooks" json:"hooks"`
 	} `yaml:"spec" json:"spec"`
 
-	Meta kinds.Meta `yaml:"meta" json:"meta"`
+	Meta *kinds.Meta `yaml:"meta" json:"meta"`
 }
 
 type Stages struct {

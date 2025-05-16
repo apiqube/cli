@@ -7,7 +7,7 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests"
 )
 
-var DefaultMeta = Meta{
+var DefaultMeta = &Meta{
 	Hash:        "",
 	Version:     1,
 	CreatedAt:   time.Now(),
@@ -31,72 +31,72 @@ type Meta struct {
 	LastApplied time.Time `yaml:"-" json:"lastApplied"`
 }
 
-func (m Meta) GetHash() string {
+func (m *Meta) GetHash() string {
 	return m.Hash
 }
 
-func (m Meta) SetHash(hash string) {
+func (m *Meta) SetHash(hash string) {
 	m.Hash = hash
 }
 
-func (m Meta) GetVersion() uint8 {
+func (m *Meta) GetVersion() uint8 {
 	return m.Version
 }
 
-func (m Meta) SetVersion(version uint8) {
+func (m *Meta) SetVersion(version uint8) {
 	m.Version = version
 }
 
-func (m Meta) IncVersion() {
+func (m *Meta) IncVersion() {
 	if m.Version < math.MaxUint8 {
 		m.Version++
 	}
 }
 
-func (m Meta) GetCreatedAt() time.Time {
+func (m *Meta) GetCreatedAt() time.Time {
 	return m.CreatedAt
 }
 
-func (m Meta) SetCreatedAt(createdAt time.Time) {
+func (m *Meta) SetCreatedAt(createdAt time.Time) {
 	m.CreatedAt = createdAt
 }
 
-func (m Meta) GetCreatedBy() string {
+func (m *Meta) GetCreatedBy() string {
 	return m.CreatedBy
 }
 
-func (m Meta) SetCreatedBy(createdBy string) {
+func (m *Meta) SetCreatedBy(createdBy string) {
 	m.CreatedBy = createdBy
 }
 
-func (m Meta) GetUpdatedAt() time.Time {
+func (m *Meta) GetUpdatedAt() time.Time {
 	return m.UpdatedAt
 }
 
-func (m Meta) SetUpdatedAt(updatedAt time.Time) {
+func (m *Meta) SetUpdatedAt(updatedAt time.Time) {
 	m.UpdatedAt = updatedAt
 }
 
-func (m Meta) GetUpdatedBy() string {
+func (m *Meta) GetUpdatedBy() string {
 	return m.UpdatedBy
 }
 
-func (m Meta) SetUpdatedBy(updatedBy string) {
+func (m *Meta) SetUpdatedBy(updatedBy string) {
 	m.UpdatedBy = updatedBy
 }
 
-func (m Meta) GetUsedBy() string {
+func (m *Meta) GetUsedBy() string {
 	return m.UsedBy
 }
 
-func (m Meta) SetUsedBy(usedBy string) {
+func (m *Meta) SetUsedBy(usedBy string) {
 	m.UsedBy = usedBy
 }
 
-func (m Meta) GetLastApplied() time.Time {
+func (m *Meta) GetLastApplied() time.Time {
 	return m.LastApplied
 }
 
-func (m Meta) SetLastApplied(lastApplied time.Time) {
+func (m *Meta) SetLastApplied(lastApplied time.Time) {
 	m.LastApplied = lastApplied
 }

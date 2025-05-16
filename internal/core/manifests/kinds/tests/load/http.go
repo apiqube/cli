@@ -27,7 +27,7 @@ type Http struct {
 	} `yaml:"spec" json:"spec" valid:"required"`
 
 	kinds.Dependencies `yaml:",inline" json:",inline"`
-	Meta               kinds.Meta `yaml:"-" json:"meta"`
+	Meta               *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 type HttpCase struct {

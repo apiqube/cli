@@ -22,7 +22,7 @@ type Server struct {
 		Headers map[string]string `yaml:"headers,omitempty" json:"headers" valid:"-"`
 	} `yaml:"spec" json:"spec" valid:"required"`
 
-	Meta kinds.Meta `yaml:"-" json:"meta"`
+	Meta *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 func (s *Server) GetID() string {

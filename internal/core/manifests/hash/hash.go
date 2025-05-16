@@ -17,7 +17,9 @@ func CalculateHashWithPath(filePath string, content []byte) (string, error) {
 
 	hasher := sha256.New()
 	hasher.Write(content)
-	hasher.Write([]byte(fmt.Sprintf("%d", modTime)))
+	if _, err = fmt.Fprintf(hasher, "%d", modTime); err != nil {
+		return "", fmt.Errorf("failed to calculate hash: %s", err.Error())
+	}
 
 	hash := hex.EncodeToString(hasher.Sum(nil))
 

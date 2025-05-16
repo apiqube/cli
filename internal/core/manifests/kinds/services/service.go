@@ -23,7 +23,7 @@ type Service struct {
 	} `yaml:"spec" valid:"required"`
 
 	kinds.Dependencies `yaml:",inline" json:",inline"`
-	Meta               kinds.Meta `yaml:"-" json:"meta"`
+	Meta               *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 func (s *Service) GetID() string {

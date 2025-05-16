@@ -2,13 +2,14 @@ package loader
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/internal/core/manifests/hash"
-	"github.com/apiqube/cli/internal/core/manifests/parsing"
-	"github.com/apiqube/cli/internal/core/store"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/apiqube/cli/internal/core/manifests/hash"
+	"github.com/apiqube/cli/internal/core/manifests/parsing"
+	"github.com/apiqube/cli/internal/core/store"
 
 	"github.com/apiqube/cli/ui"
 
@@ -32,11 +33,12 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 	}
 
 	var (
-		newManifests    []manifests.Manifest
-		existingIDs     []string
-		manifestsSet    = make(map[string]struct{})
-		processedHashes = make(map[string]bool)
-		exsitis         bool
+		mans                      []manifests.Manifest
+		existingIDs               []string
+		manifestsSet              = make(map[string]struct{})
+		processedHashes           = make(map[string]bool)
+		exists                    bool
+		newCounter, existsCounter int
 	)
 
 	for _, file := range files {
@@ -61,7 +63,10 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 
 		if hashCache[fileHash] {
 			ui.Infof("Manifest file %s unchanged (%s) - using cache", file.Name(), shortHash(fileHash))
-			exsitis = true
+			exists = true
+			existsCounter++
+		} else {
+			newCounter++
 		}
 
 		var parsedManifests []manifests.Manifest
@@ -72,7 +77,7 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 		}
 
 		for _, m := range parsedManifests {
-			if !exsitis {
+			if !exists {
 				manifestID := m.GetID()
 
 				if _, ok := manifestsSet[manifestID]; ok {
@@ -88,7 +93,7 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 				}
 
 				manifestsSet[manifestID] = struct{}{}
-				newManifests = append(newManifests, m)
+				mans = append(mans, m)
 				processedHashes[fileHash] = true
 
 				ui.Successf("New manifest added: %s (h: %s)", manifestID, shortHash(fileHash))
@@ -110,20 +115,21 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 		if err != nil {
 			ui.Warningf("Failed to load existing manifests: %v", err)
 		} else {
-			newManifests = append(existingManifests, newManifests...)
+			mans = append(existingManifests, mans...)
 		}
 	}
 
-	if len(newManifests) == 0 {
-		ui.Infof("New manifests not found")
+	if newCounter == 0 {
+		ui.Infof("Loaded %d manifests, new manifests not found", len(mans))
+	} else {
+		ui.Infof("Loaded %d manifests (%d new, %d from cache)",
+			len(mans),
+			newCounter,
+			existsCounter,
+		)
 	}
 
-	ui.Infof("Loaded %d manifests (%d new, %d from cache)",
-		len(newManifests),
-		len(newManifests)-len(existingManifests),
-		len(existingManifests))
-
-	return newManifests, nil
+	return mans, nil
 }
 
 func shortHash(fullHash string) string {

@@ -1,11 +1,8 @@
 version: 1
-
 kind: HttpTest
-
 metadata:
   name: not-simple-http-test
   namespace: not-simple
-
 spec:
   server: simple-server
   cases:
@@ -17,13 +14,11 @@ spec:
         password: "example_password"
       expected:
         code: 200
-
     - name: user-fetch
       method: GET
       endpoint: /users/{id}
       expected:
         code: 404
         message: "User not found"
-
 dependsOn:
   - default.Service.simple-service

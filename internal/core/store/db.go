@@ -3,9 +3,10 @@ package store
 import (
 	"errors"
 	"fmt"
-	"github.com/apiqube/cli/internal/core/manifests/parsing"
 	"os"
 	"strings"
+
+	"github.com/apiqube/cli/internal/core/manifests/parsing"
 
 	"github.com/adrg/xdg"
 	"github.com/apiqube/cli/internal/core/manifests"
@@ -134,7 +135,7 @@ func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 }
 
 func (s *Storage) CheckManifestHash(hash string) (bool, error) {
-	var result = true
+	result := true
 	var err error
 
 	err = instance.db.View(func(txn *badger.Txn) error {
@@ -175,15 +176,14 @@ func (s *Storage) LoadManifestHashes() ([]string, error) {
 }
 
 func (s *Storage) SaveManifestHash(hash string) error {
-	var err error
+	var rErr error
 
-	err = instance.db.Update(func(txn *badger.Txn) error {
+	err := instance.db.Update(func(txn *badger.Txn) error {
 		return txn.Set(genManifestHashKey(hash), []byte(hash))
 	})
-
 	if err != nil {
 		return fmt.Errorf("error saving manifest hash: %v", err)
 	}
 
-	return nil
+	return errors.Join(rErr, err)
 }
