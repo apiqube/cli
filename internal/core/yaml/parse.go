@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/apiqube/cli/internal/manifest"
-	"github.com/apiqube/cli/internal/manifest/kinds/load"
-	"github.com/apiqube/cli/internal/manifest/kinds/server"
-	"github.com/apiqube/cli/internal/manifest/kinds/service"
-	"github.com/apiqube/cli/internal/manifest/kinds/tests"
+	"github.com/apiqube/cli/internal/manifests"
+	"github.com/apiqube/cli/internal/manifests/kinds/load"
+	"github.com/apiqube/cli/internal/manifests/kinds/server"
+	"github.com/apiqube/cli/internal/manifests/kinds/service"
+	"github.com/apiqube/cli/internal/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/ui"
 	"gopkg.in/yaml.v3"
 )
@@ -17,9 +17,9 @@ type RawManifest struct {
 	Kind string `yaml:"kind"`
 }
 
-func ParseManifests(data []byte) ([]manifest.Manifest, error) {
+func ParseManifests(data []byte) ([]manifests.Manifest, error) {
 	docs := bytes.Split(data, []byte("\n---"))
-	var results []manifest.Manifest
+	var results []manifests.Manifest
 
 	for _, doc := range docs {
 		doc = bytes.TrimSpace(doc)
@@ -32,31 +32,31 @@ func ParseManifests(data []byte) ([]manifest.Manifest, error) {
 			return nil, fmt.Errorf("failed to decode raw s: %w", err)
 		}
 
-		var m manifest.Manifest
+		var m manifests.Manifest
 
 		switch raw.Kind {
-		case manifest.ServerManifestKind:
+		case manifests.ServerManifestKind:
 			var s server.Server
 			if err := yaml.Unmarshal(doc, s.Default()); err != nil {
 				return nil, err
 			}
 			m = &s
 
-		case manifest.ServiceManifestKind:
+		case manifests.ServiceManifestKind:
 			var s service.Service
 			if err := yaml.Unmarshal(doc, s.Default()); err != nil {
 				return nil, err
 			}
 			m = &s
 
-		case manifest.HttpTestManifestKind:
+		case manifests.HttpTestManifestKind:
 			var h tests.Http
 			if err := yaml.Unmarshal(doc, h.Default()); err != nil {
 				return nil, err
 			}
 			m = &h
 
-		case manifest.HttpLoadTestManifestKind:
+		case manifests.HttpLoadTestManifestKind:
 			var h load.Http
 			if err := yaml.Unmarshal(doc, h.Default()); err != nil {
 				return nil, err

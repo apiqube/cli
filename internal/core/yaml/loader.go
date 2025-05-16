@@ -8,18 +8,18 @@ import (
 
 	"github.com/apiqube/cli/internal/ui"
 
-	"github.com/apiqube/cli/internal/manifest"
+	"github.com/apiqube/cli/internal/manifests"
 )
 
-func LoadManifestsFromDir(dir string) ([]manifest.Manifest, error) {
+func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
 	manifestsSet := make(map[string]struct{})
-	var parsedManifests []manifest.Manifest
-	var result []manifest.Manifest
+	var parsedManifests []manifests.Manifest
+	var result []manifests.Manifest
 	var counter int
 
 	var content []byte

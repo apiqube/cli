@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/adrg/xdg"
-	"github.com/apiqube/cli/internal/manifest"
+	"github.com/apiqube/cli/internal/manifests"
 	"github.com/apiqube/cli/internal/ui"
 	parcer "github.com/apiqube/cli/internal/yaml"
 	"github.com/dgraph-io/badger/v4"
@@ -101,7 +101,7 @@ func LoadManifestList() ([]string, error) {
 	return manifestList, err
 }
 
-func SaveManifests(mans ...manifest.Manifest) error {
+func SaveManifests(mans ...manifests.Manifest) error {
 	if !IsEnabled() {
 		return nil
 	}
@@ -129,12 +129,12 @@ func SaveManifests(mans ...manifest.Manifest) error {
 	})
 }
 
-func LoadManifests(ids ...string) ([]manifest.Manifest, error) {
+func LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 	if !IsEnabled() {
 		return nil, nil
 	}
 
-	var results []manifest.Manifest
+	var results []manifests.Manifest
 	var rErr error
 
 	err := instance.db.View(func(txn *badger.Txn) error {
@@ -151,7 +151,7 @@ func LoadManifests(ids ...string) ([]manifest.Manifest, error) {
 				continue
 			}
 
-			var mans []manifest.Manifest
+			var mans []manifests.Manifest
 
 			if err = item.Value(func(data []byte) error {
 				if mans, err = parcer.ParseManifests(data); err != nil {

@@ -3,13 +3,13 @@ package service
 import (
 	"fmt"
 
-	"github.com/apiqube/cli/internal/manifest"
-	"github.com/apiqube/cli/internal/manifest/kinds"
+	"github.com/apiqube/cli/internal/manifests"
+	"github.com/apiqube/cli/internal/manifests/kinds"
 )
 
 var (
-	_ manifest.Manifest              = (*Service)(nil)
-	_ manifest.Defaultable[*Service] = (*Service)(nil)
+	_ manifests.Manifest              = (*Service)(nil)
+	_ manifests.Defaultable[*Service] = (*Service)(nil)
 )
 
 type Service struct {
@@ -58,7 +58,7 @@ func (s *Service) GetDependsOn() []string {
 }
 
 func (s *Service) Default() *Service {
-	s.Namespace = manifest.DefaultNamespace
+	s.Namespace = manifests.DefaultNamespace
 
 	return s
 }

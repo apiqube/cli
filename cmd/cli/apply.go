@@ -1,11 +1,9 @@
-package cmd
+package cli
 
 import (
-	"time"
-
-	"github.com/apiqube/cli/internal/manifest/depends"
+	"github.com/apiqube/cli/internal/core/manifests/depends"
+	"github.com/apiqube/cli/internal/core/yaml"
 	"github.com/apiqube/cli/internal/ui"
-	"github.com/apiqube/cli/internal/yaml"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +18,6 @@ var applyCmd = &cobra.Command{
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	Run: func(cmd *cobra.Command, args []string) {
-		ui.Init()
-		defer ui.StopWithTimeout(time.Millisecond * 250)
-
 		file, err := cmd.Flags().GetString("file")
 		if err != nil {
 			ui.Errorf("Failed to parse --file: %s", err.Error())
@@ -42,12 +37,13 @@ var applyCmd = &cobra.Command{
 		ui.Spinner(false)
 		ui.Printf("Loaded %d manifests", len(mans))
 
-		var order []string
-		if order, err = depends.GeneratePlan(mans); err != nil {
+		var result *depends.GraphResult
+		if result, err = depends.BuildGraphWithPriority(mans); err != nil {
 			ui.Errorf("Failed to generate plan: %s", err.Error())
 			return
 		}
-		_ = order
+
+		_ = result
 
 		ui.Spinner(false)
 		ui.Print("Execution plan generated successfully")

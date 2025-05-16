@@ -6,7 +6,7 @@ import (
 	"github.com/apiqube/cli/internal/collections"
 	"strings"
 
-	"github.com/apiqube/cli/internal/manifest"
+	"github.com/apiqube/cli/internal/manifests"
 )
 
 var priorityOrder = map[string]int{
@@ -26,13 +26,13 @@ type Node struct {
 	Priority int
 }
 
-func BuildGraphWithPriority(manifests []manifest.Manifest) (*GraphResult, error) {
+func BuildGraphWithPriority(mans []manifests.Manifest) (*GraphResult, error) {
 	graph := make(map[string][]string)
 	inDegree := make(map[string]int)
-	idToNode := make(map[string]manifest.Manifest)
+	idToNode := make(map[string]manifests.Manifest)
 	nodePriority := make(map[string]int)
 
-	for _, node := range manifests {
+	for _, node := range mans {
 		id := node.GetID()
 		idToNode[id] = node
 		inDegree[id] = 0
@@ -44,11 +44,11 @@ func BuildGraphWithPriority(manifests []manifest.Manifest) (*GraphResult, error)
 		}
 	}
 
-	for _, node := range manifests {
+	for _, node := range mans {
 		id := node.GetID()
 		for _, depID := range node.GetDependsOn() {
 			if depID == id {
-				return nil, fmt.Errorf("цикл: %s зависит от самого себя", id)
+				return nil, fmt.Errorf("dependency error: %s manifest cannot depend on itself", id)
 			}
 			graph[depID] = append(graph[depID], id)
 			inDegree[id]++
@@ -84,9 +84,9 @@ func BuildGraphWithPriority(manifests []manifest.Manifest) (*GraphResult, error)
 		}
 	}
 
-	if len(order) != len(manifests) {
+	if len(order) != len(mans) {
 		cyclicNodes := findCyclicNodes(inDegree)
-		return nil, fmt.Errorf("циклы в зависимостях: %v", cyclicNodes)
+		return nil, fmt.Errorf("dependency error: сyclic dependency: %v", cyclicNodes)
 	}
 
 	return &GraphResult{

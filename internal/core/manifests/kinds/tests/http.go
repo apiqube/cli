@@ -1,16 +1,16 @@
-package load
+package tests
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/apiqube/cli/internal/manifest"
-	"github.com/apiqube/cli/internal/manifest/kinds"
+	"github.com/apiqube/cli/internal/manifests"
+	"github.com/apiqube/cli/internal/manifests/kinds"
 )
 
 var (
-	_ manifest.Manifest           = (*Http)(nil)
-	_ manifest.Defaultable[*Http] = (*Http)(nil)
+	_ manifests.Manifest           = (*Http)(nil)
+	_ manifests.Defaultable[*Http] = (*Http)(nil)
 )
 
 type Http struct {
@@ -68,7 +68,7 @@ func (h *Http) GetDependsOn() []string {
 }
 
 func (h *Http) Default() *Http {
-	h.Namespace = manifest.DefaultNamespace
+	h.Namespace = manifests.DefaultNamespace
 
 	return h
 }
