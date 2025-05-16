@@ -1,40 +1,113 @@
 package depends
 
 import (
+	"container/heap"
 	"fmt"
+	"github.com/apiqube/cli/internal/collections"
+	"strings"
 
 	"github.com/apiqube/cli/internal/manifest"
 )
 
-type Node struct {
-	ID       string
-	Manifest manifest.Manifest
-	Depends  []string
+var priorityOrder = map[string]int{
+	"Values":    100,
+	"ConfigMap": 90,
+	"Server":    50,
+	"Service":   30,
 }
 
-func BuildDependencyGraph(mans []manifest.Manifest) (map[string][]string, map[string]manifest.Manifest, error) {
+type GraphResult struct {
+	Graph          map[string][]string
+	ExecutionOrder []string
+}
+
+type Node struct {
+	ID       string
+	Priority int
+}
+
+func BuildGraphWithPriority(manifests []manifest.Manifest) (*GraphResult, error) {
 	graph := make(map[string][]string)
-	idToManifest := make(map[string]manifest.Manifest)
+	inDegree := make(map[string]int)
+	idToNode := make(map[string]manifest.Manifest)
+	nodePriority := make(map[string]int)
 
-	for _, m := range mans {
-		id := m.GetID()
-		idToManifest[id] = m
-		graph[id] = []string{}
-	}
+	for _, node := range manifests {
+		id := node.GetID()
+		idToNode[id] = node
+		inDegree[id] = 0
 
-	for id, m := range idToManifest {
-		for _, dep := range m.GetDependsOn() {
-			if dep == id {
-				return nil, nil, fmt.Errorf("m %s cannot depend on itself", id)
-			}
-
-			if _, ok := idToManifest[dep]; !ok {
-				return nil, nil, fmt.Errorf("m %s depends on unknown m %s", id, dep)
-			}
-
-			graph[id] = append(graph[id], dep)
+		parts := strings.Split(id, ".")
+		if len(parts) >= 2 {
+			kind := parts[1]
+			nodePriority[id] = getPriority(kind)
 		}
 	}
 
-	return graph, idToManifest, nil
+	for _, node := range manifests {
+		id := node.GetID()
+		for _, depID := range node.GetDependsOn() {
+			if depID == id {
+				return nil, fmt.Errorf("цикл: %s зависит от самого себя", id)
+			}
+			graph[depID] = append(graph[depID], id)
+			inDegree[id]++
+		}
+	}
+
+	priorityQueue := collections.NewPriorityQueue[*Node](func(a, b *Node) bool {
+		return a.Priority > b.Priority
+	})
+
+	for id, degree := range inDegree {
+		if degree == 0 {
+			heap.Push(priorityQueue, &Node{
+				ID:       id,
+				Priority: nodePriority[id],
+			})
+		}
+	}
+
+	var order []string
+	for priorityQueue.Len() > 0 {
+		current := heap.Pop(priorityQueue).(*Node).ID
+		order = append(order, current)
+
+		for _, neighbor := range graph[current] {
+			inDegree[neighbor]--
+			if inDegree[neighbor] == 0 {
+				heap.Push(priorityQueue, &Node{
+					ID:       neighbor,
+					Priority: nodePriority[neighbor],
+				})
+			}
+		}
+	}
+
+	if len(order) != len(manifests) {
+		cyclicNodes := findCyclicNodes(inDegree)
+		return nil, fmt.Errorf("циклы в зависимостях: %v", cyclicNodes)
+	}
+
+	return &GraphResult{
+		Graph:          graph,
+		ExecutionOrder: order,
+	}, nil
+}
+
+func getPriority(kind string) int {
+	if p, ok := priorityOrder[kind]; ok {
+		return p
+	}
+	return 0
+}
+
+func findCyclicNodes(inDegree map[string]int) []string {
+	cyclicNodes := make([]string, 0)
+	for id, degree := range inDegree {
+		if degree > 0 {
+			cyclicNodes = append(cyclicNodes, id)
+		}
+	}
+	return cyclicNodes
 }
