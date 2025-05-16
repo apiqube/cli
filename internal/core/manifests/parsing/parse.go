@@ -2,7 +2,10 @@ package parsing
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/apiqube/cli/internal/core/manifests/kinds/values"
 
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 
@@ -10,17 +13,62 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests/kinds/servers"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/services"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/load"
-	"github.com/apiqube/cli/ui"
 	"gopkg.in/yaml.v3"
 )
 
+type ParseMethod uint8
+
+const (
+	JSONMethod ParseMethod = iota + 1
+	YAMLMethod
+)
+
 type RawManifest struct {
-	Kind string `yaml:"kind"`
+	Kind string `yaml:"kind" json:"kind"`
 }
 
-func ParseYamlManifests(data []byte) ([]manifests.Manifest, error) {
+func ParseManifestsAsYAML(data []byte) ([]manifests.Manifest, error) {
 	docs := bytes.Split(data, []byte("\n---"))
 	var results []manifests.Manifest
+	var rErr error
+
+	for _, doc := range docs {
+		manifest, err := ParseManifest(YAMLMethod, doc)
+		if err != nil {
+			rErr = errors.Join(rErr, err)
+			continue
+		}
+
+		results = append(results, manifest)
+	}
+
+	return results, rErr
+}
+
+func ParseManifestsAsJSON(data []byte) ([]manifests.Manifest, error) {
+	docs := bytes.Split(data, []byte("\n\n"))
+
+	if bytes.HasPrefix(bytes.TrimSpace(data), []byte("[")) {
+		var rawManifests []json.RawMessage
+		if err := json.Unmarshal(data, &rawManifests); err != nil {
+			return nil, fmt.Errorf("failed to parse JSON array: %w", err)
+		}
+
+		var results []manifests.Manifest
+		var rErr error
+		for _, rawDoc := range rawManifests {
+			manifest, err := ParseManifest(JSONMethod, rawDoc)
+			if err != nil {
+				rErr = errors.Join(rErr, err)
+				continue
+			}
+			results = append(results, manifest)
+		}
+		return results, rErr
+	}
+
+	var results []manifests.Manifest
+	var rErr error
 
 	for _, doc := range docs {
 		doc = bytes.TrimSpace(doc)
@@ -28,48 +76,77 @@ func ParseYamlManifests(data []byte) ([]manifests.Manifest, error) {
 			continue
 		}
 
-		var raw RawManifest
-		if err := yaml.Unmarshal(doc, &raw); err != nil {
-			return nil, fmt.Errorf("failed to decode raw s: %w", err)
+		manifest, err := ParseManifest(JSONMethod, doc)
+		if err != nil {
+			rErr = errors.Join(rErr, err)
+			continue
 		}
-
-		var m manifests.Manifest
-
-		switch raw.Kind {
-		case manifests.ServerManifestKind:
-			var s servers.Server
-			if err := s.UnmarshalYAML(doc); err != nil {
-				return nil, err
-			}
-			m = &s
-
-		case manifests.ServiceManifestKind:
-			var s services.Service
-			if err := s.UnmarshalYAML(doc); err != nil {
-				return nil, err
-			}
-			m = &s
-
-		case manifests.HttpTestManifestKind:
-			var h api.Http
-			if err := h.UnmarshalYAML(doc); err != nil {
-				return nil, err
-			}
-			m = &h
-
-		case manifests.HttpLoadTestManifestKind:
-			var h load.Http
-			if err := h.UnmarshalYAML(doc); err != nil {
-				return nil, err
-			}
-			m = &h
-
-		default:
-			ui.Errorf("Unknown manifest kind %s", raw.Kind)
-		}
-
-		results = append(results, m)
+		results = append(results, manifest)
 	}
 
-	return results, nil
+	if len(results) == 0 && rErr != nil {
+		return nil, rErr
+	}
+
+	return results, rErr
+}
+
+func ParseManifestAsYAML(data []byte) (manifests.Manifest, error) {
+	return ParseManifest(YAMLMethod, data)
+}
+
+func ParseManifestAsJSON(data []byte) (manifests.Manifest, error) {
+	return ParseManifest(JSONMethod, data)
+}
+
+func ParseManifest(parseMethod ParseMethod, data []byte) (manifests.Manifest, error) {
+	data = bytes.TrimSpace(data)
+	if len(data) == 0 {
+		return nil, fmt.Errorf("provided data not looks li	ke a valid manifest")
+	}
+
+	var raw RawManifest
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return nil, fmt.Errorf("failed to recognize manifest kind: %w", err)
+	}
+
+	var manifest manifests.Manifest
+	switch raw.Kind {
+	case manifests.ValuesManifestLind:
+		manifest = &values.Values{}
+	case manifests.ServerManifestKind:
+		manifest = &servers.Server{}
+	case manifests.ServiceManifestKind:
+		manifest = &services.Service{}
+	case manifests.HttpTestManifestKind:
+		manifest = &api.Http{}
+	case manifests.HttpLoadTestManifestKind:
+		manifest = &load.Http{}
+	default:
+		return nil, fmt.Errorf("unknown manifest kind: %s", raw.Kind)
+	}
+
+	var err error
+	switch parseMethod {
+	case JSONMethod:
+		if unmarshaler, ok := manifest.(manifests.Unmarshaler); ok {
+			err = unmarshaler.UnmarshalJSON(data)
+		} else {
+			err = json.Unmarshal(data, manifest)
+		}
+	case YAMLMethod:
+		if unmarshaler, ok := manifest.(manifests.Unmarshaler); ok {
+			err = unmarshaler.UnmarshalYAML(data)
+		} else {
+			err = yaml.Unmarshal(data, manifest)
+		}
+	default:
+		return nil, fmt.Errorf("unknown parse method: %d", parseMethod)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse manifest: %w", err)
+	}
+
+	return manifest, nil
 }
