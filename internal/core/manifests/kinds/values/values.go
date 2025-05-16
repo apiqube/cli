@@ -6,12 +6,12 @@ import (
 )
 
 var (
-	_ manifests.Manifest             = (*Values)(nil)
-	_ manifests.Defaultable[*Values] = (*Values)(nil)
-	_ manifests.Marshaler            = (*Values)(nil)
-	_ manifests.Unmarshaler          = (*Values)(nil)
-	_ manifests.MetaTable            = (*Values)(nil)
-	_ manifests.Prepare              = (*Values)(nil)
+	_ manifests.Manifest    = (*Values)(nil)
+	_ manifests.Defaultable = (*Values)(nil)
+	_ manifests.Marshaler   = (*Values)(nil)
+	_ manifests.Unmarshaler = (*Values)(nil)
+	_ manifests.MetaTable   = (*Values)(nil)
+	_ manifests.Prepare     = (*Values)(nil)
 )
 
 type Values struct {
@@ -48,11 +48,9 @@ func (v *Values) GetMeta() manifests.Meta {
 	return v.Meta
 }
 
-func (v *Values) Default() *Values {
+func (v *Values) Default() {
 	v.Namespace = manifests.DefaultNamespace
 	v.Meta = kinds.DefaultMeta
-
-	return v
 }
 
 func (v *Values) Prepare() {
