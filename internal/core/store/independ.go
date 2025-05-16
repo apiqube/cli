@@ -41,14 +41,6 @@ func IsEnabled() bool {
 	return instance != nil && enabled
 }
 
-func LoadManifestList() ([]string, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.LoadManifestList()
-}
-
 func SaveManifests(mans ...manifests.Manifest) error {
 	if !isEnabled() {
 		return nil

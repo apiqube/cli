@@ -71,7 +71,7 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 
 		var parsedManifests []manifests.Manifest
 
-		parsedManifests, err = parsing.ParseYamlManifests(content)
+		parsedManifests, err = parsing.ParseManifestsAsYAML(content)
 		if err != nil {
 			return nil, fmt.Errorf("in file %s: %w", file.Name(), err)
 		}

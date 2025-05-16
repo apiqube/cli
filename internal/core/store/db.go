@@ -1,34 +1,36 @@
 package store
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/apiqube/cli/internal/core/manifests/parsing"
 
 	"github.com/adrg/xdg"
 	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/blevesearch/bleve/v2"
 	"github.com/dgraph-io/badger/v4"
-	"gopkg.in/yaml.v3"
 )
 
 const (
-	BadgerDatabaseDirPath = "qube/storage"
+	StorageDirPath = "qube/storage"
 )
 
 const (
-	manifestListKeyPrefix = "manifest_list:"
 	manifestHashKeyPrefix = "manifest_hash:"
 )
 
 type Storage struct {
-	db *badger.DB
+	db    *badger.DB
+	index bleve.Index
 }
 
 func NewStorage() (*Storage, error) {
-	path, err := xdg.DataFile(BadgerDatabaseDirPath)
+	path, err := xdg.DataFile(StorageDirPath)
 	if err != nil {
 		return nil, fmt.Errorf("error getting data file path: %v", err)
 	}
@@ -37,39 +39,28 @@ func NewStorage() (*Storage, error) {
 		return nil, fmt.Errorf("error creating data file path: %v", err)
 	}
 
-	db, err := badger.Open(badger.DefaultOptions(path).WithLogger(nil))
+	badgerPath := filepath.Join(path, "manifests")
+	blevePath := filepath.Join(path, "index")
+
+	db, err := badger.Open(badger.DefaultOptions(badgerPath).WithLogger(nil))
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %v", err)
 	}
 
-	return &Storage{
-		db: db,
-	}, nil
-}
-
-func (s *Storage) LoadManifestList() ([]string, error) {
-	if !IsEnabled() {
-		return nil, nil
+	var index bleve.Index
+	index, err = bleve.Open(blevePath)
+	if errors.Is(err, bleve.ErrorIndexPathDoesNotExist) {
+		mapping := buildBleveMapping()
+		index, err = bleve.New(blevePath, mapping)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error opening index: %v", err)
 	}
 
-	var manifestList []string
-
-	err := instance.db.View(func(txn *badger.Txn) error {
-		opts := badger.DefaultIteratorOptions
-		opts.Prefix = []byte(manifestListKeyPrefix)
-
-		it := txn.NewIterator(opts)
-		defer it.Close()
-
-		for it.Rewind(); it.Valid(); it.Next() {
-			key := it.Item().Key()
-			manifestList = append(manifestList, strings.TrimPrefix(string(key), manifestListKeyPrefix))
-		}
-
-		return nil
-	})
-
-	return manifestList, err
+	return &Storage{
+		db:    db,
+		index: index,
+	}, nil
 }
 
 func (s *Storage) SaveManifests(mans ...manifests.Manifest) error {
@@ -78,16 +69,17 @@ func (s *Storage) SaveManifests(mans ...manifests.Manifest) error {
 		var err error
 
 		for _, m := range mans {
-			data, err = yaml.Marshal(m)
-			if err != nil {
-				return err
+			if man, ok := m.(manifests.Marshaler); ok {
+				data, err = man.MarshalJSON()
+			} else {
+				data, err = json.Marshal(m)
 			}
 
 			if err = txn.Set(genManifestKey(m.GetID()), data); err != nil {
 				return err
 			}
 
-			if err = txn.Set(genManifestListKey(m.GetID()), nil); err != nil {
+			if err = s.index.Index(m.GetID(), m.Index()); err != nil {
 				return err
 			}
 		}
@@ -117,7 +109,7 @@ func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 			var mans []manifests.Manifest
 
 			if err = item.Value(func(data []byte) error {
-				if mans, err = parsing.ParseYamlManifests(data); err != nil {
+				if mans, err = parsing.ParseManifestsAsYAML(data); err != nil {
 					return err
 				}
 
@@ -134,23 +126,45 @@ func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 	return results, errors.Join(rErr, err)
 }
 
-func (s *Storage) CheckManifestHash(hash string) (bool, error) {
-	result := true
-	var err error
+func (s *Storage) FindManifestByHash(hash string) (manifests.Manifest, bool, error) {
+	var manifest manifests.Manifest
+	found := false
 
-	err = instance.db.View(func(txn *badger.Txn) error {
-		_, err = txn.Get(genManifestHashKey(hash))
-		if errors.Is(err, badger.ErrKeyNotFound) {
-			result = false
-			return nil
-		} else if err != nil {
-			return fmt.Errorf("error getting manifest hash: %v", err)
+	query := bleve.NewTermQuery(hash)
+	query.SetField("hash")
+
+	searchRequest := bleve.NewSearchRequest(query)
+	searchRequest.Size = 1
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return manifest, false, fmt.Errorf("search failed: %w", err)
+	}
+
+	if searchResults.Total > 0 {
+		hit := searchResults.Hits[0]
+		err = s.db.View(func(txn *badger.Txn) error {
+			var item *badger.Item
+			item, err = txn.Get(genManifestKey(hit.ID))
+			if err != nil {
+				return err
+			}
+
+			return item.Value(func(val []byte) error {
+				if err = json.Unmarshal(val, &manifest); err != nil {
+					return fmt.Errorf("failed to unmarshal manifest: %w", err)
+				}
+				found = true
+				return nil
+			})
+		})
+
+		if err != nil {
+			return manifest, false, fmt.Errorf("failed to load manifest: %w", err)
 		}
+	}
 
-		return err
-	})
-
-	return result, err
+	return manifest, found, nil
 }
 
 func (s *Storage) LoadManifestHashes() ([]string, error) {
