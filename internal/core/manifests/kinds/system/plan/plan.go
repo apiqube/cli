@@ -13,8 +13,6 @@ var (
 	_ manifests.MetaTable   = (*Plan)(nil)
 	_ manifests.Defaultable = (*Plan)(nil)
 	_ manifests.Prepare     = (*Plan)(nil)
-	_ manifests.Marshaler   = (*Plan)(nil)
-	_ manifests.Unmarshaler = (*Plan)(nil)
 )
 
 type Plan struct {
@@ -81,29 +79,21 @@ func (p *Plan) GetMeta() manifests.Meta {
 }
 
 func (p *Plan) Default() {
-	p.Namespace = manifests.DefaultNamespace
-	p.Kind = manifests.PlanManifestKind
-	p.Meta = kinds.DefaultMeta
+	if p.Kind == "" {
+		p.Kind = manifests.PlanManifestKind
+	}
+
+	if p.Namespace == "" {
+		p.Namespace = manifests.DefaultNamespace
+	}
+
+	if p.Meta == nil {
+		p.Meta = kinds.DefaultMeta()
+	}
 }
 
 func (p *Plan) Prepare() {
 	if p.Namespace == "" {
 		p.Namespace = manifests.DefaultNamespace
 	}
-}
-
-func (p *Plan) MarshalYAML() ([]byte, error) {
-	return kinds.BaseMarshalYAML(p)
-}
-
-func (p *Plan) MarshalJSON() ([]byte, error) {
-	return kinds.BaseMarshalJSON(p)
-}
-
-func (p *Plan) UnmarshalYAML(bytes []byte) error {
-	return kinds.BaseUnmarshalYAML(bytes, p)
-}
-
-func (p *Plan) UnmarshalJSON(bytes []byte) error {
-	return kinds.BaseUnmarshalJSON(bytes, p)
 }

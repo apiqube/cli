@@ -55,7 +55,6 @@ func Snippet(code string) {
 				text:  code,
 				style: snippetStyle,
 			})
-			trimContent(m)
 		})
 	}
 }

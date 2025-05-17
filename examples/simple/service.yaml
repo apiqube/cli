@@ -39,6 +39,3 @@ spec:
       env:
         db_url: redis_url
       replicas: 2
-
-dependsOn:
-  - default.Server.simple-server

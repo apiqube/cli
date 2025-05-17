@@ -127,20 +127,16 @@ func ParseManifest(parseMethod ParseMethod, data []byte) (manifests.Manifest, er
 		return nil, fmt.Errorf("unknown manifest kind: %s", raw.Kind)
 	}
 
+	if def, ok := manifest.(manifests.Defaultable); ok {
+		def.Default()
+	}
+
 	var err error
 	switch parseMethod {
 	case JSONMethod:
-		if unmarshaler, ok := manifest.(manifests.Unmarshaler); ok {
-			err = unmarshaler.UnmarshalJSON(data)
-		} else {
-			err = json.Unmarshal(data, manifest)
-		}
+		err = json.Unmarshal(data, manifest)
 	case YAMLMethod:
-		if unmarshaler, ok := manifest.(manifests.Unmarshaler); ok {
-			err = unmarshaler.UnmarshalYAML(data)
-		} else {
-			err = yaml.Unmarshal(data, manifest)
-		}
+		err = yaml.Unmarshal(data, manifest)
 	default:
 		return nil, fmt.Errorf("unknown parse method: %d", parseMethod)
 	}

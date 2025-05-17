@@ -2,7 +2,7 @@ version: 1
 
 kind: Values
 metadata:
-  name: values
+  name: values-example
 
 spec:
   users:

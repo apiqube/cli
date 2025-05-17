@@ -18,8 +18,6 @@ var (
 	_ manifests.MetaTable    = (*Http)(nil)
 	_ manifests.Defaultable  = (*Http)(nil)
 	_ manifests.Prepare      = (*Http)(nil)
-	_ manifests.Marshaler    = (*Http)(nil)
-	_ manifests.Unmarshaler  = (*Http)(nil)
 )
 
 type Http struct {
@@ -77,8 +75,13 @@ func (h *Http) GetDependsOn() []string {
 }
 
 func (h *Http) Default() {
-	h.Namespace = manifests.DefaultNamespace
-	h.Meta = kinds.DefaultMeta
+	if h.Namespace == "" {
+		h.Namespace = manifests.DefaultNamespace
+	}
+
+	if h.Meta == nil {
+		h.Meta = kinds.DefaultMeta()
+	}
 }
 
 func (h *Http) GetMeta() manifests.Meta {
@@ -89,20 +92,4 @@ func (h *Http) Prepare() {
 	if h.Namespace == "" {
 		h.Namespace = manifests.DefaultNamespace
 	}
-}
-
-func (h *Http) MarshalYAML() ([]byte, error) {
-	return kinds.BaseMarshalYAML(h)
-}
-
-func (h *Http) MarshalJSON() ([]byte, error) {
-	return kinds.BaseMarshalJSON(h)
-}
-
-func (h *Http) UnmarshalYAML(bytes []byte) error {
-	return kinds.BaseUnmarshalYAML(bytes, h)
-}
-
-func (h *Http) UnmarshalJSON(bytes []byte) error {
-	return kinds.BaseUnmarshalJSON(bytes, h)
 }

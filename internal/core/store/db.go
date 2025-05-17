@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/apiqube/cli/ui"
+
 	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/parsing"
 	bleceQuery "github.com/blevesearch/bleve/v2/search/query"
@@ -19,7 +21,7 @@ import (
 )
 
 const (
-	StorageDirPath = "qube/storage"
+	StorageDirPath = "ApiQube/Storage"
 )
 
 type Storage struct {
@@ -62,15 +64,14 @@ func NewStorage() (*Storage, error) {
 }
 
 func (s *Storage) SaveManifests(mans ...manifests.Manifest) error {
-	return instance.db.Update(func(txn *badger.Txn) error {
+	var err error
+	err = instance.db.Update(func(txn *badger.Txn) error {
 		var data []byte
-		var err error
 
 		for _, m := range mans {
-			if man, ok := m.(manifests.Marshaler); ok {
-				data, err = man.MarshalJSON()
-			} else {
-				data, err = json.Marshal(m)
+			data, err = json.Marshal(m)
+			if err != nil {
+				return fmt.Errorf("error marshalling manifest: %v", err)
 			}
 
 			if err = txn.Set(genManifestKey(m.GetID()), data); err != nil {
@@ -78,12 +79,15 @@ func (s *Storage) SaveManifests(mans ...manifests.Manifest) error {
 			}
 
 			if err = s.index.Index(m.GetID(), m.Index()); err != nil {
+				ui.Errorf("Failed to index manifest %s: %v", m.GetID(), err)
 				return err
 			}
 		}
 
 		return nil
 	})
+
+	return err
 }
 
 func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
@@ -183,7 +187,7 @@ func (s *Storage) FindManifestsByVersion(lowVersion, heightVersion uint8) ([]man
 }
 
 func (s *Storage) FindManifestByName(name string) (manifests.Manifest, error) {
-	query := bleve.NewTermQuery(name)
+	query := bleve.NewMatchPhraseQuery(name)
 	query.SetField(index.Name)
 
 	searchRequest := bleve.NewSearchRequest(query)
@@ -220,7 +224,7 @@ func (s *Storage) FindManifestsByNameWildcard(namePattern string) ([]manifests.M
 	return s.parseSearResults(searchResults)
 }
 
-func (s *Storage) FindManifestByNamespace(namespace string) ([]manifests.Manifest, error) {
+func (s *Storage) FindManifestsByNamespace(namespace string) ([]manifests.Manifest, error) {
 	query := bleve.NewTermQuery(namespace)
 	query.SetField(index.Namespace)
 
@@ -375,33 +379,38 @@ func (s *Storage) FindManifestsByLastAppliedRange(start, end time.Time) ([]manif
 
 func (s *Storage) parseSearResults(searchResults *bleve.SearchResult) ([]manifests.Manifest, error) {
 	var results []manifests.Manifest
-	var err error
+	var rErr error
 
 	if searchResults.Total > 0 {
 		for _, hit := range searchResults.Hits {
 			var man manifests.Manifest
 
-			err = s.db.View(func(txn *badger.Txn) error {
+			err := s.db.View(func(txn *badger.Txn) error {
 				var item *badger.Item
+				var err error
+
 				item, err = txn.Get(genManifestKey(hit.ID))
-				if err != nil {
-					return err
+				if err != nil && errors.Is(err, badger.ErrKeyNotFound) {
+					rErr = errors.Join(rErr, fmt.Errorf("could not find manifest by ID: %v", hit.ID))
+				} else if err != nil {
+					rErr = errors.Join(rErr, fmt.Errorf("failed to load manifest by ID: %v", hit.ID))
 				}
 
 				return item.Value(func(val []byte) error {
-					if err = json.Unmarshal(val, &man); err != nil {
-						return fmt.Errorf("failed to unmarshal manifest: %w", err)
+					man, err = parsing.ParseManifest(parsing.JSONMethod, val)
+					if err != nil {
+						return err
 					}
 					return nil
 				})
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to load manifest: %w", err)
+				rErr = errors.Join(rErr, err)
 			}
 
 			results = append(results, man)
 		}
 	}
 
-	return results, nil
+	return results, rErr
 }

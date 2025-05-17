@@ -34,6 +34,11 @@ func Stop() {
 		if err := instance.db.Close(); err != nil {
 			ui.Errorf("Failed to close database: %v", err)
 		}
+
+		if err := instance.index.Close(); err != nil {
+			ui.Errorf("Failed to close index: %v", err)
+		}
+
 		instance = nil
 	}
 }
@@ -98,12 +103,12 @@ func FindManifestsByNameWildcard(namePattern string) ([]manifests.Manifest, erro
 	return instance.FindManifestsByNameWildcard(namePattern)
 }
 
-func FindManifestByNamespace(namespace string) ([]manifests.Manifest, error) {
+func FindManifestsByNamespace(namespace string) ([]manifests.Manifest, error) {
 	if !isEnabled() {
 		return nil, nil
 	}
 
-	return instance.FindManifestByNamespace(namespace)
+	return instance.FindManifestsByNamespace(namespace)
 }
 
 func FindManifestByDependencies(dependencies []string, requireAll bool) ([]manifests.Manifest, error) {

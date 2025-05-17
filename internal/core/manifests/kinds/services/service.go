@@ -14,8 +14,6 @@ var (
 	_ manifests.MetaTable    = (*Service)(nil)
 	_ manifests.Defaultable  = (*Service)(nil)
 	_ manifests.Prepare      = (*Service)(nil)
-	_ manifests.Marshaler    = (*Service)(nil)
-	_ manifests.Unmarshaler  = (*Service)(nil)
 )
 
 type Service struct {
@@ -72,28 +70,17 @@ func (s *Service) GetMeta() manifests.Meta {
 }
 
 func (s *Service) Default() {
-	s.Namespace = manifests.DefaultNamespace
-	s.Meta = kinds.DefaultMeta
+	if s.Namespace == "" {
+		s.Namespace = manifests.DefaultNamespace
+	}
+
+	if s.Meta == nil {
+		s.Meta = kinds.DefaultMeta()
+	}
 }
 
 func (s *Service) Prepare() {
 	if s.Namespace == "" {
 		s.Namespace = manifests.DefaultNamespace
 	}
-}
-
-func (s *Service) MarshalYAML() ([]byte, error) {
-	return kinds.BaseMarshalYAML(s)
-}
-
-func (s *Service) MarshalJSON() ([]byte, error) {
-	return kinds.BaseMarshalJSON(s)
-}
-
-func (s *Service) UnmarshalYAML(bytes []byte) error {
-	return kinds.BaseUnmarshalYAML(bytes, s)
-}
-
-func (s *Service) UnmarshalJSON(bytes []byte) error {
-	return kinds.BaseUnmarshalJSON(bytes, s)
 }

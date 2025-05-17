@@ -36,5 +36,6 @@ spec:
       expected:
         code: 404
         message: "User not found"
+
 dependsOn:
   - default.Service.simple-service

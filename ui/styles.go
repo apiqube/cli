@@ -74,7 +74,6 @@ func printStyled(t MessageType, a ...interface{}) {
 				style:     getStyle(t),
 				timestamp: time.Now(),
 			})
-			trimContent(m)
 		})
 	}
 }
@@ -87,7 +86,6 @@ func printStyledf(t MessageType, format string, a ...interface{}) {
 				style:     getStyle(t),
 				timestamp: time.Now(),
 			})
-			trimContent(m)
 		})
 	}
 }
@@ -100,7 +98,6 @@ func printStyledln(t MessageType, a ...interface{}) {
 				style:     getStyle(t),
 				timestamp: time.Now(),
 			})
-			trimContent(m)
 		})
 	}
 }

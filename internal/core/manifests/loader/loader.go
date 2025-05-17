@@ -10,7 +10,6 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests/hash"
 	"github.com/apiqube/cli/internal/core/manifests/parsing"
 	"github.com/apiqube/cli/internal/core/store"
-
 	"github.com/apiqube/cli/ui"
 
 	"github.com/apiqube/cli/internal/core/manifests"
@@ -19,26 +18,13 @@ import (
 func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 	files, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, err
-	}
-
-	existingHashes, err := store.LoadManifestHashes()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load hashes: %w", err)
-	}
-
-	hashCache := make(map[string]bool)
-	for _, h := range existingHashes {
-		hashCache[h] = true
+		return nil, fmt.Errorf("failed to read directory: %w", err)
 	}
 
 	var (
-		mans                      []manifests.Manifest
-		existingIDs               []string
-		manifestsSet              = make(map[string]struct{})
-		processedHashes           = make(map[string]bool)
-		exists                    bool
-		newCounter, existsCounter int
+		manifestsList []manifests.Manifest
+		manifestsSet  = make(map[string]struct{})
+		newCounter    int
 	)
 
 	for _, file := range files {
@@ -47,9 +33,7 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 		}
 
 		var content []byte
-
 		filePath := filepath.Join(dir, file.Name())
-
 		content, err = os.ReadFile(filePath)
 		if err != nil {
 			return nil, fmt.Errorf("error reading file %s: %w", filePath, err)
@@ -58,78 +42,63 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 		var fileHash string
 		fileHash, err = hash.CalculateHashWithPath(filePath, content)
 		if err != nil {
-			return nil, fmt.Errorf("failed to calculate h for %s: %w", filePath, err)
+			return nil, fmt.Errorf("failed to calculate hash for %s: %w", filePath, err)
 		}
 
-		if hashCache[fileHash] {
-			ui.Infof("Manifest file %s unchanged (%s) - using cache", file.Name(), shortHash(fileHash))
-			exists = true
-			existsCounter++
-		} else {
-			newCounter++
+		var existingManifest manifests.Manifest
+		existingManifest, err = store.FindManifestByHash(fileHash)
+		if err != nil && !strings.Contains(err.Error(), "no matching manifest found") {
+			return nil, fmt.Errorf("failed to check manifest existence: %w", err)
+		}
+
+		if existingManifest != nil {
+			if _, exists := manifestsSet[existingManifest.GetID()]; !exists {
+				manifestsSet[existingManifest.GetID()] = struct{}{}
+				manifestsList = append(manifestsList, existingManifest)
+			}
+
+			ui.Infof("Manifest file %s unchanged (%s) - using cached version", file.Name(), shortHash(fileHash))
+			continue
 		}
 
 		var parsedManifests []manifests.Manifest
-
 		parsedManifests, err = parsing.ParseManifestsAsYAML(content)
 		if err != nil {
 			return nil, fmt.Errorf("in file %s: %w", file.Name(), err)
 		}
 
 		for _, m := range parsedManifests {
-			if !exists {
-				manifestID := m.GetID()
+			manifestID := m.GetID()
 
-				if _, ok := manifestsSet[manifestID]; ok {
-					ui.Warningf("Manifest: %s (from %s) already processed", manifestID, file.Name())
-					continue
-				}
-
-				if meta, ok := m.(manifests.MetaTable); ok {
-					meta.GetMeta().SetHash(fileHash)
-					now := time.Now()
-					meta.GetMeta().SetCreatedAt(now)
-					meta.GetMeta().SetUpdatedAt(now)
-				}
-
-				manifestsSet[manifestID] = struct{}{}
-				mans = append(mans, m)
-				processedHashes[fileHash] = true
-
-				ui.Successf("New manifest added: %s (h: %s)", manifestID, shortHash(fileHash))
-			} else {
-				existingIDs = append(existingIDs, m.GetID())
+			if _, exists := manifestsSet[manifestID]; exists {
+				ui.Warningf("Duplicate manifest ID: %s (from %s)", manifestID, file.Name())
+				continue
 			}
-		}
-	}
 
-	for h := range processedHashes {
-		if err = store.SaveManifestHash(h); err != nil {
-			ui.Errorf("Failed to save manifest h: %s", err.Error())
-		}
-	}
+			if metaTable, ok := m.(manifests.MetaTable); ok {
+				meta := metaTable.GetMeta()
+				meta.SetHash(fileHash)
+				meta.SetVersion(1)
+				now := time.Now()
+				meta.SetCreatedAt(now)
+				meta.SetUpdatedAt(now)
+			}
 
-	var existingManifests []manifests.Manifest
-	if len(existingHashes) > 0 {
-		existingManifests, err = store.LoadManifests(existingIDs...)
-		if err != nil {
-			ui.Warningf("Failed to load existing manifests: %v", err)
-		} else {
-			mans = append(existingManifests, mans...)
+			manifestsSet[manifestID] = struct{}{}
+			manifestsList = append(manifestsList, m)
+			newCounter++
+
+			ui.Successf("New manifest added: %s (h: %s)", manifestID, shortHash(fileHash))
 		}
 	}
 
 	if newCounter == 0 {
-		ui.Infof("Loaded %d manifests, new manifests not found", len(mans))
+		ui.Info("No new manifests found in directory")
 	} else {
-		ui.Infof("Loaded %d manifests (%d new, %d from cache)",
-			len(mans),
-			newCounter,
-			existsCounter,
-		)
+		ui.Infof("Loaded %d new manifests", newCounter)
 	}
 
-	return mans, nil
+	return manifestsList, nil
 }
 
 func shortHash(fullHash string) string {

@@ -11,12 +11,21 @@ func buildBleveMapping() *mapping.IndexMappingImpl {
 
 	// Main
 	manifestMapping.AddFieldMappingsAt(index.Version, bleve.NewNumericFieldMapping())
-	manifestMapping.AddFieldMappingsAt(index.Kind, bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt(index.Name, bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt(index.Namespace, bleve.NewTextFieldMapping())
+
+	kindMapping := bleve.NewTextFieldMapping()
+	kindMapping.Analyzer = "keyword"
+	manifestMapping.AddFieldMappingsAt(index.Kind, kindMapping)
+
+	nameMapping := bleve.NewTextFieldMapping()
+	manifestMapping.AddFieldMappingsAt(index.Name, nameMapping)
+
 	dependsMapping := bleve.NewTextFieldMapping()
 	dependsMapping.Analyzer = "keyword"
 	manifestMapping.AddFieldMappingsAt(index.DependsOn, dependsMapping)
+
+	namespaceMapping := bleve.NewTextFieldMapping()
+	namespaceMapping.Analyzer = "keyword"
+	manifestMapping.AddFieldMappingsAt(index.Namespace, namespaceMapping)
 
 	// Meta
 	manifestMapping.AddFieldMappingsAt(index.MetaHash, bleve.NewTextFieldMapping())
@@ -28,7 +37,7 @@ func buildBleveMapping() *mapping.IndexMappingImpl {
 	manifestMapping.AddFieldMappingsAt(index.MetaLastApplied, bleve.NewDateTimeFieldMapping())
 
 	indexMapping := bleve.NewIndexMapping()
-	indexMapping.AddDocumentMapping("manifest", manifestMapping)
+	indexMapping.DefaultMapping = manifestMapping
 
 	return indexMapping
 }

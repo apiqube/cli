@@ -2,20 +2,32 @@ package kinds
 
 import (
 	"math"
+	"os/user"
 	"time"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 )
 
-var DefaultMeta = &Meta{
-	Hash:        "",
-	Version:     1,
-	CreatedAt:   time.Now(),
-	CreatedBy:   "qube",
-	UpdatedAt:   time.Now(),
-	UpdatedBy:   "qube",
-	UsedBy:      "qube",
-	LastApplied: time.Now(),
+func DefaultMeta() *Meta {
+	var name string
+
+	currentUser, err := user.Current()
+	if err != nil {
+		name = "qube"
+	} else {
+		name = currentUser.Name
+	}
+
+	return &Meta{
+		Hash:        "",
+		Version:     1,
+		CreatedAt:   time.Now(),
+		CreatedBy:   name,
+		UpdatedAt:   time.Now(),
+		UpdatedBy:   name,
+		UsedBy:      name,
+		LastApplied: time.Now(),
+	}
 }
 
 var _ manifests.Meta = (*Meta)(nil)

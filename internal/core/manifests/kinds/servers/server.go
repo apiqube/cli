@@ -13,8 +13,6 @@ var (
 	_ manifests.MetaTable   = (*Server)(nil)
 	_ manifests.Defaultable = (*Server)(nil)
 	_ manifests.Prepare     = (*Server)(nil)
-	_ manifests.Marshaler   = (*Server)(nil)
-	_ manifests.Unmarshaler = (*Server)(nil)
 )
 
 type Server struct {
@@ -66,28 +64,17 @@ func (s *Server) GetMeta() manifests.Meta {
 }
 
 func (s *Server) Default() {
-	s.Namespace = manifests.DefaultNamespace
-	s.Meta = kinds.DefaultMeta
+	if s.Namespace == "" {
+		s.Namespace = manifests.DefaultNamespace
+	}
+
+	if s.Meta == nil {
+		s.Meta = kinds.DefaultMeta()
+	}
 }
 
 func (s *Server) Prepare() {
 	if s.Namespace == "" {
 		s.Namespace = manifests.DefaultNamespace
 	}
-}
-
-func (s *Server) MarshalYAML() ([]byte, error) {
-	return kinds.BaseMarshalYAML(s)
-}
-
-func (s *Server) MarshalJSON() ([]byte, error) {
-	return kinds.BaseMarshalJSON(s)
-}
-
-func (s *Server) UnmarshalYAML(bytes []byte) error {
-	return kinds.BaseUnmarshalYAML(bytes, s)
-}
-
-func (s *Server) UnmarshalJSON(bytes []byte) error {
-	return kinds.BaseUnmarshalJSON(bytes, s)
 }
