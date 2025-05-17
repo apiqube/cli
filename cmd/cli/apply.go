@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"github.com/apiqube/cli/internal/core/manifests/depends"
 	"github.com/apiqube/cli/internal/core/manifests/loader"
 	"github.com/apiqube/cli/internal/core/store"
 	"github.com/apiqube/cli/ui"
@@ -35,24 +34,11 @@ var applyCmd = &cobra.Command{
 			return
 		}
 
-		ui.Spinner(false)
-
-		var result *depends.GraphResult
-		if result, err = depends.BuildGraphWithPriority(mans); err != nil {
-			ui.Errorf("Failed to generate plan: %s", err.Error())
-			return
-		}
-
-		for i, order := range result.ExecutionOrder {
-			ui.Printf("#Order %d %s", i+1, order)
-		}
-
-		ui.Spinner(false)
-		ui.Print("Execution plan generated successfully")
 		ui.Spinner(true, "Saving manifests...")
 
 		if err := store.SaveManifests(mans...); err != nil {
 			ui.Error("Failed to save manifests: " + err.Error())
+			ui.Spinner(false)
 			return
 		}
 

@@ -1,7 +1,10 @@
 package services
 
 import (
+	"time"
+
 	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
 
@@ -11,8 +14,6 @@ var (
 	_ manifests.MetaTable    = (*Service)(nil)
 	_ manifests.Defaultable  = (*Service)(nil)
 	_ manifests.Prepare      = (*Service)(nil)
-	_ manifests.Marshaler    = (*Service)(nil)
-	_ manifests.Unmarshaler  = (*Service)(nil)
 )
 
 type Service struct {
@@ -46,33 +47,40 @@ func (s *Service) GetDependsOn() []string {
 	return s.DependsOn
 }
 
+func (s *Service) Index() any {
+	return map[string]any{
+		index.Version:   float64(s.Version),
+		index.Kind:      s.Kind,
+		index.Name:      s.Name,
+		index.Namespace: s.Namespace,
+		index.DependsOn: s.DependsOn,
+
+		index.MetaHash:        s.Meta.Hash,
+		index.MetaCreatedAt:   s.Meta.CreatedAt.Format(time.RFC3339Nano),
+		index.MetaCreatedBy:   s.Meta.CreatedBy,
+		index.MetaUpdatedAt:   s.Meta.UpdatedAt.Format(time.RFC3339Nano),
+		index.MetaUpdatedBy:   s.Meta.UpdatedBy,
+		index.MetaUsedBy:      s.Meta.UsedBy,
+		index.MetaLastApplied: s.Meta.LastApplied.Format(time.RFC3339Nano),
+	}
+}
+
 func (s *Service) GetMeta() manifests.Meta {
 	return s.Meta
 }
 
 func (s *Service) Default() {
-	s.Namespace = manifests.DefaultNamespace
-	s.Meta = kinds.DefaultMeta
+	if s.Namespace == "" {
+		s.Namespace = manifests.DefaultNamespace
+	}
+
+	if s.Meta == nil {
+		s.Meta = kinds.DefaultMeta()
+	}
 }
 
 func (s *Service) Prepare() {
 	if s.Namespace == "" {
 		s.Namespace = manifests.DefaultNamespace
 	}
-}
-
-func (s *Service) MarshalYAML() ([]byte, error) {
-	return kinds.BaseMarshalYAML(s)
-}
-
-func (s *Service) MarshalJSON() ([]byte, error) {
-	return kinds.BaseMarshalJSON(s)
-}
-
-func (s *Service) UnmarshalYAML(bytes []byte) error {
-	return kinds.BaseUnmarshalYAML(bytes, s)
-}
-
-func (s *Service) UnmarshalJSON(bytes []byte) error {
-	return kinds.BaseUnmarshalJSON(bytes, s)
 }

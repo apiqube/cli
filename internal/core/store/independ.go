@@ -2,6 +2,7 @@ package store
 
 import (
 	"sync"
+	"time"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/ui"
@@ -33,20 +34,17 @@ func Stop() {
 		if err := instance.db.Close(); err != nil {
 			ui.Errorf("Failed to close database: %v", err)
 		}
+
+		if err := instance.index.Close(); err != nil {
+			ui.Errorf("Failed to close index: %v", err)
+		}
+
 		instance = nil
 	}
 }
 
 func IsEnabled() bool {
 	return instance != nil && enabled
-}
-
-func LoadManifestList() ([]string, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.LoadManifestList()
 }
 
 func SaveManifests(mans ...manifests.Manifest) error {
@@ -62,31 +60,119 @@ func LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 		return nil, nil
 	}
 
-	return instance.LoadManifests(ids...)
+	return instance.LoadManifests()
 }
 
-func CheckManifestHash(hash string) (bool, error) {
-	if !isEnabled() {
-		return false, nil
-	}
-
-	return instance.CheckManifestHash(hash)
-}
-
-func LoadManifestHashes() ([]string, error) {
+func LoadManifest(id string) (manifests.Manifest, error) {
 	if !isEnabled() {
 		return nil, nil
 	}
 
-	return instance.LoadManifestHashes()
+	return instance.LoadManifest(id)
 }
 
-func SaveManifestHash(hash string) error {
+func FindManifestsByKind(kind string) ([]manifests.Manifest, error) {
 	if !isEnabled() {
-		return nil
+		return nil, nil
 	}
 
-	return instance.SaveManifestHash(hash)
+	return instance.FindManifestsByKind(kind)
+}
+
+func FindManifestsByVersion(lowVersion, heightVersion uint8) ([]manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestsByVersion(lowVersion, heightVersion)
+}
+
+func FindManifestByName(name string) (manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestByName(name)
+}
+
+func FindManifestsByNameWildcard(namePattern string) ([]manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestsByNameWildcard(namePattern)
+}
+
+func FindManifestsByNamespace(namespace string) ([]manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestsByNamespace(namespace)
+}
+
+func FindManifestByDependencies(dependencies []string, requireAll bool) ([]manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestByDependencies(dependencies, requireAll)
+}
+
+func FindManifestByHash(hash string) (manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestByHash(hash)
+}
+
+func FindManifestsByCreatedAtRange(start, end time.Time) ([]manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestsByCreatedAtRange(start, end)
+}
+
+func FindManifestsByCreatedBy(createdBy string) ([]manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestsByCreatedBy(createdBy)
+}
+
+func FindManifestsByUpdatedAtRange(start, end time.Time) ([]manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestsByUpdatedAtRange(start, end)
+}
+
+func FindManifestsByUpdatedBy(updatedBy string) ([]manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestsByUpdatedBy(updatedBy)
+}
+
+func FindManifestsByUsedBy(usedBy string) ([]manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestsByUsedBy(usedBy)
+}
+
+func FindManifestsByLastAppliedRange(start, end time.Time) ([]manifests.Manifest, error) {
+	if !isEnabled() {
+		return nil, nil
+	}
+
+	return instance.FindManifestsByLastAppliedRange(start, end)
 }
 
 func isEnabled() bool {

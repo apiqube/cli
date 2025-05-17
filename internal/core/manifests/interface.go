@@ -26,6 +26,7 @@ type Manifest interface {
 	GetKind() string
 	GetName() string
 	GetNamespace() string
+	Index() any
 }
 
 type Dependencies interface {
@@ -69,14 +70,4 @@ type Defaultable interface {
 
 type Prepare interface {
 	Prepare()
-}
-
-type Marshaler interface {
-	MarshalYAML() ([]byte, error)
-	MarshalJSON() ([]byte, error)
-}
-
-type Unmarshaler interface {
-	UnmarshalYAML([]byte) error
-	UnmarshalJSON([]byte) error
 }

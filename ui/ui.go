@@ -152,9 +152,3 @@ func (ui *UI) requestRender() {
 		}()
 	}
 }
-
-func trimContent(m *uiModel) {
-	if len(m.content) > 20 {
-		m.content = m.content[len(m.content)-20:]
-	}
-}

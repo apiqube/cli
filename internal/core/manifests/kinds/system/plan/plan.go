@@ -1,7 +1,10 @@
 package plan
 
 import (
+	"time"
+
 	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
 
@@ -10,8 +13,6 @@ var (
 	_ manifests.MetaTable   = (*Plan)(nil)
 	_ manifests.Defaultable = (*Plan)(nil)
 	_ manifests.Prepare     = (*Plan)(nil)
-	_ manifests.Marshaler   = (*Plan)(nil)
-	_ manifests.Unmarshaler = (*Plan)(nil)
 )
 
 type Plan struct {
@@ -19,10 +20,10 @@ type Plan struct {
 
 	Spec struct {
 		Stages Stages `yaml:"stages" json:"stages"`
-		Hooks  Hooks  `yaml:"hooks" json:"hooks"`
+		Hooks  Hooks  `yaml:"hooks,omitempty" json:"hooks"`
 	} `yaml:"spec" json:"spec"`
 
-	Meta *kinds.Meta `yaml:"meta" json:"meta"`
+	Meta *kinds.Meta `yaml:",inline" json:"meta"`
 }
 
 type Stages struct {
@@ -56,34 +57,43 @@ func (p *Plan) GetNamespace() string {
 	return p.Namespace
 }
 
+func (p *Plan) Index() any {
+	return map[string]any{
+		index.Version:   float64(p.Version),
+		index.Kind:      p.Kind,
+		index.Name:      p.Name,
+		index.Namespace: p.Namespace,
+
+		index.MetaHash:        p.Meta.Hash,
+		index.MetaCreatedAt:   p.Meta.CreatedAt.Format(time.RFC3339Nano),
+		index.MetaCreatedBy:   p.Meta.CreatedBy,
+		index.MetaUpdatedAt:   p.Meta.UpdatedAt.Format(time.RFC3339Nano),
+		index.MetaUpdatedBy:   p.Meta.UpdatedBy,
+		index.MetaUsedBy:      p.Meta.UsedBy,
+		index.MetaLastApplied: p.Meta.LastApplied.Format(time.RFC3339Nano),
+	}
+}
+
 func (p *Plan) GetMeta() manifests.Meta {
 	return p.Meta
 }
 
 func (p *Plan) Default() {
-	p.Namespace = manifests.DefaultNamespace
-	p.Kind = manifests.PlanManifestKind
-	p.Meta = kinds.DefaultMeta
+	if p.Kind == "" {
+		p.Kind = manifests.PlanManifestKind
+	}
+
+	if p.Namespace == "" {
+		p.Namespace = manifests.DefaultNamespace
+	}
+
+	if p.Meta == nil {
+		p.Meta = kinds.DefaultMeta()
+	}
 }
 
 func (p *Plan) Prepare() {
 	if p.Namespace == "" {
 		p.Namespace = manifests.DefaultNamespace
 	}
-}
-
-func (p *Plan) MarshalYAML() ([]byte, error) {
-	return kinds.BaseMarshalYAML(p)
-}
-
-func (p *Plan) MarshalJSON() ([]byte, error) {
-	return kinds.BaseMarshalJSON(p)
-}
-
-func (p *Plan) UnmarshalYAML(bytes []byte) error {
-	return kinds.BaseUnmarshalYAML(bytes, p)
-}
-
-func (p *Plan) UnmarshalJSON(bytes []byte) error {
-	return kinds.BaseUnmarshalJSON(bytes, p)
 }
