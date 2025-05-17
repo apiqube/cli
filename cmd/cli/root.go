@@ -12,7 +12,3 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	cobra.CheckErr(rootCmd.Execute())
 }
-
-func init() {
-	rootCmd.AddCommand(versionCmd)
-}

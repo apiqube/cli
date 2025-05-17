@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	applyCmd.Flags().StringP("file", "f", ".", "Path to manifest file")
+	applyCmd.Flags().StringP("file", "f", ".", "Path to manifests file")
 	rootCmd.AddCommand(applyCmd)
 }
 
@@ -46,3 +46,12 @@ var applyCmd = &cobra.Command{
 		ui.Println("Manifests applied successfully")
 	},
 }
+
+/*type Logger struct {
+	Writer io.Writer
+	Style  lipgloss.Style
+}
+
+func (l *Logger) Log(msg string) {
+	fmt.Fprintln(l.Writer, l.Style.Render(msg))
+}*/

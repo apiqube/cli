@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -74,8 +75,8 @@ func Init() {
 		go func() {
 			ui.program = tea.NewProgram(
 				model,
-				tea.WithoutSignalHandler(),
 				tea.WithInput(nil),
+				tea.WithOutput(os.Stderr),
 			)
 			close(ui.ready)
 			if _, err := ui.program.Run(); err != nil {
