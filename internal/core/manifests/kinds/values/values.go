@@ -46,18 +46,18 @@ func (v *Values) GetNamespace() string {
 
 func (v *Values) Index() any {
 	return map[string]any{
-		"version":   v.Version,
+		"version":   float64(v.Version),
 		"kind":      v.Kind,
 		"name":      v.Name,
 		"namespace": v.Namespace,
 
 		"hash":        v.Meta.Hash,
-		"createdAt":   v.Meta.CreatedAt,
+		"createdAt":   v.Meta.CreatedAt.UnixNano(),
 		"createdBy":   v.Meta.CreatedBy,
-		"updatedAt":   v.Meta.UpdatedAt,
+		"updatedAt":   v.Meta.UpdatedAt.UnixNano(),
 		"updatedBy":   v.Meta.UpdatedBy,
 		"userBy":      v.Meta.UsedBy,
-		"lastApplied": v.Meta.LastApplied,
+		"lastApplied": v.Meta.LastApplied.UnixNano(),
 	}
 }
 

@@ -1,7 +1,10 @@
 package services
 
 import (
+	"time"
+
 	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
 
@@ -48,19 +51,19 @@ func (s *Service) GetDependsOn() []string {
 
 func (s *Service) Index() any {
 	return map[string]any{
-		"version":   s.Version,
-		"kind":      s.Kind,
-		"name":      s.Name,
-		"namespace": s.Namespace,
-		"dependsOn": s.DependsOn,
+		index.Version:   float64(s.Version),
+		index.Kind:      s.Kind,
+		index.Name:      s.Name,
+		index.Namespace: s.Namespace,
+		index.DependsOn: s.DependsOn,
 
-		"hash":        s.Meta.Hash,
-		"createdAt":   s.Meta.CreatedAt,
-		"createdBy":   s.Meta.CreatedBy,
-		"updatedAt":   s.Meta.UpdatedAt,
-		"updatedBy":   s.Meta.UpdatedBy,
-		"userBy":      s.Meta.UsedBy,
-		"lastApplied": s.Meta.LastApplied,
+		index.MetaHash:        s.Meta.Hash,
+		index.MetaCreatedAt:   s.Meta.CreatedAt.Format(time.RFC3339Nano),
+		index.MetaCreatedBy:   s.Meta.CreatedBy,
+		index.MetaUpdatedAt:   s.Meta.UpdatedAt.Format(time.RFC3339Nano),
+		index.MetaUpdatedBy:   s.Meta.UpdatedBy,
+		index.MetaUsedBy:      s.Meta.UsedBy,
+		index.MetaLastApplied: s.Meta.LastApplied.Format(time.RFC3339Nano),
 	}
 }
 

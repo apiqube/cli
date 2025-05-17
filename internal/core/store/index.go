@@ -1,6 +1,7 @@
 package store
 
 import (
+	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
 )
@@ -9,21 +10,22 @@ func buildBleveMapping() *mapping.IndexMappingImpl {
 	manifestMapping := bleve.NewDocumentMapping()
 
 	// Main
-	manifestMapping.AddFieldMappingsAt("version", bleve.NewNumericFieldMapping())
-	manifestMapping.AddFieldMappingsAt("kind", bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt("name", bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt("namespace", bleve.NewTextFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.Version, bleve.NewNumericFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.Kind, bleve.NewTextFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.Name, bleve.NewTextFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.Namespace, bleve.NewTextFieldMapping())
 	dependsMapping := bleve.NewTextFieldMapping()
 	dependsMapping.Analyzer = "keyword"
-	manifestMapping.AddFieldMappingsAt("dependsOn", dependsMapping)
+	manifestMapping.AddFieldMappingsAt(index.DependsOn, dependsMapping)
 
 	// Meta
-	manifestMapping.AddFieldMappingsAt("hash", bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt("createdAt", bleve.NewDateTimeFieldMapping())
-	manifestMapping.AddFieldMappingsAt("createdBy", bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt("updatedAt", bleve.NewDateTimeFieldMapping())
-	manifestMapping.AddFieldMappingsAt("usedBy", bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt("lastApplied", bleve.NewDateTimeFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.MetaHash, bleve.NewTextFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.MetaCreatedAt, bleve.NewDateTimeFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.MetaCreatedBy, bleve.NewTextFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.MetaUpdatedAt, bleve.NewDateTimeFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.MetaUpdatedBy, bleve.NewTextFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.MetaUsedBy, bleve.NewTextFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.MetaLastApplied, bleve.NewDateTimeFieldMapping())
 
 	indexMapping := bleve.NewIndexMapping()
 	indexMapping.AddDocumentMapping("manifest", manifestMapping)

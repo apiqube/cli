@@ -1,7 +1,10 @@
 package plan
 
 import (
+	"time"
+
 	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
 
@@ -19,10 +22,10 @@ type Plan struct {
 
 	Spec struct {
 		Stages Stages `yaml:"stages" json:"stages"`
-		Hooks  Hooks  `yaml:"hooks" json:"hooks"`
+		Hooks  Hooks  `yaml:"hooks,omitempty" json:"hooks"`
 	} `yaml:"spec" json:"spec"`
 
-	Meta *kinds.Meta `yaml:"meta" json:"meta"`
+	Meta *kinds.Meta `yaml:",inline" json:"meta"`
 }
 
 type Stages struct {
@@ -58,18 +61,18 @@ func (p *Plan) GetNamespace() string {
 
 func (p *Plan) Index() any {
 	return map[string]any{
-		"version":   p.Version,
-		"kind":      p.Kind,
-		"name":      p.Name,
-		"namespace": p.Namespace,
+		index.Version:   float64(p.Version),
+		index.Kind:      p.Kind,
+		index.Name:      p.Name,
+		index.Namespace: p.Namespace,
 
-		"hash":        p.Meta.Hash,
-		"createdAt":   p.Meta.CreatedAt,
-		"createdBy":   p.Meta.CreatedBy,
-		"updatedAt":   p.Meta.UpdatedAt,
-		"updatedBy":   p.Meta.UpdatedBy,
-		"userBy":      p.Meta.UsedBy,
-		"lastApplied": p.Meta.LastApplied,
+		index.MetaHash:        p.Meta.Hash,
+		index.MetaCreatedAt:   p.Meta.CreatedAt.Format(time.RFC3339Nano),
+		index.MetaCreatedBy:   p.Meta.CreatedBy,
+		index.MetaUpdatedAt:   p.Meta.UpdatedAt.Format(time.RFC3339Nano),
+		index.MetaUpdatedBy:   p.Meta.UpdatedBy,
+		index.MetaUsedBy:      p.Meta.UsedBy,
+		index.MetaLastApplied: p.Meta.LastApplied.Format(time.RFC3339Nano),
 	}
 }
 

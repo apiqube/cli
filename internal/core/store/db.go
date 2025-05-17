@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
+	"time"
 
+	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/parsing"
+	bleceQuery "github.com/blevesearch/bleve/v2/search/query"
 
 	"github.com/adrg/xdg"
 	"github.com/apiqube/cli/internal/core/manifests"
@@ -18,10 +20,6 @@ import (
 
 const (
 	StorageDirPath = "qube/storage"
-)
-
-const (
-	manifestHashKeyPrefix = "manifest_hash:"
 )
 
 type Storage struct {
@@ -47,11 +45,11 @@ func NewStorage() (*Storage, error) {
 		return nil, fmt.Errorf("error opening database: %v", err)
 	}
 
-	var index bleve.Index
-	index, err = bleve.Open(blevePath)
+	var bIndex bleve.Index
+	bIndex, err = bleve.Open(blevePath)
 	if errors.Is(err, bleve.ErrorIndexPathDoesNotExist) {
 		mapping := buildBleveMapping()
-		index, err = bleve.New(blevePath, mapping)
+		bIndex, err = bleve.New(blevePath, mapping)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("error opening index: %v", err)
@@ -59,7 +57,7 @@ func NewStorage() (*Storage, error) {
 
 	return &Storage{
 		db:    db,
-		index: index,
+		index: bIndex,
 	}, nil
 }
 
@@ -106,15 +104,14 @@ func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 				continue
 			}
 
-			var mans []manifests.Manifest
+			var man manifests.Manifest
 
 			if err = item.Value(func(data []byte) error {
-				if mans, err = parsing.ParseManifestsAsYAML(data); err != nil {
-					return err
+				if man, err = parsing.ParseManifestAsJSON(data); err == nil {
+					results = append(results, man)
 				}
 
-				results = append(results, mans...)
-				return nil
+				return err
 			}); err != nil {
 				rErr = errors.Join(rErr, err)
 			}
@@ -126,78 +123,285 @@ func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
 	return results, errors.Join(rErr, err)
 }
 
-func (s *Storage) FindManifestByHash(hash string) (manifests.Manifest, bool, error) {
-	var manifest manifests.Manifest
-	found := false
+func (s *Storage) LoadManifest(id string) (manifests.Manifest, error) {
+	var result manifests.Manifest
+	var rErr error
 
-	query := bleve.NewTermQuery(hash)
-	query.SetField("hash")
+	err := instance.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(genManifestKey(id))
+		if errors.Is(err, badger.ErrKeyNotFound) {
+			rErr = errors.Join(rErr, fmt.Errorf("manifest %s not found", id))
+			return nil
+		} else if err != nil {
+			rErr = errors.Join(rErr, err)
+		}
+
+		if err = item.Value(func(data []byte) error {
+			if result, err = parsing.ParseManifestAsJSON(data); err != nil {
+				return err
+			}
+
+			return nil
+		}); err != nil {
+			rErr = errors.Join(rErr, err)
+		}
+
+		return nil
+	})
+
+	return result, errors.Join(rErr, err)
+}
+
+func (s *Storage) FindManifestsByKind(kind string) ([]manifests.Manifest, error) {
+	query := bleve.NewTermQuery(kind)
+	query.SetField(index.Kind)
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("error searching manifests: %v", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) FindManifestsByVersion(lowVersion, heightVersion uint8) ([]manifests.Manifest, error) {
+	low, height := float64(lowVersion), float64(heightVersion)
+
+	query := bleve.NewNumericRangeQuery(&low, &height)
+	query.SetField(index.Version)
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("error searching manifests: %v", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) FindManifestByName(name string) (manifests.Manifest, error) {
+	query := bleve.NewTermQuery(name)
+	query.SetField(index.Name)
 
 	searchRequest := bleve.NewSearchRequest(query)
 	searchRequest.Size = 1
 
 	searchResults, err := s.index.Search(searchRequest)
 	if err != nil {
-		return manifest, false, fmt.Errorf("search failed: %w", err)
+		return nil, fmt.Errorf("search failed: %w", err)
 	}
+
+	results, err := s.parseSearResults(searchResults)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no matching manifest found")
+	} else {
+		return results[0], nil
+	}
+}
+
+func (s *Storage) FindManifestsByNameWildcard(namePattern string) ([]manifests.Manifest, error) {
+	query := bleve.NewWildcardQuery(fmt.Sprintf("*%s*", namePattern))
+	query.SetField(index.Name)
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) FindManifestByNamespace(namespace string) ([]manifests.Manifest, error) {
+	query := bleve.NewTermQuery(namespace)
+	query.SetField(index.Namespace)
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) FindManifestByDependencies(dependencies []string, requireAll bool) ([]manifests.Manifest, error) {
+	var query bleceQuery.Query
+
+	if requireAll {
+		q := bleve.NewConjunctionQuery()
+		for _, dep := range dependencies {
+			termQuery := bleve.NewTermQuery(dep)
+			termQuery.SetField(index.DependsOn)
+			q.AddQuery(termQuery)
+		}
+		query = q
+	} else {
+		q := bleve.NewDisjunctionQuery()
+		for _, dep := range dependencies {
+			termQuery := bleve.NewTermQuery(dep)
+			termQuery.SetField(index.DependsOn)
+			q.AddQuery(termQuery)
+		}
+		query = q
+	}
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) FindManifestByHash(hash string) (manifests.Manifest, error) {
+	query := bleve.NewTermQuery(hash)
+	query.SetField(index.MetaHash)
+
+	searchRequest := bleve.NewSearchRequest(query)
+	searchRequest.Size = 1
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	results, err := s.parseSearResults(searchResults)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no matching manifest found")
+	} else {
+		return results[0], nil
+	}
+}
+
+func (s *Storage) FindManifestsByCreatedAtRange(start, end time.Time) ([]manifests.Manifest, error) {
+	query := bleve.NewDateRangeQuery(start, end)
+	query.SetField(index.MetaCreatedAt)
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("error searching manifests: %v", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) FindManifestsByCreatedBy(createdBy string) ([]manifests.Manifest, error) {
+	query := bleve.NewTermQuery(createdBy)
+	query.SetField(index.MetaCreatedBy)
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) FindManifestsByUpdatedAtRange(start, end time.Time) ([]manifests.Manifest, error) {
+	query := bleve.NewDateRangeQuery(start, end)
+	query.SetField(index.MetaUpdatedAt)
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("error searching manifests: %v", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) FindManifestsByUpdatedBy(updatedBy string) ([]manifests.Manifest, error) {
+	query := bleve.NewTermQuery(updatedBy)
+	query.SetField(index.MetaUpdatedBy)
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) FindManifestsByUsedBy(usedBy string) ([]manifests.Manifest, error) {
+	query := bleve.NewTermQuery(usedBy)
+	query.SetField(index.MetaUsedBy)
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) FindManifestsByLastAppliedRange(start, end time.Time) ([]manifests.Manifest, error) {
+	query := bleve.NewDateRangeQuery(start, end)
+	query.SetField(index.MetaLastApplied)
+
+	searchRequest := bleve.NewSearchRequest(query)
+
+	searchResults, err := s.index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("error searching manifests: %v", err)
+	}
+
+	return s.parseSearResults(searchResults)
+}
+
+func (s *Storage) parseSearResults(searchResults *bleve.SearchResult) ([]manifests.Manifest, error) {
+	var results []manifests.Manifest
+	var err error
 
 	if searchResults.Total > 0 {
-		hit := searchResults.Hits[0]
-		err = s.db.View(func(txn *badger.Txn) error {
-			var item *badger.Item
-			item, err = txn.Get(genManifestKey(hit.ID))
+		for _, hit := range searchResults.Hits {
+			var man manifests.Manifest
+
+			err = s.db.View(func(txn *badger.Txn) error {
+				var item *badger.Item
+				item, err = txn.Get(genManifestKey(hit.ID))
+				if err != nil {
+					return err
+				}
+
+				return item.Value(func(val []byte) error {
+					if err = json.Unmarshal(val, &man); err != nil {
+						return fmt.Errorf("failed to unmarshal manifest: %w", err)
+					}
+					return nil
+				})
+			})
 			if err != nil {
-				return err
+				return nil, fmt.Errorf("failed to load manifest: %w", err)
 			}
 
-			return item.Value(func(val []byte) error {
-				if err = json.Unmarshal(val, &manifest); err != nil {
-					return fmt.Errorf("failed to unmarshal manifest: %w", err)
-				}
-				found = true
-				return nil
-			})
-		})
-
-		if err != nil {
-			return manifest, false, fmt.Errorf("failed to load manifest: %w", err)
+			results = append(results, man)
 		}
 	}
 
-	return manifest, found, nil
-}
-
-func (s *Storage) LoadManifestHashes() ([]string, error) {
-	var results []string
-	var rErr error
-
-	err := instance.db.View(func(txn *badger.Txn) error {
-		opts := badger.DefaultIteratorOptions
-		opts.Prefix = []byte(manifestHashKeyPrefix)
-
-		it := txn.NewIterator(opts)
-		defer it.Close()
-
-		for it.Rewind(); it.Valid(); it.Next() {
-			key := it.Item().Key()
-			results = append(results, strings.TrimPrefix(string(key), manifestHashKeyPrefix))
-		}
-
-		return nil
-	})
-
-	return results, errors.Join(rErr, err)
-}
-
-func (s *Storage) SaveManifestHash(hash string) error {
-	var rErr error
-
-	err := instance.db.Update(func(txn *badger.Txn) error {
-		return txn.Set(genManifestHashKey(hash), []byte(hash))
-	})
-	if err != nil {
-		return fmt.Errorf("error saving manifest hash: %v", err)
-	}
-
-	return errors.Join(rErr, err)
+	return results, nil
 }

@@ -2,6 +2,9 @@ package api
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/apiqube/cli/internal/core/manifests/index"
 
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 
@@ -53,19 +56,19 @@ func (h *Http) GetNamespace() string {
 
 func (h *Http) Index() any {
 	return map[string]any{
-		"version":   h.Version,
-		"kind":      h.Kind,
-		"name":      h.Name,
-		"namespace": h.Namespace,
-		"dependsOn": h.DependsOn,
+		index.Version:   float64(h.Version),
+		index.Kind:      h.Kind,
+		index.Name:      h.Name,
+		index.Namespace: h.Namespace,
+		index.DependsOn: h.DependsOn,
 
-		"hash":        h.Meta.Hash,
-		"createdAt":   h.Meta.CreatedAt,
-		"createdBy":   h.Meta.CreatedBy,
-		"updatedAt":   h.Meta.UpdatedAt,
-		"updatedBy":   h.Meta.UpdatedBy,
-		"userBy":      h.Meta.UsedBy,
-		"lastApplied": h.Meta.LastApplied,
+		index.MetaHash:        h.Meta.Hash,
+		index.MetaCreatedAt:   h.Meta.CreatedAt.Format(time.RFC3339Nano),
+		index.MetaCreatedBy:   h.Meta.CreatedBy,
+		index.MetaUpdatedAt:   h.Meta.UpdatedAt.Format(time.RFC3339Nano),
+		index.MetaUpdatedBy:   h.Meta.UpdatedBy,
+		index.MetaUsedBy:      h.Meta.UsedBy,
+		index.MetaLastApplied: h.Meta.LastApplied.Format(time.RFC3339Nano),
 	}
 }
 
