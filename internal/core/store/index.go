@@ -7,36 +7,55 @@ import (
 )
 
 func buildBleveMapping() *mapping.IndexMappingImpl {
+	indexMapping := bleve.NewIndexMapping()
+	indexMapping.DefaultAnalyzer = "standard"
+
 	manifestMapping := bleve.NewDocumentMapping()
 
-	// Main
-	manifestMapping.AddFieldMappingsAt(index.Version, bleve.NewNumericFieldMapping())
+	idMapping := bleve.NewTextFieldMapping()
+	idMapping.Analyzer = "keyword"
+	idMapping.Store = true
+	manifestMapping.AddFieldMappingsAt(index.ID, idMapping)
 
-	kindMapping := bleve.NewTextFieldMapping()
-	kindMapping.Analyzer = "keyword"
-	manifestMapping.AddFieldMappingsAt(index.Kind, kindMapping)
+	manifestMapping.AddFieldMappingsAt(index.Version, bleve.NewNumericFieldMapping())
+	manifestMapping.AddFieldMappingsAt(index.MetaVersion, bleve.NewNumericFieldMapping())
+
+	exactMatchFields := []string{
+		index.Kind,
+		index.Namespace,
+		index.DependsOn,
+		index.MetaCreatedBy,
+		index.MetaUpdatedBy,
+		index.MetaUsedBy,
+	}
+
+	for _, field := range exactMatchFields {
+		fm := bleve.NewTextFieldMapping()
+		fm.Analyzer = "keyword"
+		manifestMapping.AddFieldMappingsAt(field, fm)
+	}
 
 	nameMapping := bleve.NewTextFieldMapping()
+	nameMapping.Analyzer = "standard"
 	manifestMapping.AddFieldMappingsAt(index.Name, nameMapping)
 
-	dependsMapping := bleve.NewTextFieldMapping()
-	dependsMapping.Analyzer = "keyword"
-	manifestMapping.AddFieldMappingsAt(index.DependsOn, dependsMapping)
+	hashMapping := bleve.NewTextFieldMapping()
+	hashMapping.Analyzer = "keyword"
+	hashMapping.Store = true
+	manifestMapping.AddFieldMappingsAt(index.MetaHash, hashMapping)
 
-	namespaceMapping := bleve.NewTextFieldMapping()
-	namespaceMapping.Analyzer = "keyword"
-	manifestMapping.AddFieldMappingsAt(index.Namespace, namespaceMapping)
+	dateTimeMapping := bleve.NewDateTimeFieldMapping()
 
-	// Meta
-	manifestMapping.AddFieldMappingsAt(index.MetaHash, bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt(index.MetaCreatedAt, bleve.NewDateTimeFieldMapping())
-	manifestMapping.AddFieldMappingsAt(index.MetaCreatedBy, bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt(index.MetaUpdatedAt, bleve.NewDateTimeFieldMapping())
-	manifestMapping.AddFieldMappingsAt(index.MetaUpdatedBy, bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt(index.MetaUsedBy, bleve.NewTextFieldMapping())
-	manifestMapping.AddFieldMappingsAt(index.MetaLastApplied, bleve.NewDateTimeFieldMapping())
+	dateFields := []string{
+		index.MetaCreatedAt,
+		index.MetaUpdatedAt,
+		index.MetaLastApplied,
+	}
 
-	indexMapping := bleve.NewIndexMapping()
+	for _, field := range dateFields {
+		manifestMapping.AddFieldMappingsAt(field, dateTimeMapping)
+	}
+
 	indexMapping.DefaultMapping = manifestMapping
 
 	return indexMapping

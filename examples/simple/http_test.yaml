@@ -34,7 +34,7 @@ spec:
       method: GET
       endpoint: /users/{id}
       expected:
-        code: 404
+        code: 201
         message: "User not found"
 
 dependsOn:

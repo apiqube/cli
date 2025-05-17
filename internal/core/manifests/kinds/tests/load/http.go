@@ -13,7 +13,6 @@ import (
 var (
 	_ manifests.Manifest     = (*Http)(nil)
 	_ manifests.Dependencies = (*Http)(nil)
-	_ manifests.MetaTable    = (*Http)(nil)
 	_ manifests.Defaultable  = (*Http)(nil)
 	_ manifests.Prepare      = (*Http)(nil)
 )
@@ -77,6 +76,7 @@ func (h *Http) GetNamespace() string {
 
 func (h *Http) Index() any {
 	return map[string]any{
+		index.ID:        h.GetID(),
 		index.Version:   float64(h.Version),
 		index.Kind:      h.Kind,
 		index.Name:      h.Name,
@@ -84,6 +84,8 @@ func (h *Http) Index() any {
 		index.DependsOn: h.DependsOn,
 
 		index.MetaHash:        h.Meta.Hash,
+		index.MetaVersion:     float64(h.Meta.Version),
+		index.MetaIsCurrent:   h.Meta.IsCurrent,
 		index.MetaCreatedAt:   h.Meta.CreatedAt.Format(time.RFC3339Nano),
 		index.MetaCreatedBy:   h.Meta.CreatedBy,
 		index.MetaUpdatedAt:   h.Meta.UpdatedAt.Format(time.RFC3339Nano),

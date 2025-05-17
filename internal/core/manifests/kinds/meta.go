@@ -21,6 +21,7 @@ func DefaultMeta() *Meta {
 	return &Meta{
 		Hash:        "",
 		Version:     1,
+		IsCurrent:   true,
 		CreatedAt:   time.Now(),
 		CreatedBy:   name,
 		UpdatedAt:   time.Now(),
@@ -35,6 +36,7 @@ var _ manifests.Meta = (*Meta)(nil)
 type Meta struct {
 	Hash        string    `yaml:"-" json:"hash"`
 	Version     uint8     `yaml:"-" json:"version"`
+	IsCurrent   bool      `yaml:"-" json:"isCurrent"`
 	CreatedAt   time.Time `yaml:"-" json:"createdAt"`
 	CreatedBy   string    `yaml:"-" json:"createdBy"`
 	UpdatedAt   time.Time `yaml:"-" json:"updatedAt"`
@@ -63,6 +65,14 @@ func (m *Meta) IncVersion() {
 	if m.Version < math.MaxUint8 {
 		m.Version++
 	}
+}
+
+func (m *Meta) GetIsCurrent() bool {
+	return m.IsCurrent
+}
+
+func (m *Meta) SetIsCurrent(isCurrent bool) {
+	m.IsCurrent = isCurrent
 }
 
 func (m *Meta) GetCreatedAt() time.Time {

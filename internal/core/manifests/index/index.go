@@ -1,6 +1,7 @@
 package index
 
 const (
+	ID        = "id"
 	Version   = "version"
 	Kind      = "kind"
 	Name      = "name"
@@ -10,6 +11,8 @@ const (
 
 const (
 	MetaHash        = "meta.hash"
+	MetaVersion     = "meta.version"
+	MetaIsCurrent   = "meta.isCurrent"
 	MetaCreatedAt   = "meta.createdAt"
 	MetaCreatedBy   = "meta.createdBy"
 	MetaUpdatedAt   = "meta.updatedAt"

@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
-
-	"github.com/apiqube/cli/ui"
 
 	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/parsing"
@@ -21,7 +22,11 @@ import (
 )
 
 const (
-	StorageDirPath = "ApiQube/Storage"
+	StorageDirPath = "ApiQube/storage"
+)
+
+const (
+	MaxManifestVersion = 10
 )
 
 type Storage struct {
@@ -64,96 +69,148 @@ func NewStorage() (*Storage, error) {
 }
 
 func (s *Storage) SaveManifests(mans ...manifests.Manifest) error {
-	var err error
-	err = instance.db.Update(func(txn *badger.Txn) error {
-		var data []byte
-
+	return instance.db.Update(func(txn *badger.Txn) error {
 		for _, m := range mans {
-			data, err = json.Marshal(m)
+			currentVer, err := s.getCurrentVersion(txn, m.GetID())
 			if err != nil {
-				return fmt.Errorf("error marshalling manifest: %v", err)
+				return fmt.Errorf("version check failed: %v", err)
 			}
 
-			if err = txn.Set(genManifestKey(m.GetID()), data); err != nil {
+			newVersion := currentVer + 1
+
+			meta := m.GetMeta()
+			meta.SetVersion(uint8(newVersion))
+			meta.SetUpdatedAt(time.Now())
+			meta.SetUpdatedBy("qube")
+
+			versionedKey := genVersionedKey(m.GetID(), newVersion)
+			latestKey := genLatestKey(m.GetID())
+
+			data, err := json.Marshal(m)
+			if err != nil {
+				return fmt.Errorf("marshaling error: %v", err)
+			}
+
+			if err = txn.Set(versionedKey, data); err != nil {
+				return err
+			}
+			if err = txn.Set(latestKey, versionedKey); err != nil {
 				return err
 			}
 
-			if err = s.index.Index(m.GetID(), m.Index()); err != nil {
-				ui.Errorf("Failed to index manifest %s: %v", m.GetID(), err)
+			if err = s.indexCurrentManifest(m, string(versionedKey), currentVer); err != nil {
 				return err
+			}
+
+			if newVersion > MaxManifestVersion {
+				if err = s.cleanupOldVersions(txn, m.GetID(), MaxManifestVersion); err != nil {
+					return err
+				}
 			}
 		}
-
 		return nil
 	})
-
-	return err
 }
 
 func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
-	var results []manifests.Manifest
-	var rErr error
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("empty IDs list")
+	}
+
+	var (
+		results []manifests.Manifest
+		errs    error
+	)
 
 	err := instance.db.View(func(txn *badger.Txn) error {
-		var item *badger.Item
-		var err error
-
 		for _, id := range ids {
-			item, err = txn.Get(genManifestKey(id))
-			if errors.Is(err, badger.ErrKeyNotFound) {
-				rErr = errors.Join(rErr, fmt.Errorf("manifest %s not found", id))
-				continue
-			} else if err != nil {
-				rErr = errors.Join(rErr, err)
+			item, err := txn.Get(genLatestKey(id))
+			if err != nil {
+				if errors.Is(err, badger.ErrKeyNotFound) {
+					errs = errors.Join(errs, fmt.Errorf("manifest %q not found", id))
+					continue
+				}
+				errs = errors.Join(errs, fmt.Errorf("failed to get latest pointer for %q: %w", id, err))
 				continue
 			}
 
-			var man manifests.Manifest
+			var latestKey []byte
+			if err = item.Value(func(val []byte) error {
+				latestKey = append([]byte{}, val...)
+				return nil
+			}); err != nil {
+				errs = errors.Join(errs, fmt.Errorf("failed to read latest key for %q: %w", id, err))
+				continue
+			}
 
+			item, err = txn.Get(latestKey)
+			if err != nil {
+				errs = errors.Join(errs, fmt.Errorf("failed to get manifest data for %q: %w", id, err))
+				continue
+			}
+
+			var manifest manifests.Manifest
 			if err = item.Value(func(data []byte) error {
-				if man, err = parsing.ParseManifestAsJSON(data); err == nil {
-					results = append(results, man)
-				}
-
+				manifest, err = parsing.ParseManifestAsJSON(data)
 				return err
 			}); err != nil {
-				rErr = errors.Join(rErr, err)
+				errs = errors.Join(errs, fmt.Errorf("parsing failed for %q: %w", id, err))
+				continue
 			}
+
+			results = append(results, manifest)
 		}
 
+		if len(results) == 0 && errs != nil {
+			return fmt.Errorf("no manifests loaded: %w", errs)
+		}
 		return nil
 	})
+	if err != nil {
+		return results, fmt.Errorf("transaction failed: %w", errors.Join(err, errs))
+	}
 
-	return results, errors.Join(rErr, err)
+	return results, errs
 }
 
 func (s *Storage) LoadManifest(id string) (manifests.Manifest, error) {
-	var result manifests.Manifest
-	var rErr error
+	var manifest manifests.Manifest
 
 	err := instance.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(genManifestKey(id))
-		if errors.Is(err, badger.ErrKeyNotFound) {
-			rErr = errors.Join(rErr, fmt.Errorf("manifest %s not found", id))
+		item, err := txn.Get(genLatestKey(id))
+		if err != nil {
+			return fmt.Errorf("failed to get latest version pointer: %w", err)
+		}
+
+		var versionedKey []byte
+		if err := item.Value(func(val []byte) error {
+			versionedKey = make([]byte, len(val))
+			copy(versionedKey, val)
 			return nil
-		} else if err != nil {
-			rErr = errors.Join(rErr, err)
+		}); err != nil {
+			return fmt.Errorf("failed to read version key: %w", err)
+		}
+
+		item, err = txn.Get(versionedKey)
+		if err != nil {
+			return fmt.Errorf("failed to get manifest data: %w", err)
 		}
 
 		if err = item.Value(func(data []byte) error {
-			if result, err = parsing.ParseManifestAsJSON(data); err != nil {
-				return err
-			}
-
-			return nil
+			var parseErr error
+			manifest, parseErr = parsing.ParseManifestAsJSON(data)
+			return parseErr
 		}); err != nil {
-			rErr = errors.Join(rErr, err)
+			return fmt.Errorf("parsing failed: %w", err)
 		}
 
 		return nil
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to load manifest %q: %w", id, err)
+	}
 
-	return result, errors.Join(rErr, err)
+	return manifest, nil
 }
 
 func (s *Storage) FindManifestsByKind(kind string) ([]manifests.Manifest, error) {
@@ -167,7 +224,7 @@ func (s *Storage) FindManifestsByKind(kind string) ([]manifests.Manifest, error)
 		return nil, fmt.Errorf("error searching manifests: %v", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
 func (s *Storage) FindManifestsByVersion(lowVersion, heightVersion uint8) ([]manifests.Manifest, error) {
@@ -183,7 +240,7 @@ func (s *Storage) FindManifestsByVersion(lowVersion, heightVersion uint8) ([]man
 		return nil, fmt.Errorf("error searching manifests: %v", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
 func (s *Storage) FindManifestByName(name string) (manifests.Manifest, error) {
@@ -198,7 +255,7 @@ func (s *Storage) FindManifestByName(name string) (manifests.Manifest, error) {
 		return nil, fmt.Errorf("search failed: %w", err)
 	}
 
-	results, err := s.parseSearResults(searchResults)
+	results, err := s.parseSearchResults(searchResults)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +278,7 @@ func (s *Storage) FindManifestsByNameWildcard(namePattern string) ([]manifests.M
 		return nil, fmt.Errorf("search failed: %w", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
 func (s *Storage) FindManifestsByNamespace(namespace string) ([]manifests.Manifest, error) {
@@ -235,7 +292,7 @@ func (s *Storage) FindManifestsByNamespace(namespace string) ([]manifests.Manife
 		return nil, fmt.Errorf("search failed: %w", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
 func (s *Storage) FindManifestByDependencies(dependencies []string, requireAll bool) ([]manifests.Manifest, error) {
@@ -266,7 +323,7 @@ func (s *Storage) FindManifestByDependencies(dependencies []string, requireAll b
 		return nil, fmt.Errorf("search failed: %w", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
 func (s *Storage) FindManifestByHash(hash string) (manifests.Manifest, error) {
@@ -281,7 +338,7 @@ func (s *Storage) FindManifestByHash(hash string) (manifests.Manifest, error) {
 		return nil, fmt.Errorf("search failed: %w", err)
 	}
 
-	results, err := s.parseSearResults(searchResults)
+	results, err := s.parseSearchResults(searchResults)
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +361,7 @@ func (s *Storage) FindManifestsByCreatedAtRange(start, end time.Time) ([]manifes
 		return nil, fmt.Errorf("error searching manifests: %v", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
 func (s *Storage) FindManifestsByCreatedBy(createdBy string) ([]manifests.Manifest, error) {
@@ -318,7 +375,7 @@ func (s *Storage) FindManifestsByCreatedBy(createdBy string) ([]manifests.Manife
 		return nil, fmt.Errorf("search failed: %w", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
 func (s *Storage) FindManifestsByUpdatedAtRange(start, end time.Time) ([]manifests.Manifest, error) {
@@ -332,7 +389,7 @@ func (s *Storage) FindManifestsByUpdatedAtRange(start, end time.Time) ([]manifes
 		return nil, fmt.Errorf("error searching manifests: %v", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
 func (s *Storage) FindManifestsByUpdatedBy(updatedBy string) ([]manifests.Manifest, error) {
@@ -346,7 +403,7 @@ func (s *Storage) FindManifestsByUpdatedBy(updatedBy string) ([]manifests.Manife
 		return nil, fmt.Errorf("search failed: %w", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
 func (s *Storage) FindManifestsByUsedBy(usedBy string) ([]manifests.Manifest, error) {
@@ -360,7 +417,7 @@ func (s *Storage) FindManifestsByUsedBy(usedBy string) ([]manifests.Manifest, er
 		return nil, fmt.Errorf("search failed: %w", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
 func (s *Storage) FindManifestsByLastAppliedRange(start, end time.Time) ([]manifests.Manifest, error) {
@@ -374,43 +431,220 @@ func (s *Storage) FindManifestsByLastAppliedRange(start, end time.Time) ([]manif
 		return nil, fmt.Errorf("error searching manifests: %v", err)
 	}
 
-	return s.parseSearResults(searchResults)
+	return s.parseSearchResults(searchResults)
 }
 
-func (s *Storage) parseSearResults(searchResults *bleve.SearchResult) ([]manifests.Manifest, error) {
-	var results []manifests.Manifest
-	var rErr error
+func (s *Storage) parseSearchResults(searchResults *bleve.SearchResult) ([]manifests.Manifest, error) {
+	if searchResults == nil || searchResults.Total == 0 {
+		return nil, nil
+	}
 
-	if searchResults.Total > 0 {
-		for _, hit := range searchResults.Hits {
-			var man manifests.Manifest
+	var (
+		manifestsList = make([]manifests.Manifest, 0, len(searchResults.Hits))
+		errorsList    []error
+	)
 
-			err := s.db.View(func(txn *badger.Txn) error {
-				var item *badger.Item
-				var err error
+	for _, hit := range searchResults.Hits {
+		manifest, err := s.loadManifestByID(hit.ID)
+		if err != nil {
+			errorsList = append(errorsList, fmt.Errorf("id %q: %w", hit.ID, err))
+			continue
+		}
 
-				item, err = txn.Get(genManifestKey(hit.ID))
-				if err != nil && errors.Is(err, badger.ErrKeyNotFound) {
-					rErr = errors.Join(rErr, fmt.Errorf("could not find manifest by ID: %v", hit.ID))
-				} else if err != nil {
-					rErr = errors.Join(rErr, fmt.Errorf("failed to load manifest by ID: %v", hit.ID))
-				}
-
-				return item.Value(func(val []byte) error {
-					man, err = parsing.ParseManifest(parsing.JSONMethod, val)
-					if err != nil {
-						return err
-					}
-					return nil
-				})
-			})
-			if err != nil {
-				rErr = errors.Join(rErr, err)
-			}
-
-			results = append(results, man)
+		if manifest != nil {
+			manifestsList = append(manifestsList, manifest)
 		}
 	}
 
-	return results, rErr
+	return manifestsList, errors.Join(errorsList...)
+}
+
+func (s *Storage) loadManifestByID(id string) (manifests.Manifest, error) {
+	var manifest manifests.Manifest
+
+	err := instance.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(id))
+		if err != nil {
+			return err
+		}
+
+		return item.Value(func(data []byte) error {
+			var parseErr error
+			manifest, parseErr = parsing.ParseManifest(parsing.JSONMethod, data)
+			return parseErr
+		})
+	})
+
+	switch {
+	case errors.Is(err, badger.ErrKeyNotFound):
+		return nil, fmt.Errorf("not found")
+	case err != nil:
+		return nil, fmt.Errorf("storage error: %w", err)
+	default:
+		return manifest, nil
+	}
+}
+
+func (s *Storage) getCurrentVersion(txn *badger.Txn, id string) (int, error) {
+	item, err := txn.Get(genLatestKey(id))
+	if errors.Is(err, badger.ErrKeyNotFound) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	val, err := item.ValueCopy(nil)
+	if err != nil {
+		return 0, err
+	}
+
+	valStr := string(val)
+	parts := strings.Split(valStr, "@v")
+	if len(parts) != 2 {
+		return 0, fmt.Errorf("invalid versioned key format")
+	}
+
+	return strconv.Atoi(parts[1])
+}
+
+func (s *Storage) indexCurrentManifest(m manifests.Manifest, newKey string, oldVersion int) error {
+	if oldVersion > 0 {
+		oldKey := genVersionedKey(m.GetID(), oldVersion)
+		if err := s.index.Delete(string(oldKey)); err != nil {
+			return fmt.Errorf("could not delete manifest: %s old version %v: %v", m.GetID(), oldVersion, err)
+		}
+	}
+
+	m.GetMeta().SetIsCurrent(true)
+
+	if err := s.index.Index(newKey, m.Index()); err != nil {
+		return fmt.Errorf("could not index manifest: %s old version %v: %v", m.GetID(), oldVersion, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) cleanupOldVersions(txn *badger.Txn, id string, keepVersions int) error {
+	versions, err := s.getAllVersions(txn, id)
+	if err != nil {
+		return err
+	}
+
+	sort.Ints(versions)
+
+	for i := 0; i < len(versions)-keepVersions; i++ {
+		key := genVersionedKey(id, versions[i])
+
+		if err = txn.Delete(key); err != nil {
+			return fmt.Errorf("could not delete manifest: %s old version %v: %v", id, versions[i], err)
+		}
+
+		if err = s.index.Delete(string(key)); err != nil {
+			return fmt.Errorf("could not delete manifest: %s old version %v: %v", id, versions[i], err)
+		}
+	}
+
+	if versions[len(versions)-1] > MaxManifestVersion {
+		return s.resetVersions(txn, id)
+	}
+
+	return nil
+}
+
+func (s *Storage) resetVersions(txn *badger.Txn, id string) error {
+	latestKey := genLatestKey(id)
+	item, err := txn.Get(latestKey)
+	if err != nil {
+		return fmt.Errorf("failed to get latest version: %w", err)
+	}
+
+	latestVal, err := item.ValueCopy(nil)
+	if err != nil {
+		return fmt.Errorf("failed to read latest value: %w", err)
+	}
+
+	item, err = txn.Get(latestVal)
+	if err != nil {
+		return fmt.Errorf("failed to get manifest data: %w", err)
+	}
+
+	manifestData, err := item.ValueCopy(nil)
+	if err != nil {
+		return fmt.Errorf("failed to copy manifest data: %w", err)
+	}
+
+	manifest, err := parsing.ParseManifest(parsing.JSONMethod, manifestData)
+	if err != nil {
+		return fmt.Errorf("parsing failed: %w", err)
+	}
+
+	meta := manifest.GetMeta()
+	meta.SetVersion(1)
+	meta.SetUpdatedAt(time.Now())
+	meta.SetUpdatedBy("qube")
+	meta.SetIsCurrent(true)
+
+	newData, err := json.Marshal(manifest)
+	if err != nil {
+		return fmt.Errorf("marshaling failed: %w", err)
+	}
+
+	newKey := genVersionedKey(id, 1)
+	if err = txn.Set(newKey, newData); err != nil {
+		return fmt.Errorf("failed to save new version: %w", err)
+	}
+
+	if err = txn.Set(latestKey, newKey); err != nil {
+		return fmt.Errorf("failed to update latest pointer: %w", err)
+	}
+
+	if err = s.cleanupIndexForReset(id, newKey); err != nil {
+		return fmt.Errorf("index cleanup failed: %w", err)
+	}
+
+	return s.index.Index(string(newKey), manifest.Index())
+}
+
+func (s *Storage) cleanupIndexForReset(id string, newKey []byte) error {
+	query := bleve.NewTermQuery(id)
+	searchReq := bleve.NewSearchRequest(query)
+	searchReq.Fields = []string{"*"}
+
+	searchResults, err := s.index.Search(searchReq)
+	if err != nil {
+		return err
+	}
+
+	var delErrors error
+	for _, hit := range searchResults.Hits {
+		if hit.ID != string(newKey) {
+			if err := s.index.Delete(hit.ID); err != nil {
+				delErrors = errors.Join(delErrors,
+					fmt.Errorf("failed to delete %s: %w", hit.ID, err))
+			}
+		}
+	}
+	return delErrors
+}
+
+func (s *Storage) getAllVersions(txn *badger.Txn, id string) ([]int, error) {
+	var versions []int
+	it := txn.NewIterator(badger.DefaultIteratorOptions)
+	defer it.Close()
+
+	prefix := []byte(id + "@v")
+	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+		key := string(it.Item().Key())
+		parts := strings.Split(key, "@v")
+		if len(parts) != 2 {
+			continue
+		}
+		ver, err := strconv.Atoi(parts[1])
+		if err != nil {
+			continue
+		}
+		versions = append(versions, ver)
+	}
+	return versions, nil
 }

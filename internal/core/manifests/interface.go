@@ -27,14 +27,11 @@ type Manifest interface {
 	GetName() string
 	GetNamespace() string
 	Index() any
+	GetMeta() Meta
 }
 
 type Dependencies interface {
 	GetDependsOn() []string
-}
-
-type MetaTable interface {
-	GetMeta() Meta
 }
 
 type Meta interface {
@@ -44,6 +41,9 @@ type Meta interface {
 	GetVersion() uint8
 	SetVersion(version uint8)
 	IncVersion()
+
+	GetIsCurrent() bool
+	SetIsCurrent(isCurrent bool)
 
 	GetCreatedAt() time.Time
 	SetCreatedAt(createdAt time.Time)

@@ -75,14 +75,12 @@ func LoadManifestsFromDir(dir string) ([]manifests.Manifest, error) {
 				continue
 			}
 
-			if metaTable, ok := m.(manifests.MetaTable); ok {
-				meta := metaTable.GetMeta()
-				meta.SetHash(fileHash)
-				meta.SetVersion(1)
-				now := time.Now()
-				meta.SetCreatedAt(now)
-				meta.SetUpdatedAt(now)
-			}
+			meta := m.GetMeta()
+			meta.SetHash(fileHash)
+			meta.SetVersion(1)
+			now := time.Now()
+			meta.SetCreatedAt(now)
+			meta.SetUpdatedAt(now)
 
 			manifestsSet[manifestID] = struct{}{}
 			manifestsList = append(manifestsList, m)

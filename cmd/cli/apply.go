@@ -44,6 +44,8 @@ var applyCmd = &cobra.Command{
 
 		ui.Spinner(false)
 		ui.Println("Manifests applied successfully")
+
+		// =>
 	},
 }
 
