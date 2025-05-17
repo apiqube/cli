@@ -27,16 +27,17 @@ var applyCmd = &cobra.Command{
 		ui.Printf("Applying manifests from: %s", file)
 		ui.Spinner(true, "Loading manifests")
 
-		mans, err := loader.LoadManifestsFromDir(file)
+		loadedMans, _, err := loader.LoadManifests(file)
 		if err != nil {
 			ui.Spinner(false)
 			ui.Errorf("Failed to load manifests: %s", err.Error())
 			return
 		}
 
+		ui.Spinner(false)
 		ui.Spinner(true, "Saving manifests...")
 
-		if err := store.SaveManifests(mans...); err != nil {
+		if err := store.SaveManifests(loadedMans...); err != nil {
 			ui.Error("Failed to save manifests: " + err.Error())
 			ui.Spinner(false)
 			return
@@ -44,16 +45,5 @@ var applyCmd = &cobra.Command{
 
 		ui.Spinner(false)
 		ui.Println("Manifests applied successfully")
-
-		// =>
 	},
 }
-
-/*type Logger struct {
-	Writer io.Writer
-	Style  lipgloss.Style
-}
-
-func (l *Logger) Log(msg string) {
-	fmt.Fprintln(l.Writer, l.Style.Render(msg))
-}*/
