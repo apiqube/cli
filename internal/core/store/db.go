@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -26,7 +27,7 @@ const (
 )
 
 const (
-	MaxManifestVersion = 10
+	MaxManifestVersion = math.MaxUint8 - 230
 )
 
 type Storage struct {
@@ -432,6 +433,69 @@ func (s *Storage) FindManifestsByLastAppliedRange(start, end time.Time) ([]manif
 	}
 
 	return s.parseSearchResults(searchResults)
+}
+
+func (s *Storage) Rollback(id string, targetVersion int) error {
+	return instance.db.Update(func(txn *badger.Txn) error {
+		key := genVersionedKey(id, targetVersion)
+		item, err := txn.Get(key)
+		if err != nil {
+			return fmt.Errorf("old version for manifest %s not found", id)
+		}
+
+		val, _ := item.ValueCopy(nil)
+		newVersion, err := s.getCurrentVersion(txn, id)
+		if err != nil {
+			return err
+		}
+
+		newVersion += 1
+		newKey := genVersionedKey(id, newVersion)
+
+		if err = txn.Set(newKey, val); err != nil && errors.Is(err, badger.ErrKeyNotFound) {
+			return fmt.Errorf("old version for manifest %s not found", id)
+		} else if err != nil {
+			return fmt.Errorf("rollback failed: %w", err)
+		}
+
+		latestKey := genLatestKey(id)
+		return txn.Set(latestKey, newKey)
+	})
+}
+
+func (s *Storage) CleanupOldVersions(id string, keep int) error {
+	return instance.db.Update(func(txn *badger.Txn) error {
+		versions, err := s.getAllVersions(txn, id)
+		if err != nil {
+			return err
+		}
+
+		if len(versions) <= keep {
+			return nil
+		}
+
+		sort.Ints(versions)
+		toDelete := versions[:len(versions)-keep]
+
+		for _, ver := range toDelete {
+			key := genVersionedKey(id, ver)
+
+			if err = txn.Delete(key); err != nil {
+				return fmt.Errorf("error deleting old versions: %w", err)
+			}
+
+			if err = s.index.Delete(string(key)); err != nil {
+				return fmt.Errorf("failed to delete from index: %v", err)
+			}
+		}
+
+		latestVer := versions[len(versions)-1]
+		if latestVer > MaxManifestVersion {
+			return s.resetVersions(txn, id)
+		}
+
+		return nil
+	})
 }
 
 func (s *Storage) parseSearchResults(searchResults *bleve.SearchResult) ([]manifests.Manifest, error) {

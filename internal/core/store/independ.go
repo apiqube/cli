@@ -175,6 +175,22 @@ func FindManifestsByLastAppliedRange(start, end time.Time) ([]manifests.Manifest
 	return instance.FindManifestsByLastAppliedRange(start, end)
 }
 
+func Rollback(id string, targetVersion int) error {
+	if !isEnabled() {
+		return nil
+	}
+
+	return instance.Rollback(id, targetVersion)
+}
+
+func CleanupOldVersions(id string, keep int) error {
+	if !isEnabled() {
+		return nil
+	}
+
+	return instance.CleanupOldVersions(id, keep)
+}
+
 func isEnabled() bool {
 	if !IsEnabled() {
 		ui.Errorf("Database instance not ready")
