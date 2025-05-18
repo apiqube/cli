@@ -1,0 +1,12 @@
+builds:
+  - id: "cli"
+    dir: ./cmd
+    main: .
+    binary: "qube"
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
