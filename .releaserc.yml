@@ -1,0 +1,10 @@
+no_default_assets: true
+changelog:
+  hide:
+    - merge
+    - chore
+    - docs
+    - style
+    - refactor
+    - perf
+    - test
