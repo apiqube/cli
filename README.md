@@ -34,11 +34,26 @@ cp ./bin/qube.exe ~/bin/qube  # or any PATH directory
 ```
 
 ## 🧪 Usage
-- `qube version`        # Print CLI version
-- `qube plan apply`    # Build and execute a test plan from YAML
-- `qube test run`       # Run specific tests
-- `qube plugin list`    # Show installed plugins
-- `qube stub add db`    # Launch PostgresSQL or other stubs for testing
+```bash
+ApiQube is a powerful test manager for apps and APIs
+
+Usage:
+  qube [command]
+
+Available Commands:
+  apply       Apply resources from manifest file
+  cleanup     Cleanup old manifest versions by its id
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  rollback    Rollback to previous manifest version
+  search      Search for manifests using filters
+  version     Print the version number
+
+Flags:
+  -h, --help   help for qube
+
+Use "qube [command] --help" for more information about a command.
+```
 
 ## 🌍 Roadmap
 - [ ] CLI core
