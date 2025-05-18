@@ -43,3 +43,11 @@ func Info(a ...interface{}) {
 func Infof(format string, a ...interface{}) {
 	printStyledf(TypeInfo, format, a...)
 }
+
+func Debug(a ...interface{}) {
+	printStyled(TypeDebug, a...)
+}
+
+func Debugf(format string, a ...interface{}) {
+	printStyledf(TypeDebug, format, a...)
+}

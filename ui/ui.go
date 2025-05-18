@@ -19,6 +19,7 @@ const (
 	TypeError
 	TypeWarning
 	TypeInfo
+	TypeDebug
 	TypeSnippet
 	TypePackage
 	TypeRealtime
