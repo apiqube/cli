@@ -11,7 +11,6 @@ import (
 var (
 	_ manifests.Manifest     = (*Service)(nil)
 	_ manifests.Dependencies = (*Service)(nil)
-	_ manifests.MetaTable    = (*Service)(nil)
 	_ manifests.Defaultable  = (*Service)(nil)
 	_ manifests.Prepare      = (*Service)(nil)
 )
@@ -49,6 +48,7 @@ func (s *Service) GetDependsOn() []string {
 
 func (s *Service) Index() any {
 	return map[string]any{
+		index.ID:        s.GetID(),
 		index.Version:   float64(s.Version),
 		index.Kind:      s.Kind,
 		index.Name:      s.Name,
@@ -56,6 +56,8 @@ func (s *Service) Index() any {
 		index.DependsOn: s.DependsOn,
 
 		index.MetaHash:        s.Meta.Hash,
+		index.MetaVersion:     float64(s.Meta.Version),
+		index.MetaIsCurrent:   s.Meta.IsCurrent,
 		index.MetaCreatedAt:   s.Meta.CreatedAt.Format(time.RFC3339Nano),
 		index.MetaCreatedBy:   s.Meta.CreatedBy,
 		index.MetaUpdatedAt:   s.Meta.UpdatedAt.Format(time.RFC3339Nano),

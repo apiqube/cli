@@ -10,7 +10,6 @@ import (
 
 var (
 	_ manifests.Manifest    = (*Server)(nil)
-	_ manifests.MetaTable   = (*Server)(nil)
 	_ manifests.Defaultable = (*Server)(nil)
 	_ manifests.Prepare     = (*Server)(nil)
 )
@@ -44,12 +43,15 @@ func (s *Server) GetNamespace() string {
 
 func (s *Server) Index() any {
 	return map[string]any{
+		index.ID:        s.GetID(),
 		index.Version:   float64(s.Version),
 		index.Kind:      s.Kind,
 		index.Name:      s.Name,
 		index.Namespace: s.Namespace,
 
 		index.MetaHash:        s.Meta.Hash,
+		index.MetaVersion:     float64(s.Meta.Version),
+		index.MetaIsCurrent:   s.Meta.IsCurrent,
 		index.MetaCreatedAt:   s.Meta.CreatedAt.Format(time.RFC3339Nano),
 		index.MetaCreatedBy:   s.Meta.CreatedBy,
 		index.MetaUpdatedAt:   s.Meta.UpdatedAt.Format(time.RFC3339Nano),

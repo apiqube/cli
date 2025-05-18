@@ -14,6 +14,10 @@ var versionCmd = &cobra.Command{
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Qube CLI Version: ", version)
+		fmt.Println("Qube CLI", version)
 	},
+}
+
+func init() {
+	rootCmd.AddCommand(versionCmd)
 }

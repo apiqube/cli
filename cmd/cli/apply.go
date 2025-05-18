@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	applyCmd.Flags().StringP("file", "f", ".", "Path to manifest file")
+	applyCmd.Flags().StringP("file", "f", ".", "Path to manifests file")
 	rootCmd.AddCommand(applyCmd)
 }
 
@@ -27,16 +27,17 @@ var applyCmd = &cobra.Command{
 		ui.Printf("Applying manifests from: %s", file)
 		ui.Spinner(true, "Loading manifests")
 
-		mans, err := loader.LoadManifestsFromDir(file)
+		loadedMans, _, err := loader.LoadManifests(file)
 		if err != nil {
 			ui.Spinner(false)
 			ui.Errorf("Failed to load manifests: %s", err.Error())
 			return
 		}
 
+		ui.Spinner(false)
 		ui.Spinner(true, "Saving manifests...")
 
-		if err := store.SaveManifests(mans...); err != nil {
+		if err := store.Save(loadedMans...); err != nil {
 			ui.Error("Failed to save manifests: " + err.Error())
 			ui.Spinner(false)
 			return

@@ -1,12 +1,14 @@
 package store
 
 import (
+	"errors"
 	"sync"
-	"time"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/ui"
 )
+
+var errStoreNotInitialized = errors.New("store not initialized")
 
 var (
 	instance             *Storage
@@ -47,138 +49,42 @@ func IsEnabled() bool {
 	return instance != nil && enabled
 }
 
-func SaveManifests(mans ...manifests.Manifest) error {
-	if !isEnabled() {
-		return nil
-	}
-
-	return instance.SaveManifests(mans...)
-}
-
-func LoadManifests(ids ...string) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.LoadManifests()
-}
-
-func LoadManifest(id string) (manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.LoadManifest(id)
-}
-
-func FindManifestsByKind(kind string) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestsByKind(kind)
-}
-
-func FindManifestsByVersion(lowVersion, heightVersion uint8) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestsByVersion(lowVersion, heightVersion)
-}
-
-func FindManifestByName(name string) (manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestByName(name)
-}
-
-func FindManifestsByNameWildcard(namePattern string) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestsByNameWildcard(namePattern)
-}
-
-func FindManifestsByNamespace(namespace string) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestsByNamespace(namespace)
-}
-
-func FindManifestByDependencies(dependencies []string, requireAll bool) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestByDependencies(dependencies, requireAll)
-}
-
-func FindManifestByHash(hash string) (manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestByHash(hash)
-}
-
-func FindManifestsByCreatedAtRange(start, end time.Time) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestsByCreatedAtRange(start, end)
-}
-
-func FindManifestsByCreatedBy(createdBy string) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestsByCreatedBy(createdBy)
-}
-
-func FindManifestsByUpdatedAtRange(start, end time.Time) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestsByUpdatedAtRange(start, end)
-}
-
-func FindManifestsByUpdatedBy(updatedBy string) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestsByUpdatedBy(updatedBy)
-}
-
-func FindManifestsByUsedBy(usedBy string) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestsByUsedBy(usedBy)
-}
-
-func FindManifestsByLastAppliedRange(start, end time.Time) ([]manifests.Manifest, error) {
-	if !isEnabled() {
-		return nil, nil
-	}
-
-	return instance.FindManifestsByLastAppliedRange(start, end)
-}
-
-func isEnabled() bool {
+func Save(mans ...manifests.Manifest) error {
 	if !IsEnabled() {
-		ui.Errorf("Database instance not ready")
-		return false
+		return errStoreNotInitialized
 	}
-	return true
+
+	return instance.Save(mans...)
+}
+
+func Load(opts LoadOptions) ([]manifests.Manifest, error) {
+	if !IsEnabled() {
+		return nil, errStoreNotInitialized
+	}
+
+	return instance.Load(opts)
+}
+
+func Search(query Query) ([]manifests.Manifest, error) {
+	if !IsEnabled() {
+		return nil, errStoreNotInitialized
+	}
+
+	return instance.Search(query)
+}
+
+func Rollback(id string, targetVersion int) error {
+	if !IsEnabled() {
+		return errStoreNotInitialized
+	}
+
+	return instance.Rollback(id, targetVersion)
+}
+
+func CleanupOldVersions(id string, keep int) error {
+	if !IsEnabled() {
+		return errStoreNotInitialized
+	}
+
+	return instance.CleanupOldVersions(id, keep)
 }
