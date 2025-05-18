@@ -6,7 +6,7 @@ metadata:
 
 spec:
   users:
-    username: ["Max", "Carl", "John", "Alex"]
+    username: ["Max", "Carl", "John", "Alex", "Uli"]
     email:
       - "email_1@gmail.com"
       - "email_2@mail.com"

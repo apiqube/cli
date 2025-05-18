@@ -13,11 +13,10 @@ import (
 	"time"
 
 	"github.com/apiqube/cli/internal/core/manifests/index"
-	"github.com/apiqube/cli/internal/core/manifests/parsing"
-	bleceQuery "github.com/blevesearch/bleve/v2/search/query"
 
 	"github.com/adrg/xdg"
 	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/manifests/parsing"
 	"github.com/blevesearch/bleve/v2"
 	"github.com/dgraph-io/badger/v4"
 )
@@ -29,6 +28,16 @@ const (
 const (
 	MaxManifestVersion = math.MaxUint8 - 230
 )
+
+type LoadOptions struct {
+	IDs      []string
+	Versions map[string]int // id -> version
+	Hash     string
+	Latest   bool
+	All      bool
+	SortBy   []string
+	Limit    int
+}
 
 type Storage struct {
 	db    *badger.DB
@@ -69,7 +78,7 @@ func NewStorage() (*Storage, error) {
 	}, nil
 }
 
-func (s *Storage) SaveManifests(mans ...manifests.Manifest) error {
+func (s *Storage) Save(mans ...manifests.Manifest) error {
 	return instance.db.Update(func(txn *badger.Txn) error {
 		for _, m := range mans {
 			currentVer, err := s.getCurrentVersion(txn, m.GetID())
@@ -95,6 +104,7 @@ func (s *Storage) SaveManifests(mans ...manifests.Manifest) error {
 			if err = txn.Set(versionedKey, data); err != nil {
 				return err
 			}
+
 			if err = txn.Set(latestKey, versionedKey); err != nil {
 				return err
 			}
@@ -113,326 +123,46 @@ func (s *Storage) SaveManifests(mans ...manifests.Manifest) error {
 	})
 }
 
-func (s *Storage) LoadManifests(ids ...string) ([]manifests.Manifest, error) {
-	if len(ids) == 0 {
-		return nil, fmt.Errorf("empty IDs list")
-	}
+func (s *Storage) Load(opts LoadOptions) ([]manifests.Manifest, error) {
+	var results []manifests.Manifest
 
-	var (
-		results []manifests.Manifest
-		errs    error
-	)
-
-	err := instance.db.View(func(txn *badger.Txn) error {
-		for _, id := range ids {
-			item, err := txn.Get(genLatestKey(id))
-			if err != nil {
-				if errors.Is(err, badger.ErrKeyNotFound) {
-					errs = errors.Join(errs, fmt.Errorf("manifest %q not found", id))
-					continue
-				}
-				errs = errors.Join(errs, fmt.Errorf("failed to get latest pointer for %q: %w", id, err))
-				continue
-			}
-
-			var latestKey []byte
-			if err = item.Value(func(val []byte) error {
-				latestKey = append([]byte{}, val...)
-				return nil
-			}); err != nil {
-				errs = errors.Join(errs, fmt.Errorf("failed to read latest key for %q: %w", id, err))
-				continue
-			}
-
-			item, err = txn.Get(latestKey)
-			if err != nil {
-				errs = errors.Join(errs, fmt.Errorf("failed to get manifest data for %q: %w", id, err))
-				continue
-			}
-
-			var manifest manifests.Manifest
-			if err = item.Value(func(data []byte) error {
-				manifest, err = parsing.ParseManifestAsJSON(data)
-				return err
-			}); err != nil {
-				errs = errors.Join(errs, fmt.Errorf("parsing failed for %q: %w", id, err))
-				continue
-			}
-
-			results = append(results, manifest)
-		}
-
-		if len(results) == 0 && errs != nil {
-			return fmt.Errorf("no manifests loaded: %w", errs)
-		}
-		return nil
-	})
-	if err != nil {
-		return results, fmt.Errorf("transaction failed: %w", errors.Join(err, errs))
-	}
-
-	return results, errs
-}
-
-func (s *Storage) LoadManifest(id string) (manifests.Manifest, error) {
-	var manifest manifests.Manifest
-
-	err := instance.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(genLatestKey(id))
+	if opts.Hash != "" {
+		m, err := s.loadByHash(opts.Hash)
 		if err != nil {
-			return fmt.Errorf("failed to get latest version pointer: %w", err)
+			return nil, err
 		}
+		return []manifests.Manifest{m}, nil
+	}
 
-		var versionedKey []byte
-		if err := item.Value(func(val []byte) error {
-			versionedKey = make([]byte, len(val))
-			copy(versionedKey, val)
-			return nil
-		}); err != nil {
-			return fmt.Errorf("failed to read version key: %w", err)
+	if len(opts.Versions) > 0 {
+		for id, version := range opts.Versions {
+			m, err := s.loadVersion(id, version)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load %s@v%d: %w", id, version, err)
+			}
+			results = append(results, m)
 		}
-
-		item, err = txn.Get(versionedKey)
-		if err != nil {
-			return fmt.Errorf("failed to get manifest data: %w", err)
-		}
-
-		if err = item.Value(func(data []byte) error {
-			var parseErr error
-			manifest, parseErr = parsing.ParseManifestAsJSON(data)
-			return parseErr
-		}); err != nil {
-			return fmt.Errorf("parsing failed: %w", err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to load manifest %q: %w", id, err)
+		return results, nil
 	}
 
-	return manifest, nil
+	if len(opts.IDs) > 0 {
+		return s.loadBulk(opts)
+	}
+
+	if opts.All || opts.Latest {
+		return s.loadLatest()
+	}
+
+	return nil, fmt.Errorf("no valid load options specified")
 }
 
-func (s *Storage) FindManifestsByKind(kind string) ([]manifests.Manifest, error) {
-	query := bleve.NewTermQuery(kind)
-	query.SetField(index.Kind)
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
+func (s *Storage) Search(query Query) ([]manifests.Manifest, error) {
+	searchResult, err := query.Execute(s.index)
 	if err != nil {
-		return nil, fmt.Errorf("error searching manifests: %v", err)
+		return nil, fmt.Errorf("failed to search manifests: %w", err)
 	}
 
-	return s.parseSearchResults(searchResults)
-}
-
-func (s *Storage) FindManifestsByVersion(lowVersion, heightVersion uint8) ([]manifests.Manifest, error) {
-	low, height := float64(lowVersion), float64(heightVersion)
-
-	query := bleve.NewNumericRangeQuery(&low, &height)
-	query.SetField(index.Version)
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("error searching manifests: %v", err)
-	}
-
-	return s.parseSearchResults(searchResults)
-}
-
-func (s *Storage) FindManifestByName(name string) (manifests.Manifest, error) {
-	query := bleve.NewMatchPhraseQuery(name)
-	query.SetField(index.Name)
-
-	searchRequest := bleve.NewSearchRequest(query)
-	searchRequest.Size = 1
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
-
-	results, err := s.parseSearchResults(searchResults)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(results) == 0 {
-		return nil, fmt.Errorf("no matching manifest found")
-	} else {
-		return results[0], nil
-	}
-}
-
-func (s *Storage) FindManifestsByNameWildcard(namePattern string) ([]manifests.Manifest, error) {
-	query := bleve.NewWildcardQuery(fmt.Sprintf("*%s*", namePattern))
-	query.SetField(index.Name)
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
-
-	return s.parseSearchResults(searchResults)
-}
-
-func (s *Storage) FindManifestsByNamespace(namespace string) ([]manifests.Manifest, error) {
-	query := bleve.NewTermQuery(namespace)
-	query.SetField(index.Namespace)
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
-
-	return s.parseSearchResults(searchResults)
-}
-
-func (s *Storage) FindManifestByDependencies(dependencies []string, requireAll bool) ([]manifests.Manifest, error) {
-	var query bleceQuery.Query
-
-	if requireAll {
-		q := bleve.NewConjunctionQuery()
-		for _, dep := range dependencies {
-			termQuery := bleve.NewTermQuery(dep)
-			termQuery.SetField(index.DependsOn)
-			q.AddQuery(termQuery)
-		}
-		query = q
-	} else {
-		q := bleve.NewDisjunctionQuery()
-		for _, dep := range dependencies {
-			termQuery := bleve.NewTermQuery(dep)
-			termQuery.SetField(index.DependsOn)
-			q.AddQuery(termQuery)
-		}
-		query = q
-	}
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
-
-	return s.parseSearchResults(searchResults)
-}
-
-func (s *Storage) FindManifestByHash(hash string) (manifests.Manifest, error) {
-	query := bleve.NewTermQuery(hash)
-	query.SetField(index.MetaHash)
-
-	searchRequest := bleve.NewSearchRequest(query)
-	searchRequest.Size = 1
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
-
-	results, err := s.parseSearchResults(searchResults)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(results) == 0 {
-		return nil, fmt.Errorf("no matching manifest found")
-	} else {
-		return results[0], nil
-	}
-}
-
-func (s *Storage) FindManifestsByCreatedAtRange(start, end time.Time) ([]manifests.Manifest, error) {
-	query := bleve.NewDateRangeQuery(start, end)
-	query.SetField(index.MetaCreatedAt)
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("error searching manifests: %v", err)
-	}
-
-	return s.parseSearchResults(searchResults)
-}
-
-func (s *Storage) FindManifestsByCreatedBy(createdBy string) ([]manifests.Manifest, error) {
-	query := bleve.NewTermQuery(createdBy)
-	query.SetField(index.MetaCreatedBy)
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
-
-	return s.parseSearchResults(searchResults)
-}
-
-func (s *Storage) FindManifestsByUpdatedAtRange(start, end time.Time) ([]manifests.Manifest, error) {
-	query := bleve.NewDateRangeQuery(start, end)
-	query.SetField(index.MetaUpdatedAt)
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("error searching manifests: %v", err)
-	}
-
-	return s.parseSearchResults(searchResults)
-}
-
-func (s *Storage) FindManifestsByUpdatedBy(updatedBy string) ([]manifests.Manifest, error) {
-	query := bleve.NewTermQuery(updatedBy)
-	query.SetField(index.MetaUpdatedBy)
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
-
-	return s.parseSearchResults(searchResults)
-}
-
-func (s *Storage) FindManifestsByUsedBy(usedBy string) ([]manifests.Manifest, error) {
-	query := bleve.NewTermQuery(usedBy)
-	query.SetField(index.MetaUsedBy)
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
-
-	return s.parseSearchResults(searchResults)
-}
-
-func (s *Storage) FindManifestsByLastAppliedRange(start, end time.Time) ([]manifests.Manifest, error) {
-	query := bleve.NewDateRangeQuery(start, end)
-	query.SetField(index.MetaLastApplied)
-
-	searchRequest := bleve.NewSearchRequest(query)
-
-	searchResults, err := s.index.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("error searching manifests: %v", err)
-	}
-
-	return s.parseSearchResults(searchResults)
+	return s.parseSearchResults(searchResult)
 }
 
 func (s *Storage) Rollback(id string, targetVersion int) error {
@@ -498,6 +228,179 @@ func (s *Storage) CleanupOldVersions(id string, keep int) error {
 	})
 }
 
+func (s *Storage) loadByHash(hash string) (manifests.Manifest, error) {
+	var manifest manifests.Manifest
+
+	hashQuery := bleve.NewTermQuery(hash)
+	hashQuery.SetField(index.MetaHash)
+
+	searchResult, err := s.index.Search(bleve.NewSearchRequest(hashQuery))
+	if err != nil {
+		return nil, fmt.Errorf("bleve search failed: %w", err)
+	}
+
+	if searchResult.Total == 0 {
+		return nil, fmt.Errorf("manifest with hash %q not found", hash)
+	}
+
+	hit := searchResult.Hits[0]
+
+	err = s.db.View(func(txn *badger.Txn) error {
+		var latestItem *badger.Item
+
+		latestKey := genLatestKey(extractBaseID(hit.ID))
+		latestItem, err = txn.Get(latestKey)
+		if err != nil {
+			return fmt.Errorf("failed to get latest version: %w", err)
+		}
+		var versionedKey []byte
+		versionedKey, err = latestItem.ValueCopy(nil)
+		if err != nil {
+			return fmt.Errorf("failed to get versioned key: %w", err)
+		}
+
+		var manifestItem *badger.Item
+		manifestItem, err = txn.Get(versionedKey)
+		if err != nil {
+			return fmt.Errorf("failed to get manifest data: %w", err)
+		}
+
+		return manifestItem.Value(func(data []byte) error {
+			var parseErr error
+			manifest, parseErr = parsing.ParseManifest(parsing.JSONMethod, data)
+			return parseErr
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("storage error: %w", err)
+	}
+
+	if manifest.GetMeta().GetHash() != hash {
+		return nil, fmt.Errorf("hash mismatch after load")
+	}
+
+	return manifest, nil
+}
+
+func (s *Storage) loadVersion(id string, version int) (manifests.Manifest, error) {
+	var m manifests.Manifest
+	versionedKey := genVersionedKey(id, version)
+
+	err := s.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(versionedKey)
+		if err != nil {
+			return err
+		}
+		return item.Value(func(data []byte) error {
+			m, err = parsing.ParseManifestAsJSON(data)
+			return err
+		})
+	})
+
+	return m, err
+}
+
+func (s *Storage) loadLatest() ([]manifests.Manifest, error) {
+	var results []manifests.Manifest
+
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.Prefix = []byte(manifestsLatestKey)
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+
+			versionedKey, err := item.ValueCopy(nil)
+			if err != nil {
+				return fmt.Errorf("failed to get versioned key for %s: %w", item.Key(), err)
+			}
+
+			versionedItem, err := txn.Get(versionedKey)
+			if err != nil {
+				return fmt.Errorf("failed to get manifest at %s: %w", versionedKey, err)
+			}
+
+			var m manifests.Manifest
+			err = versionedItem.Value(func(data []byte) error {
+				m, err = parsing.ParseManifestAsJSON(data)
+				if err != nil {
+					return fmt.Errorf("failed to parse manifest %s: %w", versionedKey, err)
+				}
+				results = append(results, m)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to load results: %w", err)
+	}
+
+	return results, nil
+}
+
+func (s *Storage) loadBulk(opts LoadOptions) ([]manifests.Manifest, error) {
+	var (
+		results []manifests.Manifest
+		errs    error
+	)
+
+	err := instance.db.View(func(txn *badger.Txn) error {
+		for _, id := range opts.IDs {
+			item, err := txn.Get(genLatestKey(id))
+			if err != nil {
+				if errors.Is(err, badger.ErrKeyNotFound) {
+					errs = errors.Join(errs, fmt.Errorf("manifest %q not found", id))
+					continue
+				}
+				errs = errors.Join(errs, fmt.Errorf("failed to get latest pointer for %q: %w", id, err))
+				continue
+			}
+
+			var latestKey []byte
+			if err = item.Value(func(val []byte) error {
+				latestKey = append([]byte{}, val...)
+				return nil
+			}); err != nil {
+				errs = errors.Join(errs, fmt.Errorf("failed to read latest key for %q: %w", id, err))
+				continue
+			}
+
+			item, err = txn.Get(latestKey)
+			if err != nil {
+				errs = errors.Join(errs, fmt.Errorf("failed to get manifest data for %q: %w", id, err))
+				continue
+			}
+
+			var manifest manifests.Manifest
+			if err = item.Value(func(data []byte) error {
+				manifest, err = parsing.ParseManifestAsJSON(data)
+				return err
+			}); err != nil {
+				errs = errors.Join(errs, fmt.Errorf("parsing failed for %q: %w", id, err))
+				continue
+			}
+
+			results = append(results, manifest)
+		}
+
+		if len(results) == 0 && errs != nil {
+			return fmt.Errorf("no manifests loaded: %w", errs)
+		}
+		return nil
+	})
+	if err != nil {
+		return results, fmt.Errorf("transaction failed: %w", errors.Join(err, errs))
+	}
+
+	return results, errs
+}
+
 func (s *Storage) parseSearchResults(searchResults *bleve.SearchResult) ([]manifests.Manifest, error) {
 	if searchResults == nil || searchResults.Total == 0 {
 		return nil, nil
@@ -508,45 +411,47 @@ func (s *Storage) parseSearchResults(searchResults *bleve.SearchResult) ([]manif
 		errorsList    []error
 	)
 
-	for _, hit := range searchResults.Hits {
-		manifest, err := s.loadManifestByID(hit.ID)
-		if err != nil {
-			errorsList = append(errorsList, fmt.Errorf("id %q: %w", hit.ID, err))
-			continue
-		}
+	err := s.db.View(func(txn *badger.Txn) error {
+		for _, hit := range searchResults.Hits {
+			latestKey := genLatestKey(extractBaseID(hit.ID))
+			item, err := txn.Get(latestKey)
+			if err != nil {
+				errorsList = append(errorsList, fmt.Errorf("latest key for %q: %w", hit.ID, err))
+				continue
+			}
 
-		if manifest != nil {
-			manifestsList = append(manifestsList, manifest)
+			versionedKey, err := item.ValueCopy(nil)
+			if err != nil {
+				errorsList = append(errorsList, fmt.Errorf("value copy for %q: %w", hit.ID, err))
+				continue
+			}
+
+			manifestItem, err := txn.Get(versionedKey)
+			if err != nil {
+				errorsList = append(errorsList, fmt.Errorf("manifest %q: %w", string(versionedKey), err))
+				continue
+			}
+
+			var m manifests.Manifest
+			err = manifestItem.Value(func(data []byte) error {
+				m, err = parsing.ParseManifest(parsing.JSONMethod, data)
+				if err != nil {
+					return err
+				}
+				manifestsList = append(manifestsList, m)
+				return nil
+			})
+			if err != nil {
+				errorsList = append(errorsList, fmt.Errorf("parse manifest %q: %w", string(versionedKey), err))
+			}
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("transaction failed: %w", err)
 	}
 
 	return manifestsList, errors.Join(errorsList...)
-}
-
-func (s *Storage) loadManifestByID(id string) (manifests.Manifest, error) {
-	var manifest manifests.Manifest
-
-	err := instance.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(id))
-		if err != nil {
-			return err
-		}
-
-		return item.Value(func(data []byte) error {
-			var parseErr error
-			manifest, parseErr = parsing.ParseManifest(parsing.JSONMethod, data)
-			return parseErr
-		})
-	})
-
-	switch {
-	case errors.Is(err, badger.ErrKeyNotFound):
-		return nil, fmt.Errorf("not found")
-	case err != nil:
-		return nil, fmt.Errorf("storage error: %w", err)
-	default:
-		return manifest, nil
-	}
 }
 
 func (s *Storage) getCurrentVersion(txn *badger.Txn, id string) (int, error) {

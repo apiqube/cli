@@ -18,14 +18,10 @@ type Values struct {
 	kinds.BaseManifest `yaml:",inline" json:",inline"`
 
 	Spec struct {
-		Content `yaml:",inline" json:",inline"`
+		Data map[string]any `yaml:",inline" json:",inline"`
 	} `yaml:"spec" valid:"required"`
 
 	Meta *kinds.Meta `yaml:"-" json:"meta"`
-}
-
-type Content struct {
-	Values map[string]any `yaml:",inline" json:",inline"`
 }
 
 func (v *Values) GetID() string {

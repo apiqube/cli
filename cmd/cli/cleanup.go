@@ -21,7 +21,6 @@ var cleanupCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts, err := parseCleanUpFlags(cmd, args)
 		if err != nil {
-			ui.Errorf("Failed to parse provided values: %v", err)
 			return err
 		}
 

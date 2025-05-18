@@ -90,10 +90,16 @@ func processFile(filePath string, manifestsSet map[string]struct{}) (new []manif
 			return nil, nil, fmt.Errorf("failed to calculate hash for manifest %s: %w", manifestID, err)
 		}
 
+		var loadedManifests []manifests.Manifest
 		var existingManifest manifests.Manifest
-		existingManifest, err = store.FindManifestByHash(manifestHash)
+
+		loadedManifests, err = store.Load(store.LoadOptions{Hash: manifestHash})
 		if err != nil && !isNotFoundError(err) {
 			return nil, nil, fmt.Errorf("failed to check manifest existence: %w", err)
+		}
+
+		if len(loadedManifests) > 0 {
+			existingManifest = loadedManifests[0]
 		}
 
 		if existingManifest != nil {

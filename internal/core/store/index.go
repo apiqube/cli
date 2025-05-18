@@ -22,7 +22,6 @@ func buildBleveMapping() *mapping.IndexMappingImpl {
 
 	exactMatchFields := []string{
 		index.Kind,
-		index.Namespace,
 		index.DependsOn,
 		index.MetaCreatedBy,
 		index.MetaUpdatedBy,
@@ -36,15 +35,23 @@ func buildBleveMapping() *mapping.IndexMappingImpl {
 	}
 
 	nameMapping := bleve.NewTextFieldMapping()
-	nameMapping.Analyzer = "standard"
+	nameMapping.Analyzer = "keyword"
 	manifestMapping.AddFieldMappingsAt(index.Name, nameMapping)
+
+	namespaceMapping := bleve.NewTextFieldMapping()
+	namespaceMapping.Analyzer = "keyword"
+	manifestMapping.AddFieldMappingsAt(index.Namespace, namespaceMapping)
 
 	hashMapping := bleve.NewTextFieldMapping()
 	hashMapping.Analyzer = "keyword"
 	hashMapping.Store = true
 	manifestMapping.AddFieldMappingsAt(index.MetaHash, hashMapping)
 
-	dateTimeMapping := bleve.NewDateTimeFieldMapping()
+	dateTimeFieldMapping := bleve.NewTextFieldMapping()
+	dateTimeFieldMapping.Analyzer = "keyword"
+	dateTimeFieldMapping.Store = true
+	dateTimeFieldMapping.IncludeTermVectors = false
+	dateTimeFieldMapping.IncludeInAll = false
 
 	dateFields := []string{
 		index.MetaCreatedAt,
@@ -53,7 +60,7 @@ func buildBleveMapping() *mapping.IndexMappingImpl {
 	}
 
 	for _, field := range dateFields {
-		manifestMapping.AddFieldMappingsAt(field, dateTimeMapping)
+		manifestMapping.AddFieldMappingsAt(field, dateTimeFieldMapping)
 	}
 
 	indexMapping.DefaultMapping = manifestMapping

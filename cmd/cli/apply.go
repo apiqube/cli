@@ -37,7 +37,7 @@ var applyCmd = &cobra.Command{
 		ui.Spinner(false)
 		ui.Spinner(true, "Saving manifests...")
 
-		if err := store.SaveManifests(loadedMans...); err != nil {
+		if err := store.Save(loadedMans...); err != nil {
 			ui.Error("Failed to save manifests: " + err.Error())
 			ui.Spinner(false)
 			return

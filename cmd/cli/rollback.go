@@ -17,7 +17,6 @@ var rollbackCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		opts, err := parseRollbackFlags(cmd, args)
 		if err != nil {
-			ui.Errorf("Failed to parse provided values: %v", err)
 			return
 		}
 
