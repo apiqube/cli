@@ -134,6 +134,10 @@ func ParseManifest(parseMethod ParseMethod, data []byte) (manifests.Manifest, er
 		def.Default()
 	}
 
+	if prep, ok := manifest.(manifests.Prepare); ok {
+		prep.Prepare()
+	}
+
 	var err error
 	switch parseMethod {
 	case JSONMethod:

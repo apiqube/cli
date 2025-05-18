@@ -1,6 +1,8 @@
 package plan
 
 import (
+	"github.com/apiqube/cli/internal/core/manifests/utils"
+	"strings"
 	"time"
 
 	"github.com/apiqube/cli/internal/core/manifests"
@@ -104,5 +106,27 @@ func (p *Plan) Default() {
 func (p *Plan) Prepare() {
 	if p.Namespace == "" {
 		p.Namespace = manifests.DefaultNamespace
+	}
+
+	if p.Kind == "" {
+		p.Kind = manifests.PlanManifestKind
+	}
+
+	if p.Meta == nil {
+		p.Meta = kinds.DefaultMeta()
+	}
+
+	for i, stage := range p.Spec.Stages {
+		if stage.Mode == "" {
+			stage.Mode = "lite"
+		}
+
+		for j, m := range stage.Manifests {
+			namespace, kind, name := utils.ParseManifestID(m)
+			m = strings.Join([]string{namespace, kind, name}, ".")
+			stage.Manifests[j] = m
+		}
+
+		p.Spec.Stages[i] = stage
 	}
 }
