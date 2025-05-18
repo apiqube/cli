@@ -61,6 +61,7 @@ jobs:
         uses: go-semantic-release/action@v1
         with:
           hooks: goreleaser
+          goreleaser_flags: --config=.goreleaser.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
