@@ -2,7 +2,6 @@ version: 1
 kind: HttpTest
 metadata:
   name: not-simple-http-test
-  namespace: not-simple
 spec:
   server: simple-server
   cases:

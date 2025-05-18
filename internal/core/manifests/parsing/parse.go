@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
 
 	"github.com/apiqube/cli/internal/core/manifests/kinds/values"
 
@@ -113,6 +114,8 @@ func ParseManifest(parseMethod ParseMethod, data []byte) (manifests.Manifest, er
 
 	var manifest manifests.Manifest
 	switch raw.Kind {
+	case manifests.PlanManifestKind:
+		manifest = &plan.Plan{}
 	case manifests.ValuesManifestLind:
 		manifest = &values.Values{}
 	case manifests.ServerManifestKind:

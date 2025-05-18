@@ -1,0 +1,26 @@
+version: 1
+kind: Plan
+metadata:
+  name: plan-example
+
+spec:
+  stages:
+
+    - name: "Preparation..."
+      description: "First stage with loading values to context"
+      manifests:
+        - Values.values-example
+
+    - name: "Starting and checking server"
+      manifests:
+        - Server.simple-server
+        - Service.simple-service
+
+    - name: "Testing APIs"
+      manifests:
+        - HttpTest.simple-http-test
+        - HttpTest.not-simple-http-test
+
+    - name: "APIs loading testing"
+      manifests:
+        - HttpLoadTest.simple-http-load-test

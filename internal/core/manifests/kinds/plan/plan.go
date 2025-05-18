@@ -18,26 +18,33 @@ type Plan struct {
 	kinds.BaseManifest `yaml:",inline" json:",inline"`
 
 	Spec struct {
-		Stages Stages `yaml:"stages" json:"stages"`
-		Hooks  Hooks  `yaml:"hooks,omitempty" json:"hooks"`
+		Stages []Stage `yaml:"stages" json:"stages"`
+		Hooks  Hooks   `yaml:"hooks,omitempty" json:"hooks,omitempty"`
 	} `yaml:"spec" json:"spec"`
 
 	Meta *kinds.Meta `yaml:",inline" json:"meta"`
 }
 
-type Stages struct {
-	Stages []Stage `yaml:",inline" json:",inline"`
-}
-
 type Stage struct {
-	Name      string   `yaml:"name" json:"name"`
-	Manifests []string `yaml:"manifests" json:"manifests" `
-	Parallel  bool     `yaml:"parallel" json:"parallel"`
+	Name        string         `yaml:"name" json:"name"`
+	Description string         `yaml:"description,omitempty" json:"description,omitempty"`
+	Manifests   []string       `yaml:"manifests" json:"manifests"`
+	Parallel    bool           `yaml:"parallel,omitempty" json:"parallel,omitempty"`
+	Params      map[string]any `yaml:"params,omitempty" json:"params,omitempty"`
+	Mode        string         `yaml:"mode,omitempty" json:"mode,omitempty"` // eg parallel mode, (strict|lite)
+	Hooks       Hooks          `yaml:"hooks,omitempty" json:"hooks,omitempty"`
 }
 
 type Hooks struct {
-	OnSuccess []string `yaml:"onSuccess" json:"onSuccess"`
-	OnFailure []string `yaml:"onFailure" json:"onFailure"`
+	BeforeStart []Action `yaml:"beforeStart,omitempty" json:"beforeStart,omitempty"`
+	AfterFinish []Action `yaml:"afterFinish,omitempty" json:"afterFinish,omitempty"`
+	OnSuccess   []Action `yaml:"onSuccess,omitempty" json:"onSuccess,omitempty"`
+	OnFailure   []Action `yaml:"onFailure,omitempty" json:"onFailure,omitempty"`
+}
+
+type Action struct {
+	Type   string         `yaml:"type" json:"type"` // eg log/save/skip/fail/exec/notify
+	Params map[string]any `yaml:"params" json:"params"`
 }
 
 func (p *Plan) GetID() string {
