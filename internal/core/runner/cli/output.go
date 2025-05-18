@@ -12,6 +12,10 @@ var _ interfaces.Output = (*Output)(nil)
 
 type Output struct{}
 
+func NewOutput() *Output {
+	return &Output{}
+}
+
 func (o *Output) StartCase(manifest manifests.Manifest, caseName string) {
 	ui.Infof("Start %s case from %s manifest", caseName, manifest.GetName())
 }
