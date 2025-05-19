@@ -1,6 +1,6 @@
 builds:
   - id: "cli"
-    dir: ./cmd
+    dir: ./cmd/qube
     main: .
     binary: "qube"
     goos:
