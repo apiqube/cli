@@ -39,3 +39,13 @@ tasks:
     desc: 👨‍💻 Watch mode (requires reflex or air)
     cmds:
       - reflex -r '\.go$$' -s -- sh -c "task build && task run"
+
+  go-fmt:
+    desc: 🧹 Cleaning all go code
+    cmds:
+      - gofumpt -l -w .
+
+  go-lint:
+    desc: 🚀 Command for linting code
+    cmds:
+      - golangci-lint run ./...
