@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+
 	"github.com/apiqube/cli/cmd/cli/apply"
 	"github.com/apiqube/cli/cmd/cli/check"
 	"github.com/apiqube/cli/cmd/cli/cleanup"

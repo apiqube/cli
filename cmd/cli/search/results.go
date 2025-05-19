@@ -3,14 +3,15 @@ package search
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/ui"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/ui"
+	"gopkg.in/yaml.v3"
 )
 
 func sortManifests(manifests []manifests.Manifest, fields []string) {
@@ -206,7 +207,7 @@ func ensureOutputDirectory(path string) error {
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		ui.Infof("Creating output directory: %s", path)
-		if err = os.MkdirAll(path, 0755); err != nil {
+		if err = os.MkdirAll(path, 0o755); err != nil {
 			return fmt.Errorf("failed to create output directory: %w", err)
 		}
 	}

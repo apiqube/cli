@@ -36,7 +36,7 @@ var cmdPlanCheck = &cobra.Command{
 		}
 
 		if err := validateCheckPlanOptions(opts); err != nil {
-			return uiErrorf(err.Error())
+			return uiErrorf("%s", err.Error())
 		}
 
 		ui.Spinner(true, "Checking manifests...")
