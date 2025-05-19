@@ -1,4 +1,4 @@
-name: Test, Release
+name: Test, Build and Release
 
 on:
   push:
@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -26,7 +28,7 @@ jobs:
       - name: Ensure go mod tidy has zero output
         run: go mod tidy -v && git diff --exit-code
 
-      - name: Esure gofumpt has zero output
+      - name: Ensure gofumpt has zero output
         run: |
           go install mvdan.cc/gofumpt@latest
           gofumpt -l -w .
@@ -38,6 +40,28 @@ jobs:
           version: latest
           skip-pkg-cache: true
           args: --issues-exit-code=0
+
+      - name: Build with version info
+        run: |
+          TAG=$(git describe --tags --always)
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          
+          go build -ldflags="\
+            -X github.com/apiqube/cli/cmd/qube.version=$TAG \
+            -X github.com/apiqube/cli/cmd/qube.commit=$COMMIT \
+            -X github.com/apiqube/cli/cmd/qube.date=$DATE" \
+            -o qube ./cmd/qube
+          
+          ./qube version  # Проверка версии
+          mkdir -p bin
+          mv qube bin/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: qube-binaries
+          path: bin/qube
 
   release:
     needs: build-and-test
@@ -51,6 +75,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -74,17 +100,19 @@ jobs:
           echo "tag=$TAG"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-      - name: Create GitHub Release (if not exists)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.get_tag.outputs.tag }}
+      - name: Build release binaries
         run: |
-          if gh release view "$VERSION" >/dev/null 2>&1; then
-            echo "Release $VERSION already exists, skipping creation."
-          else
-            gh release create "$VERSION" --generate-notes
-          fi
-
+          TAG=$(git describe --tags --always)
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          
+          go build -ldflags="\
+            -X github.com/apiqube/cli/cmd/qube.version=$TAG \
+            -X github.com/apiqube/cli/cmd/qube.commit=$COMMIT \
+            -X github.com/apiqube/cli/cmd/qube.date=$DATE" \
+            -o qube ./cmd/qube
+          
+          ./qube version
 
       - name: Create GitHub Release (if not exists)
         env:
@@ -97,5 +125,3 @@ jobs:
           else
             echo "No new tag created, skipping release step."
           fi
-
-    

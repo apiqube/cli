@@ -1,12 +1,12 @@
 builds:
-  - id: "cli"
+  - id: "qube"
     dir: ./cmd/qube
     main: .
     binary: "qube"
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
-      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/apiqube/cli/cmd/cli.version={{.Version}}
+      - -X github.com/apiqube/cli/cmd/cli.commit={{.Commit}}
+      - -X github.com/apiqube/cli/cmd/cli.date={{.Date}}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
