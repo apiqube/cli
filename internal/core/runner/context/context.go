@@ -3,11 +3,12 @@ package context
 import (
 	"context"
 	"fmt"
-	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/runner/interfaces"
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/runner/interfaces"
 )
 
 var _ interfaces.ExecutionContext = (*ctxBaseImpl)(nil)

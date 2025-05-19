@@ -1,8 +1,9 @@
 package interfaces
 
 import (
-	"github.com/apiqube/cli/internal/core/manifests"
 	"reflect"
+
+	"github.com/apiqube/cli/internal/core/manifests"
 )
 
 type ManifestStore interface {

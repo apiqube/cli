@@ -3,11 +3,12 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/adrg/xdg"
-	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/adrg/xdg"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -56,7 +57,7 @@ func InitConfig() (*CLIConfig, error) {
 }
 
 func createDefaultConfig(configPath string) error {
-	if err := os.MkdirAll(configPath, 0755); err != nil {
+	if err := os.MkdirAll(configPath, 0o755); err != nil {
 		return fmt.Errorf("failed to create config dir: %w", err)
 	}
 

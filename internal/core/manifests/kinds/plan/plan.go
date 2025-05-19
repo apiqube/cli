@@ -1,9 +1,12 @@
 package plan
 
 import (
-	"github.com/apiqube/cli/internal/core/manifests/utils"
+	"fmt"
 	"strings"
 	"time"
+
+	"github.com/apiqube/cli/internal/core/manifests/utils"
+	"github.com/google/uuid"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/index"
@@ -33,7 +36,7 @@ type Stage struct {
 	Manifests   []string       `yaml:"manifests" json:"manifests"`
 	Parallel    bool           `yaml:"parallel,omitempty" json:"parallel,omitempty"`
 	Params      map[string]any `yaml:"params,omitempty" json:"params,omitempty"`
-	Mode        string         `yaml:"mode,omitempty" json:"mode,omitempty"` // eg parallel mode, (strict|lite)
+	Mode        string         `yaml:"mode,omitempty" json:"mode,omitempty"` // (strict|parallel)
 	Hooks       Hooks          `yaml:"hooks,omitempty" json:"hooks,omitempty"`
 }
 
@@ -90,6 +93,14 @@ func (p *Plan) GetMeta() manifests.Meta {
 }
 
 func (p *Plan) Default() {
+	if p.Version <= 0 {
+		p.Version = 1
+	}
+
+	if p.Name == "" {
+		p.Name = fmt.Sprintf("%s-%s", "generated", uuid.NewString()[:8])
+	}
+
 	if p.Kind == "" {
 		p.Kind = manifests.PlanManifestKind
 	}
@@ -129,4 +140,14 @@ func (p *Plan) Prepare() {
 
 		p.Spec.Stages[i] = stage
 	}
+}
+
+func (p *Plan) GetAllManifests() []string {
+	var results []string
+
+	for _, stage := range p.Spec.Stages {
+		results = append(results, stage.Manifests...)
+	}
+
+	return results
 }

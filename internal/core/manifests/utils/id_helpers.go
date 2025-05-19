@@ -2,29 +2,59 @@ package utils
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/internal/core/manifests"
 	"strings"
+
+	"github.com/google/uuid"
+
+	"github.com/apiqube/cli/internal/core/manifests"
 )
 
-func ParseManifestID(id string) (string, string, string) {
+func ParseManifestID(id string) (namespace, kind, name string) {
 	parts := strings.Split(id, ".")
-	if len(parts) == 3 {
-		return parts[0], parts[1], parts[2]
-	} else if len(parts) == 2 {
-		return manifests.DefaultNamespace, parts[0], parts[1]
-	} else {
+
+	switch len(parts) {
+	case 3:
+		namespace = parts[0]
+		kind = parts[1]
+		name = parts[2]
+	case 2:
+		namespace = manifests.DefaultNamespace
+		kind = parts[0]
+		name = parts[1]
+	case 1:
+		namespace = manifests.DefaultNamespace
+		kind = parts[0]
+		name = generateDefaultName()
+	default:
 		return "", "", ""
 	}
+
+	if kind == "" {
+		return "", "", ""
+	}
+
+	return namespace, kind, name
 }
 
 func ParseManifestIDWithError(id string) (string, string, string, error) {
 	namespace, kind, name := ParseManifestID(id)
+
+	if kind == "" {
+		return "", "", "", fmt.Errorf("manifest kind not specified: %s", id)
+	}
+
+	if name == "" {
+		name = generateDefaultName()
+	}
+
 	if namespace == "" {
 		namespace = manifests.DefaultNamespace
-	} else if kind == "" {
-		return namespace, name, name, fmt.Errorf("manifest kind not specified")
-	} else if name == "" {
-		return namespace, kind, name, fmt.Errorf("manifest name not specified")
 	}
+
 	return namespace, kind, name, nil
+}
+
+func generateDefaultName() string {
+	uuidStr := uuid.NewString()
+	return "m-" + strings.Split(uuidStr, "-")[0]
 }

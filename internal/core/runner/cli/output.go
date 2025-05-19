@@ -2,10 +2,11 @@ package cli
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 	"github.com/apiqube/cli/ui"
-	"strings"
 )
 
 var _ interfaces.Output = (*Output)(nil)

@@ -2,10 +2,11 @@ package context
 
 import (
 	"context"
-	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/runner/interfaces"
 	"reflect"
 	"sync"
+
+	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/runner/interfaces"
 )
 
 type ValuePair struct {

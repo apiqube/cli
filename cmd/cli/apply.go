@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	applyCmd.Flags().StringP("file", "f", ".", "Path to manifests file")
+	applyCmd.Flags().StringP("file", "f", ".", "Path to manifests file, by default is current")
 	rootCmd.AddCommand(applyCmd)
 }
 

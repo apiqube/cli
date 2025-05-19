@@ -9,18 +9,13 @@ spec:
     - name: "Preparation..."
       description: "First stage with loading values to context"
       manifests:
-        - Values.values-example
+        - Values.simple-value
 
     - name: "Starting and checking server"
       manifests:
-        - Server.simple-server
-        - Service.simple-service
+        - default.Server.simple-server
+        - default.Server.simple-server
 
     - name: "Testing APIs"
       manifests:
-        - HttpTest.simple-http-test
-        - HttpTest.not-simple-http-test
-
-    - name: "APIs loading testing"
-      manifests:
-        - HttpLoadTest.simple-http-load-test
+        - default.HttpTest.simple-http-test

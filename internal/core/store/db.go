@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apiqube/cli/internal/core/manifests/kinds"
+	"github.com/apiqube/cli/internal/core/manifests/utils"
+
 	"github.com/apiqube/cli/internal/core/manifests/index"
 
 	"github.com/adrg/xdg"
@@ -352,6 +355,13 @@ func (s *Storage) loadBulk(opts LoadOptions) ([]manifests.Manifest, error) {
 
 	err := instance.db.View(func(txn *badger.Txn) error {
 		for _, id := range opts.IDs {
+			namespace, kind, name, err := utils.ParseManifestIDWithError(id)
+			if err != nil {
+				return err
+			}
+
+			id = kinds.FormManifestID(namespace, kind, name)
+
 			item, err := txn.Get(genLatestKey(id))
 			if err != nil {
 				if errors.Is(err, badger.ErrKeyNotFound) {

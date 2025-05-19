@@ -50,7 +50,6 @@ func LoadManifests(path string) (new []manifests.Manifest, cached []manifests.Ma
 		cachedCount += len(fileCached)
 	}
 
-	logResults(newCount, cachedCount)
 	return new, cached, nil
 }
 
@@ -80,7 +79,7 @@ func processFile(filePath string, manifestsSet map[string]struct{}) (new []manif
 		manifestID := m.GetID()
 
 		var normalized []byte
-		normalized, err = normalizeYAML(m)
+		normalized, err = NormalizeYAML(m)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to normalize manifest %s: %w", manifestID, err)
 		}
@@ -105,9 +104,6 @@ func processFile(filePath string, manifestsSet map[string]struct{}) (new []manif
 		if existingManifest != nil {
 			if _, exists := manifestsSet[existingManifest.GetID()]; !exists {
 				manifestsSet[existingManifest.GetID()] = struct{}{}
-				ui.Infof("Manifest %s unchanged (%s) - using cached version",
-					existingManifest.GetID(), shortHash(manifestHash))
-				cachedManifests = append(cachedManifests, existingManifest)
 			}
 			continue
 		}
@@ -125,32 +121,12 @@ func processFile(filePath string, manifestsSet map[string]struct{}) (new []manif
 
 		manifestsSet[manifestID] = struct{}{}
 		newManifests = append(newManifests, m)
-		ui.Successf("New manifest added: %s (h: %s)", manifestID, shortHash(manifestHash))
 	}
 
 	return newManifests, cachedManifests, nil
 }
 
-func logResults(cachedCount, newCount int) {
-	if cachedCount > 0 {
-		ui.Infof("Loaded %d cached manifests", cachedCount)
-	}
-	if newCount > 0 {
-		ui.Infof("Loaded %d new manifests", newCount)
-	}
-	if cachedCount == 0 && newCount == 0 {
-		ui.Info("No manifests found")
-	}
-}
-
-func shortHash(fullHash string) string {
-	if len(fullHash) > 12 {
-		return fullHash[:12] + "..."
-	}
-	return fullHash
-}
-
-func normalizeYAML(m manifests.Manifest) ([]byte, error) {
+func NormalizeYAML(m manifests.Manifest) ([]byte, error) {
 	data, err := yaml.Marshal(m)
 	if err != nil {
 		return nil, err

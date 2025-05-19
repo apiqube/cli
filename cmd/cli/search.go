@@ -32,7 +32,7 @@ var searchCmd = &cobra.Command{
 
 		var manifests []manifests.Manifest
 
-		if !opts.All &&
+		if !opts.all &&
 			!opts.flagsSet["name"] &&
 			!opts.flagsSet["name-wildcard"] &&
 			!opts.flagsSet["name-regex"] &&
@@ -62,61 +62,61 @@ var searchCmd = &cobra.Command{
 			query := store.NewQuery()
 
 			if opts.flagsSet["name"] {
-				query.WithExactName(opts.Name)
+				query.WithExactName(opts.name)
 			} else if opts.flagsSet["name-wildcard"] {
-				query.WithWildcardName(opts.NameWildcard)
+				query.WithWildcardName(opts.nameWildcard)
 			} else if opts.flagsSet["name-regex"] {
-				query.WithRegexName(opts.NameRegex)
+				query.WithRegexName(opts.nameRegex)
 			}
 
 			if opts.flagsSet["namespace"] {
-				query.WithNamespace(opts.Namespace)
+				query.WithNamespace(opts.namespace)
 			}
 
 			if opts.flagsSet["kind"] {
-				query.WithKind(opts.Kind)
+				query.WithKind(opts.kind)
 			}
 
 			if opts.flagsSet["version"] {
-				query.WithVersion(opts.Version)
+				query.WithVersion(opts.version)
 			}
 
 			if opts.flagsSet["created-by"] {
-				query.WithCreatedBy(opts.CreatedBy)
+				query.WithCreatedBy(opts.createdBy)
 			}
 
 			if opts.flagsSet["user-by"] {
-				query.WithUsedBy(opts.UsedBy)
+				query.WithUsedBy(opts.usedBy)
 			}
 
 			if opts.flagsSet["hash"] {
-				query.WithHashPrefix(opts.HashPrefix)
+				query.WithHashPrefix(opts.hashPrefix)
 			}
 
 			if opts.flagsSet["depends"] {
-				query.WithDependencies(opts.DependsOn)
+				query.WithDependencies(opts.dependsOn)
 			} else if opts.flagsSet["depends-all"] {
-				query.WithAllDependencies(opts.DependsOnAll)
+				query.WithAllDependencies(opts.dependsOnAll)
 			}
 
 			if opts.flagsSet["created-after"] {
-				query.WithCreatedAfter(opts.CreatedAfter)
+				query.WithCreatedAfter(opts.createdAfter)
 			}
 
 			if opts.flagsSet["created-before"] {
-				query.WithCreatedBefore(opts.CreatedBefore)
+				query.WithCreatedBefore(opts.createdBefore)
 			}
 
 			if opts.flagsSet["updated-after"] {
-				query.WithUpdatedAfter(opts.UpdatedAfter)
+				query.WithUpdatedAfter(opts.updatedAfter)
 			}
 
 			if opts.flagsSet["updated-before"] {
-				query.WithUpdatedBefore(opts.UpdatedBefore)
+				query.WithUpdatedBefore(opts.updatedBefore)
 			}
 
 			if opts.flagsSet["last-applied"] {
-				query.WithLastApplied(opts.LastApplied)
+				query.WithLastApplied(opts.lastApplied)
 			}
 
 			manifests, err = store.Search(query)
@@ -133,13 +133,13 @@ var searchCmd = &cobra.Command{
 
 		ui.Infof("Found %d manifests", len(manifests))
 
-		if len(opts.SortBy) > 0 {
-			sortManifests(manifests, opts.SortBy)
+		if len(opts.sortBy) > 0 {
+			sortManifests(manifests, opts.sortBy)
 		}
 
 		ui.Spinner(true, "Prepare answer...")
 
-		if opts.Output {
+		if opts.output {
 			if err := outputManifests(manifests, opts); err != nil {
 				ui.Spinner(false)
 				ui.Errorf("Failed to output manifests: %v", err)
@@ -179,8 +179,8 @@ func init() {
 	searchCmd.Flags().String("last-applied", "", "Search manifests by last applied date/duration")
 
 	searchCmd.Flags().BoolP("output", "o", false, "Make output after searching")
-	searchCmd.Flags().String("output-path", "", "Output path for results (default: current directory)")
-	searchCmd.Flags().String("output-mode", "separate", "Output mode (combined|separate)")
+	searchCmd.Flags().String("output-path", "", "output path for results (default: current directory)")
+	searchCmd.Flags().String("output-mode", "separate", "output mode (combined|separate)")
 	searchCmd.Flags().String("output-format", "yaml", "File format for output (yaml|json)")
 
 	searchCmd.Flags().StringSlice("sort", []string{}, "Sort by fields (e.g. --sort=kind,-name)")
@@ -188,42 +188,42 @@ func init() {
 	rootCmd.AddCommand(searchCmd)
 }
 
-type SearchOptions struct {
-	All bool
+type searchOptions struct {
+	all bool
 
-	Name         string
-	NameWildcard string
-	NameRegex    string
+	name         string
+	nameWildcard string
+	nameRegex    string
 
-	Namespace string
-	Kind      string
-	Version   int
-	CreatedBy string
-	UsedBy    string
+	namespace string
+	kind      string
+	version   int
+	createdBy string
+	usedBy    string
 
-	HashPrefix   string
-	DependsOn    []string
-	DependsOnAll []string
+	hashPrefix   string
+	dependsOn    []string
+	dependsOnAll []string
 
-	CreatedAfter   time.Time
-	CreatedBefore  time.Time
-	UpdatedAfter   time.Time
-	UpdatedBefore  time.Time
-	LastApplied    time.Time
-	IsRelativeTime bool
+	createdAfter   time.Time
+	createdBefore  time.Time
+	updatedAfter   time.Time
+	updatedBefore  time.Time
+	lastApplied    time.Time
+	isRelativeTime bool
 
-	Output       bool
-	OutputPath   string
-	OutputMode   string // combined | separate
-	OutputFormat string // yaml | json
+	output       bool
+	outputPath   string
+	outputMode   string // combined | separate
+	outputFormat string // yaml | json
 
-	SortBy []string
+	sortBy []string
 
 	flagsSet map[string]bool
 }
 
-func parseSearchFlags(cmd *cobra.Command, _ []string) (*SearchOptions, error) {
-	opts := &SearchOptions{
+func parseSearchFlags(cmd *cobra.Command, _ []string) (*searchOptions, error) {
+	opts := &searchOptions{
 		flagsSet: make(map[string]bool),
 	}
 
@@ -236,17 +236,17 @@ func parseSearchFlags(cmd *cobra.Command, _ []string) (*SearchOptions, error) {
 	}
 
 	if markFlag("all") {
-		opts.All, _ = cmd.Flags().GetBool("all")
+		opts.all, _ = cmd.Flags().GetBool("all")
 	}
 
 	if markFlag("name") {
-		opts.Name, _ = cmd.Flags().GetString("name")
+		opts.name, _ = cmd.Flags().GetString("name")
 	}
 	if markFlag("name-wildcard") {
-		opts.NameWildcard, _ = cmd.Flags().GetString("name-wildcard")
+		opts.nameWildcard, _ = cmd.Flags().GetString("name-wildcard")
 	}
 	if markFlag("name-regex") {
-		opts.NameRegex, _ = cmd.Flags().GetString("name-regex")
+		opts.nameRegex, _ = cmd.Flags().GetString("name-regex")
 	}
 
 	if opts.flagsSet["name"] && (opts.flagsSet["name-wildcard"] || opts.flagsSet["name-regex"]) {
@@ -254,39 +254,39 @@ func parseSearchFlags(cmd *cobra.Command, _ []string) (*SearchOptions, error) {
 	}
 
 	if markFlag("namespace") {
-		opts.Namespace, _ = cmd.Flags().GetString("namespace")
+		opts.namespace, _ = cmd.Flags().GetString("namespace")
 	}
 	if markFlag("kind") {
-		opts.Kind, _ = cmd.Flags().GetString("kind")
+		opts.kind, _ = cmd.Flags().GetString("kind")
 	}
 	if markFlag("version") {
-		opts.Version, _ = cmd.Flags().GetInt("version")
+		opts.version, _ = cmd.Flags().GetInt("version")
 	}
 	if markFlag("created-by") {
-		opts.CreatedBy, _ = cmd.Flags().GetString("created-by")
+		opts.createdBy, _ = cmd.Flags().GetString("created-by")
 	}
 	if markFlag("used-by") {
-		opts.UsedBy, _ = cmd.Flags().GetString("used-by")
+		opts.usedBy, _ = cmd.Flags().GetString("used-by")
 	}
 
 	if markFlag("hash") {
-		opts.HashPrefix, _ = cmd.Flags().GetString("hash")
-		if len(opts.HashPrefix) < 5 {
+		opts.hashPrefix, _ = cmd.Flags().GetString("hash")
+		if len(opts.hashPrefix) < 5 {
 			return nil, fmt.Errorf("hash prefix must be at least 5 characters")
 		}
 	}
 	if markFlag("depends") {
-		opts.DependsOn, _ = cmd.Flags().GetStringSlice("depends")
+		opts.dependsOn, _ = cmd.Flags().GetStringSlice("depends")
 	} else if markFlag("depends-all") {
-		opts.DependsOnAll, _ = cmd.Flags().GetStringSlice("depends-all")
+		opts.dependsOnAll, _ = cmd.Flags().GetStringSlice("depends-all")
 	}
 
 	timeFilters := map[string]*time.Time{
-		"created-after":  &opts.CreatedAfter,
-		"created-before": &opts.CreatedBefore,
-		"updated-after":  &opts.UpdatedAfter,
-		"updated-before": &opts.UpdatedBefore,
-		"last-applied":   &opts.LastApplied,
+		"created-after":  &opts.createdAfter,
+		"created-before": &opts.createdBefore,
+		"updated-after":  &opts.updatedAfter,
+		"updated-before": &opts.updatedBefore,
+		"last-applied":   &opts.lastApplied,
 	}
 
 	for flag, target := range timeFilters {
@@ -294,7 +294,7 @@ func parseSearchFlags(cmd *cobra.Command, _ []string) (*SearchOptions, error) {
 			val, _ := cmd.Flags().GetString(flag)
 			if t, err := parseTimeOrDuration(val); err == nil {
 				*target = t
-				opts.IsRelativeTime = isDuration(val)
+				opts.isRelativeTime = isDuration(val)
 			} else {
 				return nil, fmt.Errorf("invalid %s value: %w", flag, err)
 			}
@@ -302,37 +302,37 @@ func parseSearchFlags(cmd *cobra.Command, _ []string) (*SearchOptions, error) {
 	}
 
 	if markFlag("output") {
-		opts.Output, _ = cmd.Flags().GetBool("output")
-		if opts.Output {
+		opts.output, _ = cmd.Flags().GetBool("output")
+		if opts.output {
 			if markFlag("output-path") {
-				opts.OutputPath, _ = cmd.Flags().GetString("output-path")
+				opts.outputPath, _ = cmd.Flags().GetString("output-path")
 			}
-			if opts.OutputPath == "" {
-				opts.OutputPath = "."
+			if opts.outputPath == "" {
+				opts.outputPath = "."
 			}
 			if markFlag("output-mode") {
-				opts.OutputMode, _ = cmd.Flags().GetString("output-mode")
-				if opts.OutputMode != "combined" && opts.OutputMode != "separate" {
+				opts.outputMode, _ = cmd.Flags().GetString("output-mode")
+				if opts.outputMode != "combined" && opts.outputMode != "separate" {
 					return nil, fmt.Errorf("invalid output mode, must be 'combined' or 'separate'")
 				}
 			}
-			if opts.OutputMode == "" {
-				opts.OutputMode = "separate"
+			if opts.outputMode == "" {
+				opts.outputMode = "separate"
 			}
 			if markFlag("output-format") {
-				opts.OutputFormat, _ = cmd.Flags().GetString("output-format")
-				if opts.OutputFormat != "yaml" && opts.OutputFormat != "json" {
+				opts.outputFormat, _ = cmd.Flags().GetString("output-format")
+				if opts.outputFormat != "yaml" && opts.outputFormat != "json" {
 					return nil, fmt.Errorf("invalid output format, must be 'yaml' or 'json'")
 				}
 			}
-			if opts.OutputFormat == "" {
-				opts.OutputFormat = "yaml"
+			if opts.outputFormat == "" {
+				opts.outputFormat = "yaml"
 			}
 		}
 	}
 
 	if markFlag("sort") {
-		opts.SortBy, _ = cmd.Flags().GetStringSlice("sort")
+		opts.sortBy, _ = cmd.Flags().GetStringSlice("sort")
 	}
 
 	return opts, nil
@@ -359,18 +359,18 @@ func isDuration(val string) bool {
 	return err == nil
 }
 
-func outputManifests(manifests []manifests.Manifest, opts *SearchOptions) error {
-	if err := os.MkdirAll(opts.OutputPath, 0o755); err != nil {
+func outputManifests(manifests []manifests.Manifest, opts *searchOptions) error {
+	if err := os.MkdirAll(opts.outputPath, 0o755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	if opts.OutputMode == "combined" {
-		filename := filepath.Join(opts.OutputPath, fmt.Sprintf("manifests.%s", opts.OutputFormat))
-		return writeCombinedFile(filename, manifests, opts.OutputFormat)
+	if opts.outputMode == "combined" {
+		filename := filepath.Join(opts.outputPath, fmt.Sprintf("manifests.%s", opts.outputFormat))
+		return writeCombinedFile(filename, manifests, opts.outputFormat)
 	} else {
 		for _, m := range manifests {
-			filename := filepath.Join(opts.OutputPath, fmt.Sprintf("%s.%s", m.GetID(), opts.OutputFormat))
-			if err := writeSingleFile(filename, m, opts.OutputFormat); err != nil {
+			filename := filepath.Join(opts.outputPath, fmt.Sprintf("%s.%s", m.GetID(), opts.outputFormat))
+			if err := writeSingleFile(filename, m, opts.outputFormat); err != nil {
 				return err
 			}
 		}
@@ -531,10 +531,10 @@ func displayResults(manifests []manifests.Manifest) {
 	headers := []string{
 		"#",
 		"Hash",
-		"Kind",
-		"Name",
-		"Namespace",
-		"Version",
+		"kind",
+		"name",
+		"namespace",
+		"version",
 		"Created",
 		"Updated",
 		"Last Updated",

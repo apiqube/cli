@@ -3,9 +3,14 @@ package cli
 import (
 	"context"
 	"fmt"
+
 	"github.com/apiqube/cli/internal/config"
 	"github.com/spf13/cobra"
 )
+
+type contextKey string
+
+var configKey contextKey = "config"
 
 var rootCmd = &cobra.Command{
 	Use:   "qube",
@@ -16,7 +21,7 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("config init failed: %w", err)
 		}
 
-		cmd.SetContext(context.WithValue(cmd.Context(), "config", cfg))
+		cmd.SetContext(context.WithValue(cmd.Context(), configKey, cfg))
 		return nil
 	},
 }

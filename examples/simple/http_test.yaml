@@ -36,6 +36,3 @@ spec:
       expected:
         code: 201
         message: "User not found"
-
-dependsOn:
-  - default.Service.simple-service
