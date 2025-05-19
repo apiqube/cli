@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +18,7 @@ var versionCmd = &cobra.Command{
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	Run: func(cmd *cobra.Command, args []string) {
-		var data = fmt.Sprintf("Qube CLI\nVersion: %s", version)
+		data := fmt.Sprintf("Qube CLI\nVersion: %s", version)
 
 		if commit != "" {
 			data += fmt.Sprintf("Commit: %s\n", commit)
