@@ -58,11 +58,10 @@ jobs:
           mv qube bin/
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qube-binaries
           path: bin/qube
-          if-no-files-found: error
 
   release:
     needs: build-and-test
