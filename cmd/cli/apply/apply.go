@@ -46,7 +46,7 @@ var Cmd = &cobra.Command{
 }
 
 func printManifestsLoadResult(newMans, cachedMans []manifests.Manifest) {
-	ui.Infof("Loaded %d manifests", len(newMans))
+	ui.Infof("Loaded %d new manifests", len(newMans))
 
 	for _, m := range newMans {
 		ui.Infof("New manifest added: %s (h: %s...)", m.GetID(), ui.ShortHash(m.GetMeta().GetHash()))

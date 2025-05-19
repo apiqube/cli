@@ -200,8 +200,21 @@ func parseCheckPlanFlags(cmd *cobra.Command, _ []string) (*checkPlanOptions, err
 		}
 	}
 
-	if opts.flagsSet["id"] || (opts.flagsSet["name"] || (opts.flagsSet["namespace"] && opts.flagsSet["file"])) {
-		return nil, fmt.Errorf("cannot use all filters at the same time")
+	exclusiveFlags := []string{"id", "name", "namespace", "file"}
+
+	var usedFlags []string
+	for _, flag := range exclusiveFlags {
+		if opts.flagsSet[flag] {
+			usedFlags = append(usedFlags, "--"+flag)
+		}
+	}
+
+	if len(usedFlags) > 1 {
+		return nil, fmt.Errorf(
+			"conflicting filters: %s\n"+
+				"these filters cannot be used together, please use only one",
+			strings.Join(usedFlags, " and "),
+		)
 	}
 
 	return opts, nil

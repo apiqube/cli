@@ -14,7 +14,6 @@ spec:
     - name: "Starting and checking server"
       manifests:
         - default.Server.simple-server
-        - default.Server.simple-server
 
     - name: "Testing APIs"
       manifests:
