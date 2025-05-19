@@ -48,12 +48,12 @@ jobs:
           DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           
           go build -ldflags="\
-            -X github.com/apiqube/cli/cmd/qube.version=$TAG \
-            -X github.com/apiqube/cli/cmd/qube.commit=$COMMIT \
-            -X github.com/apiqube/cli/cmd/qube.date=$DATE" \
+            -X github.com/apiqube/cli/cmd/cli.version=$TAG \
+            -X github.com/apiqube/cli/cmd/cli.commit=$COMMIT \
+            -X github.com/apiqube/cli/cmd/cli.date=$DATE" \
             -o qube ./cmd/qube
           
-          ./qube version  # Проверка версии
+          ./qube version
           mkdir -p bin
           mv qube bin/
 
@@ -62,6 +62,7 @@ jobs:
         with:
           name: qube-binaries
           path: bin/qube
+          if-no-files-found: error
 
   release:
     needs: build-and-test
