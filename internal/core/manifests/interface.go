@@ -6,7 +6,9 @@ import (
 
 const (
 	DefaultNamespace = "default"
+)
 
+const (
 	PlanManifestKind            = "Plan"
 	ValuesManifestLind          = "Values"
 	ServerManifestKind          = "Server"

@@ -79,4 +79,8 @@ func (s *Server) Prepare() {
 	if s.Namespace == "" {
 		s.Namespace = manifests.DefaultNamespace
 	}
+
+	if s.Meta == nil {
+		s.Meta = kinds.DefaultMeta()
+	}
 }

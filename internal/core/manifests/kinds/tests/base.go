@@ -40,7 +40,6 @@ type Save struct {
 }
 
 type Pass struct {
-	From   string            `yaml:"from" json:"from"`
-	Map    map[string]string `yaml:"map,omitempty" json:"map,omitempty"`
-	Inline bool              `yaml:"inline,omitempty" json:"inline,omitempty"`
+	From string            `yaml:"from" json:"from"`
+	Map  map[string]string `yaml:"map,omitempty" json:"map,omitempty"`
 }

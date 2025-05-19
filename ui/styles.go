@@ -18,15 +18,16 @@ var (
 			Foreground(lipgloss.Color("#5fd700"))
 
 	errorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FF0000")).
-			Bold(false)
+			Foreground(lipgloss.Color("#FF0000"))
 
 	warningStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#ff8700")).
-			Bold(true)
+			Foreground(lipgloss.Color("#ff8700"))
 
 	infoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#00afff"))
+
+	debugStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#005fff"))
 
 	snippetStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("230")).
@@ -59,6 +60,8 @@ func getStyle(t MessageType) lipgloss.Style {
 		return warningStyle
 	case TypeInfo:
 		return infoStyle
+	case TypeDebug:
+		return debugStyle
 	case TypeSnippet:
 		return snippetStyle
 	default:

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
+
 	"github.com/apiqube/cli/internal/core/manifests/kinds/values"
 
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
@@ -113,6 +115,8 @@ func ParseManifest(parseMethod ParseMethod, data []byte) (manifests.Manifest, er
 
 	var manifest manifests.Manifest
 	switch raw.Kind {
+	case manifests.PlanManifestKind:
+		manifest = &plan.Plan{}
 	case manifests.ValuesManifestLind:
 		manifest = &values.Values{}
 	case manifests.ServerManifestKind:
@@ -129,6 +133,10 @@ func ParseManifest(parseMethod ParseMethod, data []byte) (manifests.Manifest, er
 
 	if def, ok := manifest.(manifests.Defaultable); ok {
 		def.Default()
+	}
+
+	if prep, ok := manifest.(manifests.Prepare); ok {
+		prep.Prepare()
 	}
 
 	var err error

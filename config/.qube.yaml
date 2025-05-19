@@ -1,0 +1,9 @@
+# Example of CLI config
+ui: # Set of fields for cli output
+  timestampColor: "#949494"
+  logColor: "#e4e4e4"
+  successColor: "#5fd700"
+  errorColor: "#FF0000"
+  warningColor: "#ff8700"
+  infoColor: "#00afff"
+  debugColor: "#005fff"

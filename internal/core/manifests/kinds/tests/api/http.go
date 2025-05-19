@@ -93,4 +93,8 @@ func (h *Http) Prepare() {
 	if h.Namespace == "" {
 		h.Namespace = manifests.DefaultNamespace
 	}
+
+	if h.Meta == nil {
+		h.Meta = kinds.DefaultMeta()
+	}
 }
