@@ -11,15 +11,15 @@ type HttpCase struct {
 	Url      string            `yaml:"url,omitempty" json:"url,omitempty"`
 	Headers  map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
 	Body     map[string]any    `yaml:"body,omitempty" json:"body,omitempty"`
-	Assert   Assert            `yaml:"assert,omitempty" json:"assert,omitempty"`
-	Save     Save              `yaml:"save,omitempty" json:"save,omitempty"`
-	Pass     Pass              `yaml:"pass,omitempty" json:"pass,omitempty"`
+	Assert   *Assert           `yaml:"assert,omitempty" json:"assert,omitempty"`
+	Save     *Save             `yaml:"save,omitempty" json:"save,omitempty"`
+	Pass     []Pass            `yaml:"pass,omitempty" json:"pass,omitempty"`
 	Timeout  time.Duration     `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 	Parallel bool              `yaml:"async,omitempty" json:"async,omitempty"`
 }
 
 type Assert struct {
-	Assertions []*AssertElement `yaml:",inline,omitempty" json:",inline,omitempty"`
+	Assertions []AssertElement `yaml:",inline,omitempty" json:",inline,omitempty"`
 }
 
 type AssertElement struct {
