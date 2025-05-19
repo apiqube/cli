@@ -1,8 +1,10 @@
-package cli
+package generator
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
-var generateCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:           "generate",
 	Short:         "Generate manifests with provided flags",
 	SilenceErrors: true,
@@ -10,8 +12,4 @@ var generateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return nil
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(generateCmd)
 }

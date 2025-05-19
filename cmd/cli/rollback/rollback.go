@@ -1,14 +1,13 @@
-package cli
+package rollback
 
 import (
 	"fmt"
-
 	"github.com/apiqube/cli/internal/core/store"
 	"github.com/apiqube/cli/ui"
 	"github.com/spf13/cobra"
 )
 
-var rollbackCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "rollback [ID]",
 	Short: "Rollback to previous manifest version",
 	Long: fmt.Sprint("Rollback to specific version of manifest." +
@@ -20,42 +19,40 @@ var rollbackCmd = &cobra.Command{
 			return
 		}
 
-		targetVersion := opts.Version
+		targetVersion := opts.version
 		if targetVersion <= 0 {
 			targetVersion = 1
 		}
 
 		ui.Spinner(true, "Rolling back")
-		if err = store.Rollback(opts.ManifestID, targetVersion); err != nil {
-			ui.Spinner(false, "Failed to rollback")
+		defer ui.Spinner(false)
+
+		if err = store.Rollback(opts.manifestID, targetVersion); err != nil {
 			ui.Errorf("Error rolling back to previous version: %s", err)
 			return
 		}
 
-		ui.Spinner(false)
-		ui.Successf("Successfully rolled back %s to version %d\n", opts.ManifestID, targetVersion)
+		ui.Successf("Successfully rolled back %s to version %d\n", opts.manifestID, targetVersion)
 	},
 }
 
 func init() {
-	rollbackCmd.Flags().IntP("version", "v", 0, "Target version number (defaults to previous version)")
-
-	rootCmd.AddCommand(rollbackCmd)
+	Cmd.Flags().IntP("version", "v", 0, "Target version number (defaults to previous version)")
 }
 
-type RollbackOptions struct {
-	ManifestID string
-	Version    int
+type Options struct {
+	manifestID string
+	version    int
 }
 
-func parseRollbackFlags(cmd *cobra.Command, args []string) (*RollbackOptions, error) {
-	opts := &RollbackOptions{}
+func parseRollbackFlags(cmd *cobra.Command, args []string) (*Options, error) {
+	opts := &Options{}
 
 	if len(args) == 0 {
 		return nil, fmt.Errorf("manifest ID is required")
 	}
 
-	opts.ManifestID = args[0]
+	opts.manifestID = args[0]
 	var err error
 	var ver int
 
@@ -67,7 +64,7 @@ func parseRollbackFlags(cmd *cobra.Command, args []string) (*RollbackOptions, er
 		if ver < 1 {
 			return nil, fmt.Errorf("version must be positive")
 		}
-		opts.Version = ver
+		opts.version = ver
 	}
 
 	return opts, nil

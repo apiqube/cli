@@ -3,6 +3,12 @@ package cli
 import (
 	"context"
 	"fmt"
+	"github.com/apiqube/cli/cmd/cli/apply"
+	"github.com/apiqube/cli/cmd/cli/check"
+	"github.com/apiqube/cli/cmd/cli/cleanup"
+	"github.com/apiqube/cli/cmd/cli/generator"
+	"github.com/apiqube/cli/cmd/cli/rollback"
+	"github.com/apiqube/cli/cmd/cli/search"
 
 	"github.com/apiqube/cli/internal/config"
 	"github.com/spf13/cobra"
@@ -27,5 +33,14 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	rootCmd.AddCommand(
+		apply.Cmd,
+		check.Cmd,
+		cleanup.Cmd,
+		generator.Cmd,
+		rollback.Cmd,
+		search.Cmd,
+	)
+
 	cobra.CheckErr(rootCmd.Execute())
 }
