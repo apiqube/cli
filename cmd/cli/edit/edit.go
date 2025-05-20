@@ -3,6 +3,7 @@ package edit
 import (
 	"errors"
 	"fmt"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/edit"
 	"github.com/apiqube/cli/internal/core/manifests/hash"

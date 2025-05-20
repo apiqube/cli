@@ -3,12 +3,13 @@ package edit
 import (
 	"errors"
 	"fmt"
-	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/parsing"
-	"gopkg.in/yaml.v3"
 	"os"
 	"os/exec"
 	"runtime"
+
+	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/manifests/parsing"
+	"gopkg.in/yaml.v3"
 )
 
 var ErrFileNotEdited = errors.New("file was not edited")
@@ -88,7 +89,7 @@ func editManifestFile(path string) error {
 		return fmt.Errorf("failed to verify edited file: %w", err)
 	}
 
-	if fileInfo.ModTime() == newInfo.ModTime() {
+	if fileInfo.ModTime().Equal(newInfo.ModTime()) {
 		return ErrFileNotEdited
 	}
 

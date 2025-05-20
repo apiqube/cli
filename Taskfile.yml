@@ -40,12 +40,12 @@ tasks:
     cmds:
       - reflex -r '\.go$$' -s -- sh -c "task build && task run"
 
-  go-fmt:
+  fmt:
     desc: 🧹 Cleaning all go code
     cmds:
       - gofumpt -l -w .
 
-  go-lint:
+  lint:
     desc: 🚀 Command for linting code
     cmds:
       - golangci-lint run ./...
