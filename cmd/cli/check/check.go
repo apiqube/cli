@@ -31,32 +31,34 @@ var cmdManifestCheck = &cobra.Command{
 var cmdPlanCheck = &cobra.Command{
 	Use:   "plan",
 	Short: "Validate a plan manifest",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		opts, err := parseCheckPlanFlags(cmd, args)
 		if err != nil {
-			return uiErrorf("Failed to parse provided values: %v", err)
+			cli.Errorf("Failed to parse provided values: %v", err)
+			return
 		}
 
 		if err := validateCheckPlanOptions(opts); err != nil {
-			return uiErrorf("%s", err.Error())
+			cli.Errorf("%s", err.Error())
+			return
 		}
 
 		loadedManifests, err := loadManifests(opts)
 		if err != nil {
-			return uiErrorf("Failed to load manifests: %v", err)
+			cli.Errorf("Failed to load manifests: %v", err)
+			return
 		}
 
 		planManifest, err := extractPlanManifest(loadedManifests)
 		if err != nil {
-			return uiErrorf("Failed to check plan manifest: %v", err)
+			cli.Errorf("Failed to check plan manifest: %v", err)
 		}
 
 		if err := validatePlan(planManifest); err != nil {
-			return uiErrorf("Failed to check plan: %v", err)
+			cli.Errorf("Failed to check plan: %v", err)
 		}
 
 		cli.Successf("Successfully checked plan manifest")
-		return nil
 	},
 }
 
@@ -97,11 +99,6 @@ type (
 		flagsSet map[string]bool
 	}
 )
-
-func uiErrorf(format string, args ...interface{}) error {
-	cli.Errorf(format, args...)
-	return nil
-}
 
 func validateCheckPlanOptions(opts *checkPlanOptions) error {
 	if !opts.flagsSet["id"] &&

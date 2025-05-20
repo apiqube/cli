@@ -14,7 +14,7 @@ import (
 
 var kindPriority = map[string]int{
 	"Values":       0,
-	"Target":       10,
+	"Server":       10,
 	"Service":      20,
 	"HttpTest":     30,
 	"HttpLoadTest": 40,
@@ -96,6 +96,11 @@ func (g *basicManager) Generate() (*plan.Plan, error) {
 	graph := newDepGraph()
 
 	for id, m := range g.manifests {
+		if m.GetKind() == manifests.PlanManifestKind {
+			delete(g.manifests, id)
+			continue
+		}
+
 		graph.addNode(id)
 
 		if depend, ok := m.(manifests.Dependencies); ok {

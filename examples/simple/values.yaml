@@ -1,7 +1,7 @@
 version: v1
 kind: Values
 metadata:
-  name: simple-value
+  name: simple-values
 spec:
   users:
     username: ["Max", "Carl", "John", "Alex", "Uli"]
