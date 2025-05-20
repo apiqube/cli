@@ -1,20 +1,16 @@
-package loader
+package io
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
-	"github.com/apiqube/cli/ui/cli"
-
-	"gopkg.in/yaml.v3"
+	"github.com/apiqube/cli/internal/core/manifests/utils"
+	"github.com/apiqube/cli/internal/operations"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/hash"
-	"github.com/apiqube/cli/internal/core/manifests/parsing"
 	"github.com/apiqube/cli/internal/core/store"
 )
 
@@ -67,7 +63,7 @@ func processFile(filePath string, manifestsSet map[string]struct{}) (new []manif
 		return nil, nil, fmt.Errorf("error reading file %s: %w", filePath, err)
 	}
 
-	parsedManifests, err := parsing.ParseManifestsAsYAML(content)
+	parsedManifests, err := operations.ParseBatchAsYAML(content)
 	if err != nil {
 		return nil, nil, fmt.Errorf("in file %s: %w", filepath.Base(filePath), err)
 	}
@@ -79,12 +75,12 @@ func processFile(filePath string, manifestsSet map[string]struct{}) (new []manif
 		manifestID := m.GetID()
 
 		var normalized []byte
-		normalized, err = NormalizeYAML(m)
+		normalized, err = operations.NormalizeYAML(m)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to normalize manifest %s: %w", manifestID, err)
 		}
 		var manifestHash string
-		manifestHash, err = hash.CalculateHashWithContent(normalized)
+		manifestHash, err = utils.CalculateContentHash(normalized)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to calculate hash for manifest %s: %w", manifestID, err)
 		}
@@ -109,7 +105,6 @@ func processFile(filePath string, manifestsSet map[string]struct{}) (new []manif
 		}
 
 		if _, exists := manifestsSet[manifestID]; exists {
-			cli.Warningf("Duplicate manifest ID: %s (from %s)", manifestID, filepath.Base(filePath))
 			continue
 		}
 
@@ -124,42 +119,6 @@ func processFile(filePath string, manifestsSet map[string]struct{}) (new []manif
 	}
 
 	return newManifests, cachedManifests, nil
-}
-
-func NormalizeYAML(m manifests.Manifest) ([]byte, error) {
-	data, err := yaml.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-
-	var raw map[string]interface{}
-	if err = yaml.Unmarshal(data, &raw); err != nil {
-		return nil, err
-	}
-
-	sorted := sortMapKeys(raw)
-
-	return yaml.Marshal(sorted)
-}
-
-func sortMapKeys(m map[string]interface{}) map[string]interface{} {
-	res := make(map[string]interface{})
-	keys := make([]string, 0, len(m))
-
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		if nested, ok := m[k].(map[string]interface{}); ok {
-			res[k] = sortMapKeys(nested)
-		} else {
-			res[k] = m[k]
-		}
-	}
-
-	return res
 }
 
 func isNotFoundError(err error) bool {

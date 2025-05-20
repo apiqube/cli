@@ -1,4 +1,4 @@
-package hash
+package utils
 
 import (
 	"crypto/sha256"
@@ -26,7 +26,7 @@ func CalculateHashWithPath(filePath string, content []byte) (string, error) {
 	return hash, nil
 }
 
-func CalculateHashWithContent(content []byte) (string, error) {
+func CalculateContentHash(content []byte) (string, error) {
 	hasher := sha256.New()
 	hasher.Write(content)
 	hash := hex.EncodeToString(hasher.Sum(nil))

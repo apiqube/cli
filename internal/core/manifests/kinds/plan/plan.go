@@ -2,14 +2,12 @@ package plan
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/apiqube/cli/internal/core/manifests/utils"
 	"github.com/google/uuid"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
 
@@ -20,40 +18,40 @@ var (
 )
 
 type Plan struct {
-	kinds.BaseManifest `yaml:",inline" json:",inline"`
+	kinds.BaseManifest `yaml:",inline" json:",inline" validate:"required"`
 
 	Spec struct {
-		Stages []Stage `yaml:"stages" json:"stages"`
-		Hooks  *Hooks  `yaml:"hooks,omitempty" json:"hooks,omitempty"`
-	} `yaml:"spec" json:"spec"`
+		Stages []Stage `yaml:"stages" json:"stages" validate:"required,min=1,dive"`
+		Hooks  *Hooks  `yaml:"hooks,omitempty" json:"hooks,omitempty" validate:"omitempty,dive"`
+	} `yaml:"spec" json:"spec" validate:"required"`
 
-	Meta *kinds.Meta `yaml:",inline" json:"meta"`
+	Meta *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 type Stage struct {
-	Name        string         `yaml:"name" json:"name"`
-	Description string         `yaml:"description,omitempty" json:"description,omitempty"`
-	Manifests   []string       `yaml:"manifests" json:"manifests"`
+	Name        string         `yaml:"name" json:"name" validate:"required,min=3,max=50"`
+	Description string         `yaml:"description,omitempty" json:"description,omitempty" validate:"omitempty,max=255"`
+	Manifests   []string       `yaml:"manifests" json:"manifests" validate:"required,min=1,dive"`
 	Parallel    bool           `yaml:"parallel,omitempty" json:"parallel,omitempty"`
-	Params      map[string]any `yaml:"params,omitempty" json:"params,omitempty"`
-	Mode        string         `yaml:"mode,omitempty" json:"mode,omitempty"` // (strict|parallel)
-	Hooks       Hooks          `yaml:"hooks,omitempty" json:"hooks,omitempty"`
+	Params      map[string]any `yaml:"params,omitempty" json:"params,omitempty" validate:"omitempty"`
+	Mode        string         `yaml:"mode,omitempty" json:"mode,omitempty" validate:"omitempty,oneof=strict parallel"` // (strict|parallel)
+	Hooks       Hooks          `yaml:"hooks,omitempty" json:"hooks,omitempty" validate:"omitempty,dive"`
 }
 
 type Hooks struct {
-	BeforeStart []Action `yaml:"beforeStart,omitempty" json:"beforeStart,omitempty"`
-	AfterFinish []Action `yaml:"afterFinish,omitempty" json:"afterFinish,omitempty"`
-	OnSuccess   []Action `yaml:"onSuccess,omitempty" json:"onSuccess,omitempty"`
-	OnFailure   []Action `yaml:"onFailure,omitempty" json:"onFailure,omitempty"`
+	BeforeStart []Action `yaml:"beforeStart,omitempty" json:"beforeStart,omitempty" validate:"omitempty,dive"`
+	AfterFinish []Action `yaml:"afterFinish,omitempty" json:"afterFinish,omitempty" validate:"omitempty,dive"`
+	OnSuccess   []Action `yaml:"onSuccess,omitempty" json:"onSuccess,omitempty" validate:"omitempty,dive"`
+	OnFailure   []Action `yaml:"onFailure,omitempty" json:"onFailure,omitempty" validate:"omitempty,dive"`
 }
 
 type Action struct {
-	Type   string         `yaml:"type" json:"type"` // eg log/save/skip/fail/exec/notify
-	Params map[string]any `yaml:"params" json:"params"`
+	Type   string         `yaml:"type" json:"type" validate:"required,oneof=log save skip fail exec notify"` // eg log/save/skip/fail/exec/notify
+	Params map[string]any `yaml:"params" json:"params" validate:"required"`
 }
 
 func (p *Plan) GetID() string {
-	return kinds.FormManifestID(p.Namespace, p.Kind, p.Name)
+	return utils.FormManifestID(p.Namespace, p.Kind, p.Name)
 }
 
 func (p *Plan) GetKind() string {
@@ -70,21 +68,21 @@ func (p *Plan) GetNamespace() string {
 
 func (p *Plan) Index() any {
 	return map[string]any{
-		index.ID:        p.GetID(),
-		index.Version:   float64(p.Version),
-		index.Kind:      p.Kind,
-		index.Name:      p.Name,
-		index.Namespace: p.Namespace,
+		kinds.ID:        p.GetID(),
+		kinds.Version:   p.Version,
+		kinds.Kind:      p.Kind,
+		kinds.Name:      p.Name,
+		kinds.Namespace: p.Namespace,
 
-		index.MetaHash:        p.Meta.Hash,
-		index.MetaVersion:     float64(p.Meta.Version),
-		index.MetaIsCurrent:   p.Meta.IsCurrent,
-		index.MetaCreatedAt:   p.Meta.CreatedAt.Format(time.RFC3339Nano),
-		index.MetaCreatedBy:   p.Meta.CreatedBy,
-		index.MetaUpdatedAt:   p.Meta.UpdatedAt.Format(time.RFC3339Nano),
-		index.MetaUpdatedBy:   p.Meta.UpdatedBy,
-		index.MetaUsedBy:      p.Meta.UsedBy,
-		index.MetaLastApplied: p.Meta.LastApplied.Format(time.RFC3339Nano),
+		kinds.MetaHash:        p.Meta.Hash,
+		kinds.MetaVersion:     float64(p.Meta.Version),
+		kinds.MetaIsCurrent:   p.Meta.IsCurrent,
+		kinds.MetaCreatedAt:   p.Meta.CreatedAt.Format(time.RFC3339Nano),
+		kinds.MetaCreatedBy:   p.Meta.CreatedBy,
+		kinds.MetaUpdatedAt:   p.Meta.UpdatedAt.Format(time.RFC3339Nano),
+		kinds.MetaUpdatedBy:   p.Meta.UpdatedBy,
+		kinds.MetaUsedBy:      p.Meta.UsedBy,
+		kinds.MetaLastApplied: p.Meta.LastApplied.Format(time.RFC3339Nano),
 	}
 }
 
@@ -93,8 +91,8 @@ func (p *Plan) GetMeta() manifests.Meta {
 }
 
 func (p *Plan) Default() {
-	if p.Version <= 0 {
-		p.Version = 1
+	if p.Version != manifests.V1Version {
+		p.Version = manifests.V1Version
 	}
 
 	if p.Name == "" {
@@ -129,13 +127,12 @@ func (p *Plan) Prepare() {
 
 	for i, stage := range p.Spec.Stages {
 		if stage.Mode == "" {
-			stage.Mode = "lite"
+			stage.Mode = Strict.String()
 		}
 
 		for j, m := range stage.Manifests {
 			namespace, kind, name := utils.ParseManifestID(m)
-			m = strings.Join([]string{namespace, kind, name}, ".")
-			stage.Manifests[j] = m
+			stage.Manifests[j] = utils.FormManifestID(namespace, kind, name)
 		}
 
 		p.Spec.Stages[i] = stage

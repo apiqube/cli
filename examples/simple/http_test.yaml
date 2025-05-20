@@ -1,9 +1,9 @@
-version: 1
+version: v1
 kind: HttpTest
 metadata:
   name: simple-http-test
 spec:
-  server: simple-server
+  target: simple-server
   cases:
     - name: user-register
       method: POST

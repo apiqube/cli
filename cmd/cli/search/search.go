@@ -30,7 +30,7 @@ time ranges, and output formatting`,
 		}
 
 		if len(manifests) == 0 {
-			cli.Warning("No manifests found matching the criteria")
+			cli.Info("No manifests found matching the criteria")
 			return nil
 		}
 

@@ -12,14 +12,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apiqube/cli/internal/operations"
+
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 	"github.com/apiqube/cli/internal/core/manifests/utils"
 
-	"github.com/apiqube/cli/internal/core/manifests/index"
-
 	"github.com/adrg/xdg"
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/parsing"
 	"github.com/blevesearch/bleve/v2"
 	"github.com/dgraph-io/badger/v4"
 )
@@ -235,7 +234,7 @@ func (s *Storage) loadByHash(hash string) (manifests.Manifest, error) {
 	var manifest manifests.Manifest
 
 	hashQuery := bleve.NewTermQuery(hash)
-	hashQuery.SetField(index.MetaHash)
+	hashQuery.SetField(kinds.MetaHash)
 
 	searchResult, err := s.index.Search(bleve.NewSearchRequest(hashQuery))
 	if err != nil {
@@ -270,7 +269,7 @@ func (s *Storage) loadByHash(hash string) (manifests.Manifest, error) {
 
 		return manifestItem.Value(func(data []byte) error {
 			var parseErr error
-			manifest, parseErr = parsing.ParseManifest(parsing.JSONMethod, data)
+			manifest, parseErr = operations.Parse(operations.JSONFormat, data)
 			return parseErr
 		})
 	})
@@ -295,7 +294,7 @@ func (s *Storage) loadVersion(id string, version int) (manifests.Manifest, error
 			return err
 		}
 		return item.Value(func(data []byte) error {
-			m, err = parsing.ParseManifestAsJSON(data)
+			m, err = operations.Parse(operations.JSONFormat, data)
 			return err
 		})
 	})
@@ -327,7 +326,7 @@ func (s *Storage) loadLatest() ([]manifests.Manifest, error) {
 
 			var m manifests.Manifest
 			err = versionedItem.Value(func(data []byte) error {
-				m, err = parsing.ParseManifestAsJSON(data)
+				m, err = operations.Parse(operations.JSONFormat, data)
 				if err != nil {
 					return fmt.Errorf("failed to parse manifest %s: %w", versionedKey, err)
 				}
@@ -360,7 +359,7 @@ func (s *Storage) loadBulk(opts LoadOptions) ([]manifests.Manifest, error) {
 				return err
 			}
 
-			id = kinds.FormManifestID(namespace, kind, name)
+			id = utils.FormManifestID(namespace, kind, name)
 
 			item, err := txn.Get(genLatestKey(id))
 			if err != nil {
@@ -389,7 +388,7 @@ func (s *Storage) loadBulk(opts LoadOptions) ([]manifests.Manifest, error) {
 
 			var manifest manifests.Manifest
 			if err = item.Value(func(data []byte) error {
-				manifest, err = parsing.ParseManifestAsJSON(data)
+				manifest, err = operations.Parse(operations.JSONFormat, data)
 				return err
 			}); err != nil {
 				errs = errors.Join(errs, fmt.Errorf("parsing failed for %q: %w", id, err))
@@ -444,7 +443,7 @@ func (s *Storage) parseSearchResults(searchResults *bleve.SearchResult) ([]manif
 
 			var m manifests.Manifest
 			err = manifestItem.Value(func(data []byte) error {
-				m, err = parsing.ParseManifest(parsing.JSONMethod, data)
+				m, err = operations.Parse(operations.JSONFormat, data)
 				if err != nil {
 					return err
 				}
@@ -553,7 +552,7 @@ func (s *Storage) resetVersions(txn *badger.Txn, id string) error {
 		return fmt.Errorf("failed to copy manifest data: %w", err)
 	}
 
-	manifest, err := parsing.ParseManifest(parsing.JSONMethod, manifestData)
+	manifest, err := operations.Parse(operations.JSONFormat, manifestData)
 	if err != nil {
 		return fmt.Errorf("parsing failed: %w", err)
 	}

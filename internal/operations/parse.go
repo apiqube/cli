@@ -1,4 +1,4 @@
-package parsing
+package operations
 
 import (
 	"bytes"
@@ -19,24 +19,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type ParseMethod uint8
-
-const (
-	JSONMethod ParseMethod = iota + 1
-	YAMLMethod
-)
-
-type RawManifest struct {
+type rawManifest struct {
 	Kind string `yaml:"kind" json:"kind"`
 }
 
-func ParseManifestsAsYAML(data []byte) ([]manifests.Manifest, error) {
+func ParseBatchAsYAML(data []byte) ([]manifests.Manifest, error) {
 	docs := bytes.Split(data, []byte("\n---"))
 	var results []manifests.Manifest
 	var rErr error
 
 	for _, doc := range docs {
-		manifest, err := ParseManifest(YAMLMethod, doc)
+		manifest, err := Parse(YAMLFormat, doc)
 		if err != nil {
 			rErr = errors.Join(rErr, err)
 			continue
@@ -48,7 +41,7 @@ func ParseManifestsAsYAML(data []byte) ([]manifests.Manifest, error) {
 	return results, rErr
 }
 
-func ParseManifestsAsJSON(data []byte) ([]manifests.Manifest, error) {
+func ParseBatchAsJSON(data []byte) ([]manifests.Manifest, error) {
 	docs := bytes.Split(data, []byte("\n\n"))
 
 	if bytes.HasPrefix(bytes.TrimSpace(data), []byte("[")) {
@@ -60,7 +53,7 @@ func ParseManifestsAsJSON(data []byte) ([]manifests.Manifest, error) {
 		var results []manifests.Manifest
 		var rErr error
 		for _, rawDoc := range rawManifests {
-			manifest, err := ParseManifest(JSONMethod, rawDoc)
+			manifest, err := Parse(JSONFormat, rawDoc)
 			if err != nil {
 				rErr = errors.Join(rErr, err)
 				continue
@@ -79,7 +72,7 @@ func ParseManifestsAsJSON(data []byte) ([]manifests.Manifest, error) {
 			continue
 		}
 
-		manifest, err := ParseManifest(JSONMethod, doc)
+		manifest, err := Parse(JSONFormat, doc)
 		if err != nil {
 			rErr = errors.Join(rErr, err)
 			continue
@@ -94,21 +87,13 @@ func ParseManifestsAsJSON(data []byte) ([]manifests.Manifest, error) {
 	return results, rErr
 }
 
-func ParseManifestAsYAML(data []byte) (manifests.Manifest, error) {
-	return ParseManifest(YAMLMethod, data)
-}
-
-func ParseManifestAsJSON(data []byte) (manifests.Manifest, error) {
-	return ParseManifest(JSONMethod, data)
-}
-
-func ParseManifest(parseMethod ParseMethod, data []byte) (manifests.Manifest, error) {
+func Parse(format ParseFormat, data []byte) (manifests.Manifest, error) {
 	data = bytes.TrimSpace(data)
 	if len(data) == 0 {
 		return nil, fmt.Errorf("provided data not looks li	ke a valid manifest")
 	}
 
-	var raw RawManifest
+	var raw rawManifest
 	if err := yaml.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("failed to recognize manifest kind: %w", err)
 	}
@@ -135,22 +120,22 @@ func ParseManifest(parseMethod ParseMethod, data []byte) (manifests.Manifest, er
 		def.Default()
 	}
 
-	if prep, ok := manifest.(manifests.Prepare); ok {
-		prep.Prepare()
-	}
-
 	var err error
-	switch parseMethod {
-	case JSONMethod:
+	switch format {
+	case JSONFormat:
 		err = json.Unmarshal(data, manifest)
-	case YAMLMethod:
+	case YAMLFormat:
 		err = yaml.Unmarshal(data, manifest)
 	default:
-		return nil, fmt.Errorf("unknown parse method: %d", parseMethod)
+		return nil, fmt.Errorf("unknown parse method: %d", format)
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse manifest: %w", err)
+	}
+
+	if prep, ok := manifest.(manifests.Prepare); ok {
+		prep.Prepare()
 	}
 
 	return manifest, nil

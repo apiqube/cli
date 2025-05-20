@@ -1,11 +1,18 @@
 package apply
 
 import (
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/apiqube/cli/internal/core/io"
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/loader"
 	"github.com/apiqube/cli/internal/core/store"
+	"github.com/apiqube/cli/internal/validate"
 	"github.com/apiqube/cli/ui/cli"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 func init() {
@@ -14,43 +21,103 @@ func init() {
 
 var Cmd = &cobra.Command{
 	Use:           "apply",
-	Short:         "Apply resources from manifest file",
+	Short:         "Apply resources from manifest files",
+	Long:          "Apply configuration from YAML manifests with validation and version control",
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	Run: func(cmd *cobra.Command, args []string) {
 		file, err := cmd.Flags().GetString("file")
 		if err != nil {
-			cli.Errorf("Failed to parse --file: %s", err.Error())
+			cli.Errorf("Failed to parse input file flag: %v", err)
 			return
 		}
 
 		cli.Infof("Loading manifests from: %s", file)
-
-		loadedMans, cachedMans, err := loader.LoadManifests(file)
+		loadedMans, cachedMans, err := io.LoadManifests(file)
 		if err != nil {
-			cli.Errorf("Failed to load manifests: %s", err.Error())
+			cli.Errorf("Critical load error:\n%s", formatLoadError(err, file))
 			return
 		}
 
-		printManifestsLoadResult(loadedMans, cachedMans)
+		cli.Info("Validating manifests...")
+		validator := validate.NewManifestValidator(validate.NewValidator(), cli.Instance())
 
-		if err := store.Save(loadedMans...); err != nil {
-			cli.Infof("Failed to save manifests: %s", err.Error())
+		validator.Validate(loadedMans...)
+
+		validMans := validator.Valid()
+		if len(validMans) == 0 {
+			cli.Warning("No valid manifests to apply")
 			return
 		}
 
-		cli.Success("Manifests applied successfully")
+		printManifestsLoadResult(validMans, cachedMans)
+
+		cli.Infof("Saving %d manifests to storage...", len(validMans))
+		if err := store.Save(validMans...); err != nil {
+			cli.Errorf("Storage error: -\n%s", err.Error())
+			return
+		}
+
+		printPostApplySummary(validMans)
+		cli.Successf("Successfully applied %d manifests", len(validMans))
 	},
 }
 
+func formatLoadError(err error, file string) string {
+	if os.IsNotExist(err) {
+		return fmt.Sprintf("File not found: \n%s- Please check the path and try again", file)
+	}
+	var yamlErr *yaml.TypeError
+	if errors.As(err, &yamlErr) {
+		return fmt.Sprintf("YAML syntax error:\n%s", indentYAMLError(yamlErr))
+	}
+
+	return err.Error()
+}
+
 func printManifestsLoadResult(newMans, cachedMans []manifests.Manifest) {
-	for _, m := range newMans {
-		cli.Infof("New manifest added: %s (h: %s...)", m.GetID(), cli.ShortHash(m.GetMeta().GetHash()))
+	if len(newMans) > 0 {
+		var builder strings.Builder
+
+		for _, m := range newMans {
+			builder.WriteString(fmt.Sprintf("\n- %s %s",
+				m.GetID(),
+				fmt.Sprintf("(h: %s)", cli.ShortHash(m.GetMeta().GetHash())),
+			))
+		}
+
+		cli.Infof("New manifests detected: %s", builder.String())
 	}
 
-	for _, m := range cachedMans {
-		cli.Infof("Manifest %s unchanged (h: %s...) - using cached version", m.GetID(), cli.ShortHash(m.GetMeta().GetHash()))
+	if len(cachedMans) > 0 {
+		var builder strings.Builder
+
+		for _, m := range cachedMans {
+			builder.WriteString(fmt.Sprintf("\n- %s %s",
+				m.GetID(),
+				fmt.Sprintf("(h: %s)", cli.ShortHash(m.GetMeta().GetHash())),
+			))
+
+			cli.Infof("Using cached manifest: %s", builder.String())
+		}
+	}
+}
+
+func printPostApplySummary(mans []manifests.Manifest) {
+	stats := make(map[string]int)
+	for _, m := range mans {
+		stats[m.GetKind()]++
 	}
 
-	cli.Infof("Loaded new manifests\nNew: %d\nCached: %d", len(newMans), len(cachedMans))
+	var builder strings.Builder
+
+	for kind, count := range stats {
+		builder.WriteString(fmt.Sprintf("\n- %s: %d", kind, count))
+	}
+
+	cli.Infof("Applied manifests by kind: %s", builder.String())
+}
+
+func indentYAMLError(err *yaml.TypeError) string {
+	return "  " + strings.Join(err.Errors, "\n  ")
 }

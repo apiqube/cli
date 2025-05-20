@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apiqube/cli/internal/core/manifests/index"
-
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 
 	"github.com/apiqube/cli/internal/core/manifests"
@@ -20,19 +18,19 @@ var (
 )
 
 type Http struct {
-	kinds.BaseManifest `yaml:",inline" json:",inline"`
+	kinds.BaseManifest `yaml:",inline" json:",inline" validate:"required"`
 
 	Spec struct {
-		Target string     `yaml:"target,omitempty" json:"target,omitempty"`
-		Cases  []HttpCase `yaml:"cases" valid:"required,length(1|100)" json:"cases"`
-	} `yaml:"spec" json:"spec" valid:"required"`
+		Target string     `yaml:"target,omitempty" json:"target,omitempty" validate:"required"`
+		Cases  []HttpCase `yaml:"cases" json:"cases" valid:"required,min=1,max=100,dive"`
+	} `yaml:"spec" json:"spec" validate:"required"`
 
-	kinds.Dependencies `yaml:",inline" json:",inline"`
+	kinds.Dependencies `yaml:",inline" json:",inline" validate:"omitempty"`
 	Meta               *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 type HttpCase struct {
-	tests.HttpCase `yaml:",inline" json:",inline"`
+	tests.HttpCase `yaml:",inline" json:",inline" validate:"required"`
 }
 
 func (h *Http) GetID() string {
@@ -53,21 +51,21 @@ func (h *Http) GetNamespace() string {
 
 func (h *Http) Index() any {
 	return map[string]any{
-		index.Version:   float64(h.Version),
-		index.Kind:      h.Kind,
-		index.Name:      h.Name,
-		index.Namespace: h.Namespace,
-		index.DependsOn: h.DependsOn,
+		kinds.Version:   h.Version,
+		kinds.Kind:      h.Kind,
+		kinds.Name:      h.Name,
+		kinds.Namespace: h.Namespace,
+		kinds.DependsOn: h.DependsOn,
 
-		index.MetaHash:        h.Meta.Hash,
-		index.MetaVersion:     float64(h.Meta.Version),
-		index.MetaIsCurrent:   h.Meta.IsCurrent,
-		index.MetaCreatedAt:   h.Meta.CreatedAt.Format(time.RFC3339Nano),
-		index.MetaCreatedBy:   h.Meta.CreatedBy,
-		index.MetaUpdatedAt:   h.Meta.UpdatedAt.Format(time.RFC3339Nano),
-		index.MetaUpdatedBy:   h.Meta.UpdatedBy,
-		index.MetaUsedBy:      h.Meta.UsedBy,
-		index.MetaLastApplied: h.Meta.LastApplied.Format(time.RFC3339Nano),
+		kinds.MetaHash:        h.Meta.Hash,
+		kinds.MetaVersion:     float64(h.Meta.Version),
+		kinds.MetaIsCurrent:   h.Meta.IsCurrent,
+		kinds.MetaCreatedAt:   h.Meta.CreatedAt.Format(time.RFC3339Nano),
+		kinds.MetaCreatedBy:   h.Meta.CreatedBy,
+		kinds.MetaUpdatedAt:   h.Meta.UpdatedAt.Format(time.RFC3339Nano),
+		kinds.MetaUpdatedBy:   h.Meta.UpdatedBy,
+		kinds.MetaUsedBy:      h.Meta.UsedBy,
+		kinds.MetaLastApplied: h.Meta.LastApplied.Format(time.RFC3339Nano),
 	}
 }
 

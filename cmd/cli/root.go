@@ -6,6 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/apiqube/cli/cmd/cli/edit"
+
 	"github.com/apiqube/cli/ui/cli"
 
 	"github.com/apiqube/cli/cmd/cli/apply"
@@ -44,6 +46,7 @@ func Execute() {
 		generator.Cmd,
 		rollback.Cmd,
 		search.Cmd,
+		edit.Cmd,
 	)
 
 	cobra.CheckErr(rootCmd.Execute())

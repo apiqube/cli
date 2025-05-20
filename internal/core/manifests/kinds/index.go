@@ -1,4 +1,4 @@
-package index
+package kinds
 
 const (
 	ID        = "id"

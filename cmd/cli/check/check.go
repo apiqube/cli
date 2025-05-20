@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/apiqube/cli/internal/core/io"
+
 	"github.com/apiqube/cli/ui/cli"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
-	"github.com/apiqube/cli/internal/core/manifests/loader"
 	runner "github.com/apiqube/cli/internal/core/runner/plan"
 	"github.com/apiqube/cli/internal/core/store"
 	"github.com/spf13/cobra"
@@ -30,32 +31,34 @@ var cmdManifestCheck = &cobra.Command{
 var cmdPlanCheck = &cobra.Command{
 	Use:   "plan",
 	Short: "Validate a plan manifest",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		opts, err := parseCheckPlanFlags(cmd, args)
 		if err != nil {
-			return uiErrorf("Failed to parse provided values: %v", err)
+			cli.Errorf("Failed to parse provided values: %v", err)
+			return
 		}
 
 		if err := validateCheckPlanOptions(opts); err != nil {
-			return uiErrorf("%s", err.Error())
+			cli.Errorf("%s", err.Error())
+			return
 		}
 
 		loadedManifests, err := loadManifests(opts)
 		if err != nil {
-			return uiErrorf("Failed to load manifests: %v", err)
+			cli.Errorf("Failed to load manifests: %v", err)
+			return
 		}
 
 		planManifest, err := extractPlanManifest(loadedManifests)
 		if err != nil {
-			return uiErrorf("Failed to check plan manifest: %v", err)
+			cli.Errorf("Failed to check plan manifest: %v", err)
 		}
 
 		if err := validatePlan(planManifest); err != nil {
-			return uiErrorf("Failed to check plan: %v", err)
+			cli.Errorf("Failed to check plan: %v", err)
 		}
 
 		cli.Successf("Successfully checked plan manifest")
-		return nil
 	},
 }
 
@@ -69,7 +72,7 @@ var cmdAllCheck = &cobra.Command{
 
 func init() {
 	cmdManifestCheck.Flags().String("id", "", "Full manifest ID to check (namespace.kind.name)")
-	cmdManifestCheck.Flags().String("kind", "", "kind of manifest (e.g., HttpTest, Server, Values)")
+	cmdManifestCheck.Flags().String("kind", "", "kind of manifest (e.g., HttpTest, Target, Values)")
 	cmdManifestCheck.Flags().String("name", "", "name of manifest")
 	cmdManifestCheck.Flags().String("namespace", "", "namespace of manifest")
 	cmdManifestCheck.Flags().String("file", "", "Path to manifest file to check")
@@ -97,11 +100,6 @@ type (
 	}
 )
 
-func uiErrorf(format string, args ...interface{}) error {
-	cli.Errorf(format, args...)
-	return nil
-}
-
 func validateCheckPlanOptions(opts *checkPlanOptions) error {
 	if !opts.flagsSet["id"] &&
 		!opts.flagsSet["name"] &&
@@ -120,7 +118,7 @@ func loadManifests(opts *checkPlanOptions) ([]manifests.Manifest, error) {
 		})
 
 	case opts.flagsSet["file"]:
-		loadedMans, _, err := loader.LoadManifests(opts.file)
+		loadedMans, _, err := io.LoadManifests(opts.file)
 		if err == nil {
 			cli.Infof("Manifests from provided path %s loaded", opts.file)
 		}

@@ -26,18 +26,28 @@ func Stop() {
 	}
 }
 
-func inEnabled() bool {
-	return instance != nil && enabled
+func Instance() *UI {
+	if isEnabled() {
+		return instance
+	}
+
+	Init()
+
+	if isEnabled() {
+		return instance
+	}
+
+	return NewUI()
 }
 
 func Table(headers []string, rows [][]string) {
-	if inEnabled() {
+	if isEnabled() {
 		instance.Table(headers, rows)
 	}
 }
 
 func Progress() ui.ProgressReporter {
-	if inEnabled() {
+	if isEnabled() {
 		return instance.Progress()
 	}
 
@@ -45,7 +55,7 @@ func Progress() ui.ProgressReporter {
 }
 
 func Spinner() ui.SpinnerReporter {
-	if inEnabled() {
+	if isEnabled() {
 		return instance.Spinner()
 	}
 
@@ -53,8 +63,12 @@ func Spinner() ui.SpinnerReporter {
 }
 
 func Snippet() ui.SnippetReporter {
-	if inEnabled() {
+	if isEnabled() {
 		return instance.Snippet()
 	}
 	return &snippetReporter{}
+}
+
+func isEnabled() bool {
+	return instance != nil && enabled
 }

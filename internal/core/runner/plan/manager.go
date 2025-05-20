@@ -5,11 +5,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/apiqube/cli/internal/operations"
+
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/hash"
-	"github.com/apiqube/cli/internal/core/manifests/kinds"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
-	"github.com/apiqube/cli/internal/core/manifests/loader"
 	"github.com/apiqube/cli/internal/core/manifests/utils"
 )
 
@@ -46,7 +45,7 @@ func (g *basicManager) CheckPlan(pln *plan.Plan) error {
 				return err
 			}
 
-			id = kinds.FormManifestID(namespace, kind, name)
+			id = utils.FormManifestID(namespace, kind, name)
 			stage.Manifests[j] = id
 
 			if seen[id] {
@@ -97,6 +96,11 @@ func (g *basicManager) Generate() (*plan.Plan, error) {
 	graph := newDepGraph()
 
 	for id, m := range g.manifests {
+		if m.GetKind() == manifests.PlanManifestKind {
+			delete(g.manifests, id)
+			continue
+		}
+
 		graph.addNode(id)
 
 		if depend, ok := m.(manifests.Dependencies); ok {
@@ -123,12 +127,12 @@ func (g *basicManager) Generate() (*plan.Plan, error) {
 
 	newPlan.Spec.Stages = stages
 
-	planData, err := loader.NormalizeYAML(&newPlan)
+	planData, err := operations.NormalizeYAML(&newPlan)
 	if err != nil {
 		return nil, fmt.Errorf("fail while generating plan hash: %v", err)
 	}
 
-	planHash, err := hash.CalculateHashWithContent(planData)
+	planHash, err := utils.CalculateContentHash(planData)
 	if err != nil {
 		return nil, fmt.Errorf("fail while calculation plan hash: %v", err)
 	}

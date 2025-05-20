@@ -3,8 +3,9 @@ package values
 import (
 	"time"
 
+	"github.com/apiqube/cli/internal/core/manifests/utils"
+
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
 
@@ -15,17 +16,17 @@ var (
 )
 
 type Values struct {
-	kinds.BaseManifest `yaml:",inline" json:",inline"`
+	kinds.BaseManifest `yaml:",inline" json:",inline" validate:"required"`
 
 	Spec struct {
-		Data map[string]any `yaml:",inline" json:",inline"`
-	} `yaml:"spec" valid:"required"`
+		Data map[string]any `yaml:",inline" json:",inline" validate:"required,min=1,dive"`
+	} `yaml:"spec" validate:"required"`
 
 	Meta *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 func (v *Values) GetID() string {
-	return kinds.FormManifestID(v.Namespace, v.Kind, v.Name)
+	return utils.FormManifestID(v.Namespace, v.Kind, v.Name)
 }
 
 func (v *Values) GetKind() string {
@@ -42,21 +43,21 @@ func (v *Values) GetNamespace() string {
 
 func (v *Values) Index() any {
 	return map[string]any{
-		index.ID:        v.GetID(),
-		index.Version:   float64(v.Version),
-		index.Kind:      v.Kind,
-		index.Name:      v.Name,
-		index.Namespace: v.Namespace,
+		kinds.ID:        v.GetID(),
+		kinds.Version:   v.Version,
+		kinds.Kind:      v.Kind,
+		kinds.Name:      v.Name,
+		kinds.Namespace: v.Namespace,
 
-		index.MetaHash:        v.Meta.Hash,
-		index.MetaVersion:     float64(v.Meta.Version),
-		index.MetaIsCurrent:   v.Meta.IsCurrent,
-		index.MetaCreatedAt:   v.Meta.CreatedAt.Format(time.RFC3339Nano),
-		index.MetaCreatedBy:   v.Meta.CreatedBy,
-		index.MetaUpdatedAt:   v.Meta.UpdatedAt.Format(time.RFC3339Nano),
-		index.MetaUpdatedBy:   v.Meta.UpdatedBy,
-		index.MetaUsedBy:      v.Meta.UsedBy,
-		index.MetaLastApplied: v.Meta.LastApplied.Format(time.RFC3339Nano),
+		kinds.MetaHash:        v.Meta.Hash,
+		kinds.MetaVersion:     float64(v.Meta.Version),
+		kinds.MetaIsCurrent:   v.Meta.IsCurrent,
+		kinds.MetaCreatedAt:   v.Meta.CreatedAt.Format(time.RFC3339Nano),
+		kinds.MetaCreatedBy:   v.Meta.CreatedBy,
+		kinds.MetaUpdatedAt:   v.Meta.UpdatedAt.Format(time.RFC3339Nano),
+		kinds.MetaUpdatedBy:   v.Meta.UpdatedBy,
+		kinds.MetaUsedBy:      v.Meta.UsedBy,
+		kinds.MetaLastApplied: v.Meta.LastApplied.Format(time.RFC3339Nano),
 	}
 }
 
