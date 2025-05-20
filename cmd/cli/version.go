@@ -21,11 +21,11 @@ var versionCmd = &cobra.Command{
 		data := fmt.Sprintf("Qube CLI\nVersion: %s", version)
 
 		if commit != "" {
-			data += fmt.Sprintf("\nCommit: %s\n", commit)
+			data += fmt.Sprintf("\nCommit: %s", commit)
 		}
 
 		if date != "" {
-			data += fmt.Sprintf("\nDate: %s\n", date)
+			data += fmt.Sprintf("\nDate: %s", date)
 		}
 
 		fmt.Println(data)
