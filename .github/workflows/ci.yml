@@ -41,24 +41,6 @@ jobs:
           skip-pkg-cache: true
           args: --issues-exit-code=0
 
-      - name: Build with version info
-        run: |
-          TAG=$(git describe --tags --always)
-          COMMIT=$(git rev-parse --short HEAD)
-          DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          
-          go build -ldflags="-X github.com/apiqube/cli/cmd/cli.version=$TAG -X github.com/apiqube/cli/cmd/cli.commit=$COMMIT -X github.com/apiqube/cli/cmd/cli.date=$DATE" -o qube ./cmd/qube
-           
-          ./qube version
-          mkdir -p bin
-          mv qube bin/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: qube-binaries
-          path: bin/qube
-
   release:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -102,13 +84,17 @@ jobs:
           COMMIT=$(git rev-parse --short HEAD)
           DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           
-          go build -ldflags="\
-            -X github.com/apiqube/cli/cmd/qube.version=$TAG \
-            -X github.com/apiqube/cli/cmd/qube.commit=$COMMIT \
-            -X github.com/apiqube/cli/cmd/qube.date=$DATE" \
-            -o qube ./cmd/qube
+          go build -ldflags="-X github.com/apiqube/cli/cmd/cli.version=$TAG -X github.com/apiqube/cli/cmd/cli.commit=$COMMIT -X github.com/apiqube/cli/cmd/cli.date=$DATE" -o qube ./cmd/qube
           
           ./qube version
+          mkdir -p bin
+          mv qube bin/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qube-binaries
+          path: bin/qube
 
       - name: Create GitHub Release (if not exists)
         env:
