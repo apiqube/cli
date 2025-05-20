@@ -1,4 +1,4 @@
-version: 1
+version: v1
 kind: Service
 metadata:
     name: simple-service
@@ -30,7 +30,7 @@ spec:
           replicas: 6
           healthPath: /health
 ---
-version: 1
+version: v1
 kind: Server
 metadata:
     name: simple-server
@@ -40,7 +40,7 @@ spec:
     headers:
         Content-Type: application/json
 ---
-version: 1
+version: v1
 kind: HttpTest
 metadata:
     name: simple-http-test
@@ -81,7 +81,7 @@ spec:
             code: 404
             message: User not found
 ---
-version: 1
+version: v1
 kind: HttpLoadTest
 metadata:
     name: simple-http-load-test

@@ -1,4 +1,4 @@
-version: 1
+version: v1
 kind: HttpTest
 metadata:
   name: simple-http-test

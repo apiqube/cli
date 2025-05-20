@@ -1,10 +1,7 @@
-version: 1
-
+version: v1
 kind: Server
-
 metadata:
   name: simple-server
-
 spec:
   baseUrl: "http://localhost:8081"
   headers:
