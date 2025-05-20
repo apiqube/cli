@@ -3,6 +3,8 @@ package values
 import (
 	"time"
 
+	"github.com/apiqube/cli/internal/core/manifests/utils"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
@@ -14,17 +16,17 @@ var (
 )
 
 type Values struct {
-	kinds.BaseManifest `yaml:",inline" json:",inline"`
+	kinds.BaseManifest `yaml:",inline" json:",inline" validate:"required"`
 
 	Spec struct {
-		Data map[string]any `yaml:",inline" json:",inline"`
-	} `yaml:"spec" valid:"required"`
+		Data map[string]any `yaml:",inline" json:",inline" validate:"required,min=1,dive"`
+	} `yaml:"spec" validate:"required"`
 
 	Meta *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 func (v *Values) GetID() string {
-	return kinds.FormManifestID(v.Namespace, v.Kind, v.Name)
+	return utils.FormManifestID(v.Namespace, v.Kind, v.Name)
 }
 
 func (v *Values) GetKind() string {
@@ -42,7 +44,7 @@ func (v *Values) GetNamespace() string {
 func (v *Values) Index() any {
 	return map[string]any{
 		kinds.ID:        v.GetID(),
-		kinds.Version:   float64(v.Version),
+		kinds.Version:   v.Version,
 		kinds.Kind:      v.Kind,
 		kinds.Name:      v.Name,
 		kinds.Namespace: v.Namespace,

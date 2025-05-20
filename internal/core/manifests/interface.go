@@ -9,6 +9,10 @@ const (
 )
 
 const (
+	V1Version = "v1"
+)
+
+const (
 	PlanManifestKind            = "Plan"
 	ValuesManifestLind          = "Values"
 	ServerManifestKind          = "Server"

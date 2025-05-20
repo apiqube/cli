@@ -18,19 +18,19 @@ var (
 )
 
 type Http struct {
-	kinds.BaseManifest `yaml:",inline" json:",inline"`
+	kinds.BaseManifest `yaml:",inline" json:",inline" validate:"required"`
 
 	Spec struct {
-		Target string     `yaml:"target,omitempty" json:"target,omitempty"`
-		Cases  []HttpCase `yaml:"cases" valid:"required,length(1|100)" json:"cases"`
-	} `yaml:"spec" json:"spec" valid:"required"`
+		Target string     `yaml:"target,omitempty" json:"target,omitempty" validate:"required"`
+		Cases  []HttpCase `yaml:"cases" json:"cases" valid:"required,min=1,max=100,dive"`
+	} `yaml:"spec" json:"spec" validate:"required"`
 
-	kinds.Dependencies `yaml:",inline" json:",inline"`
+	kinds.Dependencies `yaml:",inline" json:",inline" validate:"omitempty"`
 	Meta               *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 type HttpCase struct {
-	tests.HttpCase `yaml:",inline" json:",inline"`
+	tests.HttpCase `yaml:",inline" json:",inline" validate:"required"`
 }
 
 func (h *Http) GetID() string {
@@ -51,7 +51,7 @@ func (h *Http) GetNamespace() string {
 
 func (h *Http) Index() any {
 	return map[string]any{
-		kinds.Version:   float64(h.Version),
+		kinds.Version:   h.Version,
 		kinds.Kind:      h.Kind,
 		kinds.Name:      h.Name,
 		kinds.Namespace: h.Namespace,

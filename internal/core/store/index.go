@@ -17,10 +17,10 @@ func buildBleveMapping() *mapping.IndexMappingImpl {
 	idMapping.Store = true
 	manifestMapping.AddFieldMappingsAt(kinds.ID, idMapping)
 
-	manifestMapping.AddFieldMappingsAt(kinds.Version, bleve.NewNumericFieldMapping())
 	manifestMapping.AddFieldMappingsAt(kinds.MetaVersion, bleve.NewNumericFieldMapping())
 
 	exactMatchFields := []string{
+		kinds.Version,
 		kinds.Kind,
 		kinds.DependsOn,
 		kinds.MetaCreatedBy,

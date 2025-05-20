@@ -5,7 +5,6 @@ metadata:
 
 spec:
   stages:
-
     - name: "Preparation..."
       description: "First stage with loading values to context"
       manifests:
@@ -16,5 +15,6 @@ spec:
         - default.Server.simple-server
 
     - name: "Testing APIs"
+
       manifests:
         - default.HttpTest.simple-http-test

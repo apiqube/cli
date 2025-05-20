@@ -3,6 +3,8 @@ package services
 import (
 	"time"
 
+	"github.com/apiqube/cli/internal/core/manifests/utils"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
@@ -15,18 +17,18 @@ var (
 )
 
 type Service struct {
-	kinds.BaseManifest `yaml:",inline"`
+	kinds.BaseManifest `yaml:",inline" json:",inline" validate:"required"`
 
 	Spec struct {
-		Containers []Container `yaml:"containers" valid:"required,length(1|50)"`
-	} `yaml:"spec" valid:"required"`
+		Containers []Container `yaml:"containers" validate:"required,min=1,max=25,dive"`
+	} `yaml:"spec" validate:"required"`
 
-	kinds.Dependencies `yaml:",inline" json:",inline"`
+	kinds.Dependencies `yaml:",inline" json:",inline" validate:"omitempty"`
 	Meta               *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 func (s *Service) GetID() string {
-	return kinds.FormManifestID(s.Namespace, s.Kind, s.Name)
+	return utils.FormManifestID(s.Namespace, s.Kind, s.Name)
 }
 
 func (s *Service) GetKind() string {
@@ -48,7 +50,7 @@ func (s *Service) GetDependsOn() []string {
 func (s *Service) Index() any {
 	return map[string]any{
 		kinds.ID:        s.GetID(),
-		kinds.Version:   float64(s.Version),
+		kinds.Version:   s.Version,
 		kinds.Kind:      s.Kind,
 		kinds.Name:      s.Name,
 		kinds.Namespace: s.Namespace,

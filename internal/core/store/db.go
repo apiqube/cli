@@ -359,7 +359,7 @@ func (s *Storage) loadBulk(opts LoadOptions) ([]manifests.Manifest, error) {
 				return err
 			}
 
-			id = kinds.FormManifestID(namespace, kind, name)
+			id = utils.FormManifestID(namespace, kind, name)
 
 			item, err := txn.Get(genLatestKey(id))
 			if err != nil {

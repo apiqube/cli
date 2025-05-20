@@ -3,6 +3,8 @@ package servers
 import (
 	"time"
 
+	"github.com/apiqube/cli/internal/core/manifests/utils"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
@@ -14,18 +16,18 @@ var (
 )
 
 type Server struct {
-	kinds.BaseManifest `yaml:",inline" json:",inline"`
+	kinds.BaseManifest `yaml:",inline" json:",inline" validate:"required"`
 
 	Spec struct {
-		BaseUrl string            `yaml:"baseUrl" json:"baseUrl" valid:"required,url"`
-		Headers map[string]string `yaml:"headers,omitempty" json:"headers" valid:"-"`
-	} `yaml:"spec" json:"spec" valid:"required"`
+		BaseUrl string            `yaml:"baseUrl" json:"baseUrl" validate:"required,url"`
+		Headers map[string]string `yaml:"headers,omitempty" json:"headers"`
+	} `yaml:"spec" json:"spec" validate:"required"`
 
 	Meta *kinds.Meta `yaml:"-" json:"meta"`
 }
 
 func (s *Server) GetID() string {
-	return kinds.FormManifestID(s.Namespace, s.Kind, s.Name)
+	return utils.FormManifestID(s.Namespace, s.Kind, s.Name)
 }
 
 func (s *Server) GetKind() string {
@@ -43,7 +45,7 @@ func (s *Server) GetNamespace() string {
 func (s *Server) Index() any {
 	return map[string]any{
 		kinds.ID:        s.GetID(),
-		kinds.Version:   float64(s.Version),
+		kinds.Version:   s.Version,
 		kinds.Kind:      s.Kind,
 		kinds.Name:      s.Name,
 		kinds.Namespace: s.Namespace,

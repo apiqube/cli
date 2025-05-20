@@ -8,14 +8,13 @@ import (
 	"github.com/apiqube/cli/internal/operations"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/kinds"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
 	"github.com/apiqube/cli/internal/core/manifests/utils"
 )
 
 var kindPriority = map[string]int{
 	"Values":       0,
-	"Server":       10,
+	"Target":       10,
 	"Service":      20,
 	"HttpTest":     30,
 	"HttpLoadTest": 40,
@@ -46,7 +45,7 @@ func (g *basicManager) CheckPlan(pln *plan.Plan) error {
 				return err
 			}
 
-			id = kinds.FormManifestID(namespace, kind, name)
+			id = utils.FormManifestID(namespace, kind, name)
 			stage.Manifests[j] = id
 
 			if seen[id] {

@@ -13,7 +13,7 @@ import (
 var priorityOrder = map[string]int{
 	"Values":    100,
 	"ConfigMap": 90,
-	"Server":    50,
+	"Target":    50,
 	"Service":   30,
 }
 

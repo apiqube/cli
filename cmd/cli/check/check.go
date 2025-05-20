@@ -70,7 +70,7 @@ var cmdAllCheck = &cobra.Command{
 
 func init() {
 	cmdManifestCheck.Flags().String("id", "", "Full manifest ID to check (namespace.kind.name)")
-	cmdManifestCheck.Flags().String("kind", "", "kind of manifest (e.g., HttpTest, Server, Values)")
+	cmdManifestCheck.Flags().String("kind", "", "kind of manifest (e.g., HttpTest, Target, Values)")
 	cmdManifestCheck.Flags().String("name", "", "name of manifest")
 	cmdManifestCheck.Flags().String("namespace", "", "namespace of manifest")
 	cmdManifestCheck.Flags().String("file", "", "Path to manifest file to check")

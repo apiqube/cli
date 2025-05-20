@@ -9,6 +9,10 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests"
 )
 
+func FormManifestID(namespace, kind, name string) string {
+	return fmt.Sprintf("%s.%s.%s", namespace, kind, name)
+}
+
 func ParseManifestID(id string) (namespace, kind, name string) {
 	parts := strings.Split(id, ".")
 
