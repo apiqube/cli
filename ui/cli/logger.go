@@ -11,9 +11,7 @@ import (
 type logMsg struct{}
 
 func (u *UI) Log(level ui.LogLevel, msg string) {
-	formatted := u.formatLog(level, msg)
-	u.model.AddLog(formatted)
-	u.program.Send(logMsg{})
+	fmt.Print(formatLog(level, msg))
 }
 
 func (u *UI) Logf(level ui.LogLevel, format string, args ...any) {
@@ -28,7 +26,7 @@ func (u *UI) Done(msg string) {
 	u.Log(ui.TypeSuccess, msg)
 }
 
-func (u *UI) formatLog(level ui.LogLevel, msg string) string {
+func formatLog(level ui.LogLevel, msg string) string {
 	var levelText string
 	var style lipgloss.Style
 

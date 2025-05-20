@@ -25,8 +25,12 @@ func NewUI() *UI {
 	}
 
 	return &UI{
-		program: tea.NewProgram(model),
-		model:   model,
+		program: tea.NewProgram(
+			model,
+			tea.WithMouseCellMotion(),
+			tea.WithReportFocus(),
+		),
+		model: model,
 		logger: pterm.DefaultLogger.
 			WithLevel(pterm.LogLevelTrace).
 			WithTime(true).

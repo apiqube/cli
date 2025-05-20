@@ -6,8 +6,6 @@ import (
 	"github.com/apiqube/cli/internal/core/store"
 	"github.com/apiqube/cli/ui/cli"
 	"github.com/spf13/cobra"
-	"math/rand/v2"
-	"time"
 )
 
 func init() {
@@ -41,47 +39,11 @@ var Cmd = &cobra.Command{
 			return
 		}
 
-		cli.Debug("Manifests applied successfully")
-		cli.Info("Manifests applied successfully")
-		cli.Warning("Manifests applied successfully")
-		cli.Error("Manifests applied successfully")
-		cli.Fatal("Manifests applied successfully")
-		cli.Success("Manifests applied successfully")
-
-		p := cli.Progress()
-		p.Start(100, "Some work...")
-		for i := 0; i < 100; i++ {
-			p.Increment("")
-			time.Sleep(time.Duration(rand.IntN(100)) * time.Millisecond)
-		}
-		p.Stop()
-
-		for i := 20; i > 0; i-- {
-			cli.Debug("Manifests applied successfully")
-			cli.Info("Manifests applied successfully")
-			cli.Warning("Manifests applied successfully")
-			cli.Error("Manifests applied successfully")
-			cli.Fatal("Manifests applied successfully")
-			cli.Success("Manifests applied successfully")
-
-			time.Sleep(time.Duration(rand.IntN(150)) * time.Millisecond)
-		}
-
-		p = cli.Progress()
-		p.Start(100, "Finishing...")
-		for i := 0; i < 100; i++ {
-			p.Increment("")
-			time.Sleep(time.Duration(rand.IntN(100)) * time.Millisecond)
-		}
-		p.Stop()
-
 		cli.Success("Manifests applied successfully")
 	},
 }
 
 func printManifestsLoadResult(newMans, cachedMans []manifests.Manifest) {
-	cli.Infof("Loaded %d new manifests", len(newMans))
-
 	for _, m := range newMans {
 		cli.Infof("New manifest added: %s (h: %s...)", m.GetID(), cli.ShortHash(m.GetMeta().GetHash()))
 	}
@@ -89,4 +51,6 @@ func printManifestsLoadResult(newMans, cachedMans []manifests.Manifest) {
 	for _, m := range cachedMans {
 		cli.Infof("Manifest %s unchanged (h: %s...) - using cached version", m.GetID(), cli.ShortHash(m.GetMeta().GetHash()))
 	}
+
+	cli.Infof("Loaded new manifests\nNew: %d\nCached: %d", len(newMans), len(cachedMans))
 }
