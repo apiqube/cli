@@ -1,21 +1,17 @@
 package main
 
 import (
-	"time"
-
 	"github.com/apiqube/cli/cmd/cli"
 	"github.com/apiqube/cli/internal/core/store"
-	"github.com/apiqube/cli/ui"
+	uicli "github.com/apiqube/cli/ui/cli"
 )
 
 func main() {
-	ui.Init()
-	defer ui.Stop()
+	uicli.Init()
+	defer uicli.Stop()
 
 	store.Init()
 	defer store.Stop()
 
 	cli.Execute()
-
-	time.Sleep(time.Second)
 }

@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apiqube/cli/ui/cli"
+
 	"gopkg.in/yaml.v3"
 
+	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/hash"
 	"github.com/apiqube/cli/internal/core/manifests/parsing"
 	"github.com/apiqube/cli/internal/core/store"
-	"github.com/apiqube/cli/ui"
-
-	"github.com/apiqube/cli/internal/core/manifests"
 )
 
 func LoadManifests(path string) (new []manifests.Manifest, cached []manifests.Manifest, err error) {
@@ -109,7 +109,7 @@ func processFile(filePath string, manifestsSet map[string]struct{}) (new []manif
 		}
 
 		if _, exists := manifestsSet[manifestID]; exists {
-			ui.Warningf("Duplicate manifest ID: %s (from %s)", manifestID, filepath.Base(filePath))
+			cli.Warningf("Duplicate manifest ID: %s (from %s)", manifestID, filepath.Base(filePath))
 			continue
 		}
 

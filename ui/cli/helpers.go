@@ -1,4 +1,4 @@
-package ui
+package cli
 
 func ShortHash(hash string) string {
 	return hash[:8]

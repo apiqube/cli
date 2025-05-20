@@ -3,7 +3,7 @@ package search
 import (
 	"fmt"
 
-	"github.com/apiqube/cli/ui"
+	"github.com/apiqube/cli/ui/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +30,7 @@ time ranges, and output formatting`,
 		}
 
 		if len(manifests) == 0 {
-			ui.Warning("No manifests found matching the criteria")
+			cli.Warning("No manifests found matching the criteria")
 			return nil
 		}
 

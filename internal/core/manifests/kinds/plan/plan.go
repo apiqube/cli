@@ -24,7 +24,7 @@ type Plan struct {
 
 	Spec struct {
 		Stages []Stage `yaml:"stages" json:"stages"`
-		Hooks  Hooks   `yaml:"hooks,omitempty" json:"hooks,omitempty"`
+		Hooks  *Hooks  `yaml:"hooks,omitempty" json:"hooks,omitempty"`
 	} `yaml:"spec" json:"spec"`
 
 	Meta *kinds.Meta `yaml:",inline" json:"meta"`

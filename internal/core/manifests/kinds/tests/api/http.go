@@ -23,7 +23,7 @@ type Http struct {
 	kinds.BaseManifest `yaml:",inline" json:",inline"`
 
 	Spec struct {
-		Server string     `yaml:"server,omitempty" json:"server,omitempty"`
+		Target string     `yaml:"target,omitempty" json:"target,omitempty"`
 		Cases  []HttpCase `yaml:"cases" valid:"required,length(1|100)" json:"cases"`
 	} `yaml:"spec" json:"spec" valid:"required"`
 
