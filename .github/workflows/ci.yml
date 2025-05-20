@@ -47,12 +47,8 @@ jobs:
           COMMIT=$(git rev-parse --short HEAD)
           DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           
-          go build -ldflags="\
-            -X github.com/apiqube/cli/cmd/cli.version=$TAG \
-            -X github.com/apiqube/cli/cmd/cli.commit=$COMMIT \
-            -X github.com/apiqube/cli/cmd/cli.date=$DATE" \
-            -o qube ./cmd/qube
-          
+          go build -ldflags="-X github.com/apiqube/cli/cmd/cli.version=$TAG -X github.com/apiqube/cli/cmd/cli.commit=$COMMIT -X github.com/apiqube/cli/cmd/cli.date=$DATE" -o qube ./cmd/qube
+           
           ./qube version
           mkdir -p bin
           mv qube bin/
