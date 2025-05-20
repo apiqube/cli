@@ -16,10 +16,8 @@ type UI interface {
 	Log(level LogLevel, msg string)
 	Logf(level LogLevel, format string, args ...any)
 	Progress() ProgressReporter
-	Loader() LoaderReporter
 	Snippet() SnippetReporter
 	Spinner() SpinnerReporter
-	Watch() WatchReporter
 	Table(headers []string, rows [][]string)
 	Error(err error)
 	Done(msg string)
@@ -37,12 +35,7 @@ type LoaderReporter interface {
 }
 
 type SnippetReporter interface {
-	View(data []byte)
-}
-
-type WatchReporter interface {
-	Start(text string)
-	Stop(text string)
+	View(title string, data []byte)
 }
 
 type SpinnerReporter interface {

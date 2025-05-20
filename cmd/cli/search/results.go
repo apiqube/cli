@@ -3,14 +3,13 @@ package search
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/apiqube/cli/ui/cli"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/ui/cli"
 	"gopkg.in/yaml.v3"
 )
 
@@ -82,13 +81,13 @@ func displayResults(manifests []manifests.Manifest) {
 	headers := []string{
 		"#",
 		"Hash",
-		"kind",
-		"name",
-		"namespace",
-		"version",
+		"Kind",
+		"Name",
+		"Namespace",
+		"Version",
 		"Created",
 		"Updated",
-		"Last Updated",
+		"Last Applied",
 	}
 
 	var rows [][]string
@@ -101,9 +100,9 @@ func displayResults(manifests []manifests.Manifest) {
 			m.GetName(),
 			m.GetNamespace(),
 			fmt.Sprint(meta.GetVersion()),
-			meta.GetCreatedAt().Format(time.RFC3339),
-			meta.GetUpdatedAt().Format(time.RFC3339),
-			meta.GetLastApplied().Format(time.RFC3339),
+			meta.GetCreatedAt().Format("2006-01-02 15:04:05"),
+			meta.GetUpdatedAt().Format("2006-01-02 15:04:05"),
+			meta.GetLastApplied().Format("2006-01-02 15:04:05"),
 		}
 		rows = append(rows, row)
 	}
@@ -112,6 +111,7 @@ func displayResults(manifests []manifests.Manifest) {
 }
 
 func handleSearchResults(manifests []manifests.Manifest, opts *Options) error {
+	cli.Success("Search completed")
 	cli.Infof("Found %d manifests", len(manifests))
 
 	if len(opts.sortBy) > 0 {
@@ -126,7 +126,6 @@ func handleSearchResults(manifests []manifests.Manifest, opts *Options) error {
 		displayResults(manifests)
 	}
 
-	cli.Success("Search completed")
 	return nil
 }
 

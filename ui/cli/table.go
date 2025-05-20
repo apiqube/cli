@@ -1,28 +1,29 @@
 package cli
 
 import (
-	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/pterm/pterm"
 )
 
 func (u *UI) Table(headers []string, rows [][]string) {
-	columns := make([]table.Column, len(headers))
-	for i, h := range headers {
-		columns[i] = table.Column{Title: h, Width: 20}
+	tableData := pterm.TableData{headers}
+	for _, row := range rows {
+		tableData = append(tableData, row)
 	}
 
-	tblRows := make([]table.Row, len(rows))
-	for i, r := range rows {
-		tblRows[i] = r
+	pterm.Println()
+
+	table := pterm.DefaultTable.
+		WithHasHeader(true).
+		WithBoxed(false).
+		WithHeaderStyle(pterm.NewStyle(pterm.FgCyan, pterm.Bold, pterm.BgDefault)).
+		WithSeparator(" | ").
+		WithSeparatorStyle(pterm.NewStyle(pterm.FgDarkGray)).
+		WithData(tableData).
+		WithLeftAlignment(true).
+		WithRowSeparator("").
+		WithLeftAlignment(true)
+
+	if err := table.Render(); err != nil {
+		pterm.Error.WithShowLineNumber(false).Printfln("Rendering of the table failed: %v", err)
 	}
-
-	t := table.New(
-		table.WithColumns(columns),
-		table.WithRows(tblRows),
-		table.WithFocused(true),
-	)
-
-	u.model.tableComp = t
-	u.model.currentView = ViewTable
-	u.program.Send(tea.ClearScreen())
 }

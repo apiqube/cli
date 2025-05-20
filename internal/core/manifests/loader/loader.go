@@ -2,12 +2,13 @@ package loader
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/ui/cli"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/apiqube/cli/ui/cli"
 
 	"gopkg.in/yaml.v3"
 

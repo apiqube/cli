@@ -2,8 +2,9 @@ package store
 
 import (
 	"errors"
-	"github.com/apiqube/cli/ui/cli"
 	"sync"
+
+	"github.com/apiqube/cli/ui/cli"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 )

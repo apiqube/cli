@@ -2,8 +2,8 @@ package search
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/ui/cli"
 
+	"github.com/apiqube/cli/ui/cli"
 	"github.com/spf13/cobra"
 )
 

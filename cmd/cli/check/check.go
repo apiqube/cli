@@ -2,8 +2,9 @@ package check
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/ui/cli"
 	"strings"
+
+	"github.com/apiqube/cli/ui/cli"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"

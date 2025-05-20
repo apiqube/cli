@@ -2,13 +2,12 @@ package cli
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/ui"
-	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"time"
-)
 
-type logMsg struct{}
+	"github.com/apiqube/cli/ui"
+	"github.com/charmbracelet/lipgloss"
+)
 
 func (u *UI) Log(level ui.LogLevel, msg string) {
 	fmt.Print(formatLog(level, msg))
