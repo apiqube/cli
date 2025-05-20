@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"github.com/apiqube/cli/cmd/cli/edit"
 	"os"
 	"os/signal"
 	"syscall"
@@ -44,6 +45,7 @@ func Execute() {
 		generator.Cmd,
 		rollback.Cmd,
 		search.Cmd,
+		edit.Cmd,
 	)
 
 	cobra.CheckErr(rootCmd.Execute())
