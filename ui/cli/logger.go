@@ -11,6 +11,24 @@ import (
 type logMsg struct{}
 
 func (u *UI) Log(level ui.LogLevel, msg string) {
+	formatted := u.formatLog(level, msg)
+	u.model.AddLog(formatted)
+	u.program.Send(logMsg{})
+}
+
+func (u *UI) Logf(level ui.LogLevel, format string, args ...any) {
+	u.Log(level, fmt.Sprintf(format, args...))
+}
+
+func (u *UI) Error(err error) {
+	u.Log(ui.TypeError, err.Error())
+}
+
+func (u *UI) Done(msg string) {
+	u.Log(ui.TypeSuccess, msg)
+}
+
+func (u *UI) formatLog(level ui.LogLevel, msg string) string {
 	var levelText string
 	var style lipgloss.Style
 
@@ -51,17 +69,6 @@ func (u *UI) Log(level ui.LogLevel, msg string) {
 
 	timestamp := timestampStyle.Render(time.Now().Format("15:04:05"))
 	message := logStyle.Render(msg)
-	fmt.Printf("%s %s %s\n", timestamp, levelStyled, message)
-}
 
-func (u *UI) Logf(level ui.LogLevel, format string, args ...any) {
-	u.Log(level, fmt.Sprintf(format, args...))
-}
-
-func (u *UI) Error(err error) {
-	u.Log(ui.TypeError, err.Error())
-}
-
-func (u *UI) Done(msg string) {
-	u.Log(ui.TypeSuccess, msg)
+	return fmt.Sprintf("%s %s %s\n", timestamp, levelStyled, message)
 }

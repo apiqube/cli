@@ -41,7 +41,6 @@ var Cmd = &cobra.Command{
 			return
 		}
 
-		cli.Println("Manifests applied successfully")
 		cli.Debug("Manifests applied successfully")
 		cli.Info("Manifests applied successfully")
 		cli.Warning("Manifests applied successfully")
@@ -57,12 +56,15 @@ var Cmd = &cobra.Command{
 		}
 		p.Stop()
 
-		for i := 100; i > 0; i-- {
-			cli.Errorf("Error test just of\nRaason: %s\nDescription: %s",
-				"Just test reason",
-				"Just test description",
-			)
-			time.Sleep(time.Duration(rand.IntN(50)) * time.Millisecond)
+		for i := 20; i > 0; i-- {
+			cli.Debug("Manifests applied successfully")
+			cli.Info("Manifests applied successfully")
+			cli.Warning("Manifests applied successfully")
+			cli.Error("Manifests applied successfully")
+			cli.Fatal("Manifests applied successfully")
+			cli.Success("Manifests applied successfully")
+
+			time.Sleep(time.Duration(rand.IntN(150)) * time.Millisecond)
 		}
 
 		p = cli.Progress()

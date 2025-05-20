@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"fmt"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"strings"
 )
 
 type ViewType uint8
@@ -12,10 +14,6 @@ const (
 	ViewNone ViewType = iota
 	ViewTable
 	ViewProgress
-)
-
-const (
-	logCuntsAmount = 250
 )
 
 var _ tea.Model = (*uiModel)(nil)
@@ -28,7 +26,10 @@ type uiModel struct {
 
 	progressData progressData
 
-	logs []string
+	logHistory []string
+
+	width  int
+	height int
 }
 
 func (m *uiModel) Init() tea.Cmd {
@@ -42,6 +43,8 @@ func (m *uiModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		}
+	case logMsg:
+		return m, nil
 	case tea.QuitMsg:
 		return m, tea.Quit
 	case progressMsg:
@@ -62,25 +65,38 @@ func (m *uiModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *uiModel) View() string {
+	var view strings.Builder
+
+	view.WriteString(m.renderLogArea())
+	view.WriteString(m.renderContentArea())
+
+	return view.String()
+}
+
+func (m *uiModel) AddLog(log string) {
+	m.logHistory = append(m.logHistory, log)
+}
+
+func (m *uiModel) renderLogArea() string {
+	var area strings.Builder
+
+	for _, log := range m.logHistory {
+		area.WriteString(log)
+	}
+
+	return area.String()
+}
+
+func (m *uiModel) renderContentArea() string {
 	switch m.currentView {
 	case ViewTable:
 		return m.tableComp.View()
 	case ViewProgress:
 		progressPct := float64(m.progressData.current) / float64(m.progressData.total)
-		view := "\n" + m.progressData.title + "\n" +
-			m.progressComp.ViewAs(progressPct) + "\n\n"
-		return view
+		return fmt.Sprintf("\n%s\n%s\n",
+			m.progressData.title,
+			m.progressComp.ViewAs(progressPct))
 	default:
 		return ""
-	}
-}
-
-func (m *uiModel) AddLog(log string) {
-	m.logs = append(m.logs, log)
-
-	if len(m.logs) > logCuntsAmount {
-		if len(m.logs) > 100 {
-			m.logs = m.logs[1:]
-		}
 	}
 }
