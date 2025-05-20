@@ -2,7 +2,10 @@ package cli
 
 import (
 	"context"
-	"fmt"
+	"github.com/apiqube/cli/ui/cli"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/apiqube/cli/cmd/cli/apply"
 	"github.com/apiqube/cli/cmd/cli/check"
@@ -22,14 +25,13 @@ var configKey contextKey = "config"
 var rootCmd = &cobra.Command{
 	Use:   "qube",
 	Short: "ApiQube is a powerful test manager for APIs",
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.InitConfig()
 		if err != nil {
-			return fmt.Errorf("config init failed: %w", err)
+			cli.Errorf("Error initializing config: %s", err.Error())
 		}
 
-		cmd.SetContext(context.WithValue(cmd.Context(), configKey, cfg))
-		return nil
+		cmd.SetContext(configureContext(context.WithValue(cmd.Context(), configKey, cfg)))
 	},
 }
 
@@ -44,4 +46,15 @@ func Execute() {
 	)
 
 	cobra.CheckErr(rootCmd.Execute())
+}
+
+func configureContext(ctx context.Context) context.Context {
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+		<-sigCh
+		cancel()
+	}()
+	return ctx
 }
