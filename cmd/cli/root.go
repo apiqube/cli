@@ -2,10 +2,11 @@ package cli
 
 import (
 	"context"
-	"github.com/apiqube/cli/ui/cli"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/apiqube/cli/ui/cli"
 
 	"github.com/apiqube/cli/cmd/cli/apply"
 	"github.com/apiqube/cli/cmd/cli/check"
