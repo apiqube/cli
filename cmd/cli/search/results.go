@@ -3,6 +3,7 @@ package search
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/apiqube/cli/ui/cli"
 	"os"
 	"path/filepath"
 	"sort"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/ui"
 	"gopkg.in/yaml.v3"
 )
 
@@ -96,7 +96,7 @@ func displayResults(manifests []manifests.Manifest) {
 		meta := m.GetMeta()
 		row := []string{
 			fmt.Sprint(i + 1),
-			ui.ShortHash(meta.GetHash()),
+			cli.ShortHash(meta.GetHash()),
 			m.GetKind(),
 			m.GetName(),
 			m.GetNamespace(),
@@ -108,18 +108,15 @@ func displayResults(manifests []manifests.Manifest) {
 		rows = append(rows, row)
 	}
 
-	ui.Table(headers, rows)
+	cli.Table(headers, rows)
 }
 
 func handleSearchResults(manifests []manifests.Manifest, opts *Options) error {
-	ui.Infof("Found %d manifests", len(manifests))
+	cli.Infof("Found %d manifests", len(manifests))
 
 	if len(opts.sortBy) > 0 {
 		sortManifests(manifests, opts.sortBy)
 	}
-
-	ui.Spinner(true, "Preparing results...")
-	defer ui.Spinner(false)
 
 	if opts.output {
 		if err := outputResults(manifests, opts); err != nil {
@@ -129,7 +126,7 @@ func handleSearchResults(manifests []manifests.Manifest, opts *Options) error {
 		displayResults(manifests)
 	}
 
-	ui.Success("Search completed")
+	cli.Success("Search completed")
 	return nil
 }
 
@@ -206,7 +203,7 @@ func ensureOutputDirectory(path string) error {
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		ui.Infof("Creating output directory: %s", path)
+		cli.Infof("Creating output directory: %s", path)
 		if err = os.MkdirAll(path, 0o755); err != nil {
 			return fmt.Errorf("failed to create output directory: %w", err)
 		}
@@ -221,7 +218,7 @@ func writeSeparateOutputs(manifests []manifests.Manifest, opts *Options) error {
 			return fmt.Errorf("failed to write manifest %s: %w", m.GetID(), err)
 		}
 	}
-	ui.Successf("Successfully wrote %d manifests to %s", len(manifests), opts.outputPath)
+	cli.Successf("Successfully wrote %d manifests to %s", len(manifests), opts.outputPath)
 	return nil
 }
 

@@ -2,9 +2,9 @@ package cleanup
 
 import (
 	"fmt"
+	"github.com/apiqube/cli/ui/cli"
 
 	"github.com/apiqube/cli/internal/core/store"
-	"github.com/apiqube/cli/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -29,14 +29,11 @@ var Cmd = &cobra.Command{
 			keep = keepVersionDefault
 		}
 
-		ui.Spinner(true, "Cleaning up...")
-		defer ui.Spinner(false)
-
 		if err = store.CleanupOldVersions(opts.manifestID, keep); err != nil {
-			ui.Errorf("Failed to cleanup old versions: %v", err)
+			cli.Errorf("Failed to cleanup old versions: %v", err)
 		}
 
-		ui.Successf("Successfully cleaned up %v to last %d versions", opts.manifestID, keep)
+		cli.Successf("Successfully cleaned up %v to last %d versions", opts.manifestID, keep)
 		return nil
 	},
 }

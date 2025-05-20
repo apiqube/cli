@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"github.com/apiqube/cli/ui/cli"
 	"strings"
 
 	"github.com/apiqube/cli/internal/core/manifests"
@@ -9,7 +10,6 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests/loader"
 	runner "github.com/apiqube/cli/internal/core/runner/plan"
 	"github.com/apiqube/cli/internal/core/store"
-	"github.com/apiqube/cli/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -39,9 +39,6 @@ var cmdPlanCheck = &cobra.Command{
 			return uiErrorf("%s", err.Error())
 		}
 
-		ui.Spinner(true, "Checking manifests...")
-		defer ui.Spinner(false)
-
 		loadedManifests, err := loadManifests(opts)
 		if err != nil {
 			return uiErrorf("Failed to load manifests: %v", err)
@@ -56,7 +53,7 @@ var cmdPlanCheck = &cobra.Command{
 			return uiErrorf("Failed to check plan: %v", err)
 		}
 
-		ui.Successf("Successfully checked plan manifest")
+		cli.Successf("Successfully checked plan manifest")
 		return nil
 	},
 }
@@ -100,7 +97,7 @@ type (
 )
 
 func uiErrorf(format string, args ...interface{}) error {
-	ui.Errorf(format, args...)
+	cli.Errorf(format, args...)
 	return nil
 }
 
@@ -124,7 +121,7 @@ func loadManifests(opts *checkPlanOptions) ([]manifests.Manifest, error) {
 	case opts.flagsSet["file"]:
 		loadedMans, _, err := loader.LoadManifests(opts.file)
 		if err == nil {
-			ui.Infof("Manifests from provided path %s loaded", opts.file)
+			cli.Infof("Manifests from provided path %s loaded", opts.file)
 		}
 		return loadedMans, err
 

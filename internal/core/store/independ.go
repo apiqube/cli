@@ -2,10 +2,10 @@ package store
 
 import (
 	"errors"
+	"github.com/apiqube/cli/ui/cli"
 	"sync"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/ui"
 )
 
 var errStoreNotInitialized = errors.New("store not initialized")
@@ -20,7 +20,7 @@ func Init() {
 	once.Do(func() {
 		db, err := NewStorage()
 		if err != nil {
-			ui.Errorf("Error initializing storage: %v", err)
+			cli.Errorf("Error initializing storage: %v", err)
 		}
 
 		instance = db
@@ -34,11 +34,11 @@ func Stop() {
 		enabled = false
 		initialized = false
 		if err := instance.db.Close(); err != nil {
-			ui.Errorf("Failed to close database: %v", err)
+			cli.Errorf("Failed to close database: %v", err)
 		}
 
 		if err := instance.index.Close(); err != nil {
-			ui.Errorf("Failed to close index: %v", err)
+			cli.Errorf("Failed to close index: %v", err)
 		}
 
 		instance = nil

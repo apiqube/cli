@@ -1,16 +1,16 @@
 package main
 
 import (
+	uicli "github.com/apiqube/cli/ui/cli"
 	"time"
 
 	"github.com/apiqube/cli/cmd/cli"
 	"github.com/apiqube/cli/internal/core/store"
-	"github.com/apiqube/cli/ui"
 )
 
 func main() {
-	ui.Init()
-	defer ui.Stop()
+	uicli.Init()
+	defer uicli.Stop()
 
 	store.Init()
 	defer store.Stop()

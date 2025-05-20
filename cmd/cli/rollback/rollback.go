@@ -2,9 +2,9 @@ package rollback
 
 import (
 	"fmt"
+	"github.com/apiqube/cli/ui/cli"
 
 	"github.com/apiqube/cli/internal/core/store"
-	"github.com/apiqube/cli/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -25,15 +25,12 @@ var Cmd = &cobra.Command{
 			targetVersion = 1
 		}
 
-		ui.Spinner(true, "Rolling back")
-		defer ui.Spinner(false)
-
 		if err = store.Rollback(opts.manifestID, targetVersion); err != nil {
-			ui.Errorf("Error rolling back to previous version: %s", err)
+			cli.Errorf("Error rolling back to previous version: %s", err)
 			return
 		}
 
-		ui.Successf("Successfully rolled back %s to version %d\n", opts.manifestID, targetVersion)
+		cli.Successf("Successfully rolled back %s to version %d\n", opts.manifestID, targetVersion)
 	},
 }
 
