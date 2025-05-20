@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/apiqube/cli/internal/core/manifests/index"
+	"github.com/apiqube/cli/internal/core/manifests/kinds"
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
 )
@@ -15,17 +15,17 @@ func buildBleveMapping() *mapping.IndexMappingImpl {
 	idMapping := bleve.NewTextFieldMapping()
 	idMapping.Analyzer = "keyword"
 	idMapping.Store = true
-	manifestMapping.AddFieldMappingsAt(index.ID, idMapping)
+	manifestMapping.AddFieldMappingsAt(kinds.ID, idMapping)
 
-	manifestMapping.AddFieldMappingsAt(index.Version, bleve.NewNumericFieldMapping())
-	manifestMapping.AddFieldMappingsAt(index.MetaVersion, bleve.NewNumericFieldMapping())
+	manifestMapping.AddFieldMappingsAt(kinds.Version, bleve.NewNumericFieldMapping())
+	manifestMapping.AddFieldMappingsAt(kinds.MetaVersion, bleve.NewNumericFieldMapping())
 
 	exactMatchFields := []string{
-		index.Kind,
-		index.DependsOn,
-		index.MetaCreatedBy,
-		index.MetaUpdatedBy,
-		index.MetaUsedBy,
+		kinds.Kind,
+		kinds.DependsOn,
+		kinds.MetaCreatedBy,
+		kinds.MetaUpdatedBy,
+		kinds.MetaUsedBy,
 	}
 
 	for _, field := range exactMatchFields {
@@ -36,16 +36,16 @@ func buildBleveMapping() *mapping.IndexMappingImpl {
 
 	nameMapping := bleve.NewTextFieldMapping()
 	nameMapping.Analyzer = "keyword"
-	manifestMapping.AddFieldMappingsAt(index.Name, nameMapping)
+	manifestMapping.AddFieldMappingsAt(kinds.Name, nameMapping)
 
 	namespaceMapping := bleve.NewTextFieldMapping()
 	namespaceMapping.Analyzer = "keyword"
-	manifestMapping.AddFieldMappingsAt(index.Namespace, namespaceMapping)
+	manifestMapping.AddFieldMappingsAt(kinds.Namespace, namespaceMapping)
 
 	hashMapping := bleve.NewTextFieldMapping()
 	hashMapping.Analyzer = "keyword"
 	hashMapping.Store = true
-	manifestMapping.AddFieldMappingsAt(index.MetaHash, hashMapping)
+	manifestMapping.AddFieldMappingsAt(kinds.MetaHash, hashMapping)
 
 	dateTimeFieldMapping := bleve.NewTextFieldMapping()
 	dateTimeFieldMapping.Analyzer = "keyword"
@@ -54,9 +54,9 @@ func buildBleveMapping() *mapping.IndexMappingImpl {
 	dateTimeFieldMapping.IncludeInAll = false
 
 	dateFields := []string{
-		index.MetaCreatedAt,
-		index.MetaUpdatedAt,
-		index.MetaLastApplied,
+		kinds.MetaCreatedAt,
+		kinds.MetaUpdatedAt,
+		kinds.MetaLastApplied,
 	}
 
 	for _, field := range dateFields {

@@ -1,8 +1,8 @@
 package apply
 
 import (
+	"github.com/apiqube/cli/internal/core/io"
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/loader"
 	"github.com/apiqube/cli/internal/core/store"
 	"github.com/apiqube/cli/ui/cli"
 	"github.com/spf13/cobra"
@@ -26,7 +26,7 @@ var Cmd = &cobra.Command{
 
 		cli.Infof("Loading manifests from: %s", file)
 
-		loadedMans, cachedMans, err := loader.LoadManifests(file)
+		loadedMans, cachedMans, err := io.LoadManifests(file)
 		if err != nil {
 			cli.Errorf("Failed to load manifests: %s", err.Error())
 			return

@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/apiqube/cli/internal/core/io"
+
 	"github.com/apiqube/cli/ui/cli"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
-	"github.com/apiqube/cli/internal/core/manifests/loader"
 	runner "github.com/apiqube/cli/internal/core/runner/plan"
 	"github.com/apiqube/cli/internal/core/store"
 	"github.com/spf13/cobra"
@@ -120,7 +121,7 @@ func loadManifests(opts *checkPlanOptions) ([]manifests.Manifest, error) {
 		})
 
 	case opts.flagsSet["file"]:
-		loadedMans, _, err := loader.LoadManifests(opts.file)
+		loadedMans, _, err := io.LoadManifests(opts.file)
 		if err == nil {
 			cli.Infof("Manifests from provided path %s loaded", opts.file)
 		}

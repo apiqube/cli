@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
 
@@ -48,22 +47,22 @@ func (s *Service) GetDependsOn() []string {
 
 func (s *Service) Index() any {
 	return map[string]any{
-		index.ID:        s.GetID(),
-		index.Version:   float64(s.Version),
-		index.Kind:      s.Kind,
-		index.Name:      s.Name,
-		index.Namespace: s.Namespace,
-		index.DependsOn: s.DependsOn,
+		kinds.ID:        s.GetID(),
+		kinds.Version:   float64(s.Version),
+		kinds.Kind:      s.Kind,
+		kinds.Name:      s.Name,
+		kinds.Namespace: s.Namespace,
+		kinds.DependsOn: s.DependsOn,
 
-		index.MetaHash:        s.Meta.Hash,
-		index.MetaVersion:     float64(s.Meta.Version),
-		index.MetaIsCurrent:   s.Meta.IsCurrent,
-		index.MetaCreatedAt:   s.Meta.CreatedAt.Format(time.RFC3339Nano),
-		index.MetaCreatedBy:   s.Meta.CreatedBy,
-		index.MetaUpdatedAt:   s.Meta.UpdatedAt.Format(time.RFC3339Nano),
-		index.MetaUpdatedBy:   s.Meta.UpdatedBy,
-		index.MetaUsedBy:      s.Meta.UsedBy,
-		index.MetaLastApplied: s.Meta.LastApplied.Format(time.RFC3339Nano),
+		kinds.MetaHash:        s.Meta.Hash,
+		kinds.MetaVersion:     float64(s.Meta.Version),
+		kinds.MetaIsCurrent:   s.Meta.IsCurrent,
+		kinds.MetaCreatedAt:   s.Meta.CreatedAt.Format(time.RFC3339Nano),
+		kinds.MetaCreatedBy:   s.Meta.CreatedBy,
+		kinds.MetaUpdatedAt:   s.Meta.UpdatedAt.Format(time.RFC3339Nano),
+		kinds.MetaUpdatedBy:   s.Meta.UpdatedBy,
+		kinds.MetaUsedBy:      s.Meta.UsedBy,
+		kinds.MetaLastApplied: s.Meta.LastApplied.Format(time.RFC3339Nano),
 	}
 }
 

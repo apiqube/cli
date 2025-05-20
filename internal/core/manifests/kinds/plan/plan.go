@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/index"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
 
@@ -70,21 +69,21 @@ func (p *Plan) GetNamespace() string {
 
 func (p *Plan) Index() any {
 	return map[string]any{
-		index.ID:        p.GetID(),
-		index.Version:   float64(p.Version),
-		index.Kind:      p.Kind,
-		index.Name:      p.Name,
-		index.Namespace: p.Namespace,
+		kinds.ID:        p.GetID(),
+		kinds.Version:   float64(p.Version),
+		kinds.Kind:      p.Kind,
+		kinds.Name:      p.Name,
+		kinds.Namespace: p.Namespace,
 
-		index.MetaHash:        p.Meta.Hash,
-		index.MetaVersion:     float64(p.Meta.Version),
-		index.MetaIsCurrent:   p.Meta.IsCurrent,
-		index.MetaCreatedAt:   p.Meta.CreatedAt.Format(time.RFC3339Nano),
-		index.MetaCreatedBy:   p.Meta.CreatedBy,
-		index.MetaUpdatedAt:   p.Meta.UpdatedAt.Format(time.RFC3339Nano),
-		index.MetaUpdatedBy:   p.Meta.UpdatedBy,
-		index.MetaUsedBy:      p.Meta.UsedBy,
-		index.MetaLastApplied: p.Meta.LastApplied.Format(time.RFC3339Nano),
+		kinds.MetaHash:        p.Meta.Hash,
+		kinds.MetaVersion:     float64(p.Meta.Version),
+		kinds.MetaIsCurrent:   p.Meta.IsCurrent,
+		kinds.MetaCreatedAt:   p.Meta.CreatedAt.Format(time.RFC3339Nano),
+		kinds.MetaCreatedBy:   p.Meta.CreatedBy,
+		kinds.MetaUpdatedAt:   p.Meta.UpdatedAt.Format(time.RFC3339Nano),
+		kinds.MetaUpdatedBy:   p.Meta.UpdatedBy,
+		kinds.MetaUsedBy:      p.Meta.UsedBy,
+		kinds.MetaLastApplied: p.Meta.LastApplied.Format(time.RFC3339Nano),
 	}
 }
 

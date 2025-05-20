@@ -5,10 +5,9 @@ import (
 	"fmt"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/edit"
-	"github.com/apiqube/cli/internal/core/manifests/hash"
-	"github.com/apiqube/cli/internal/core/manifests/loader"
+	"github.com/apiqube/cli/internal/core/manifests/utils"
 	"github.com/apiqube/cli/internal/core/store"
+	"github.com/apiqube/cli/internal/operations"
 	uicli "github.com/apiqube/cli/ui/cli"
 	"github.com/spf13/cobra"
 )
@@ -60,8 +59,8 @@ var Cmd = &cobra.Command{
 		uicli.Successf("Manifest %s was founded", man.GetID())
 		uicli.Infof("Loading %s manifest in editing context", man.GetID())
 
-		if result, err = edit.Edit(man); err != nil {
-			if errors.Is(err, edit.ErrFileNotEdited) {
+		if result, err = operations.Edit(man); err != nil {
+			if errors.Is(err, operations.ErrFileNotEdited) {
 				uicli.Infof("Manifest file %s was not edited", man.GetID())
 				return
 			}
@@ -72,11 +71,11 @@ var Cmd = &cobra.Command{
 
 		uicli.Info("Preparing manifest for saving")
 
-		if content, err := loader.NormalizeYAML(result); err != nil {
+		if content, err := operations.NormalizeYAML(result); err != nil {
 			uicli.Errorf("Failed to normalize manifest: %s", err.Error())
 			return
 		} else {
-			if hash, err := hash.CalculateHashWithContent(content); err != nil {
+			if hash, err := utils.CalculateContentHash(content); err != nil {
 				uicli.Errorf("Failed to calculate hash: %s", err.Error())
 				return
 			} else {

@@ -3,7 +3,8 @@ package store
 import (
 	"time"
 
-	"github.com/apiqube/cli/internal/core/manifests/index"
+	"github.com/apiqube/cli/internal/core/manifests/kinds"
+
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search/query"
 )
@@ -56,35 +57,35 @@ func (q *manifestQuery) WithAll() Query {
 
 func (q *manifestQuery) WithExactName(name string) Query {
 	termQuery := bleve.NewTermQuery(name)
-	termQuery.SetField(index.Name)
+	termQuery.SetField(kinds.Name)
 	q.addQuery(termQuery)
 	return q
 }
 
 func (q *manifestQuery) WithWildcardName(pattern string) Query {
 	wildcardQuery := bleve.NewWildcardQuery(pattern)
-	wildcardQuery.SetField(index.Name)
+	wildcardQuery.SetField(kinds.Name)
 	q.addQuery(wildcardQuery)
 	return q
 }
 
 func (q *manifestQuery) WithRegexName(regex string) Query {
 	regexpQuery := bleve.NewRegexpQuery(regex)
-	regexpQuery.SetField(index.Name)
+	regexpQuery.SetField(kinds.Name)
 	q.addQuery(regexpQuery)
 	return q
 }
 
 func (q *manifestQuery) WithKind(kind string) Query {
 	termQuery := bleve.NewTermQuery(kind)
-	termQuery.SetField(index.Kind)
+	termQuery.SetField(kinds.Kind)
 	q.addQuery(termQuery)
 	return q
 }
 
 func (q *manifestQuery) WithNamespace(namespace string) Query {
 	termQuery := bleve.NewTermQuery(namespace)
-	termQuery.SetField(index.Namespace)
+	termQuery.SetField(kinds.Namespace)
 	q.addQuery(termQuery)
 	return q
 }
@@ -92,27 +93,27 @@ func (q *manifestQuery) WithNamespace(namespace string) Query {
 func (q *manifestQuery) WithVersion(version int) Query {
 	val := float64(version)
 	numericQuery := bleve.NewNumericRangeQuery(&val, nil)
-	numericQuery.SetField(index.MetaVersion)
+	numericQuery.SetField(kinds.MetaVersion)
 	return q
 }
 
 func (q *manifestQuery) WithCreatedBy(by string) Query {
 	termQuery := bleve.NewTermQuery(by)
-	termQuery.SetField(index.MetaCreatedBy)
+	termQuery.SetField(kinds.MetaCreatedBy)
 	q.addQuery(termQuery)
 	return q
 }
 
 func (q *manifestQuery) WithUsedBy(by string) Query {
 	termQuery := bleve.NewTermQuery(by)
-	termQuery.SetField(index.MetaUsedBy)
+	termQuery.SetField(kinds.MetaUsedBy)
 	q.addQuery(termQuery)
 	return q
 }
 
 func (q *manifestQuery) WithHashPrefix(prefix string) Query {
 	prefixQuery := bleve.NewPrefixQuery(prefix)
-	prefixQuery.SetField(index.MetaHash)
+	prefixQuery.SetField(kinds.MetaHash)
 	q.addQuery(prefixQuery)
 	return q
 }
@@ -121,7 +122,7 @@ func (q *manifestQuery) WithDependencies(deps []string) Query {
 	disjunctionQuery := bleve.NewDisjunctionQuery()
 	for _, dep := range deps {
 		termQuery := bleve.NewTermQuery(dep)
-		termQuery.SetField(index.DependsOn)
+		termQuery.SetField(kinds.DependsOn)
 		disjunctionQuery.AddQuery(termQuery)
 	}
 	q.addQuery(disjunctionQuery)
@@ -132,7 +133,7 @@ func (q *manifestQuery) WithAllDependencies(deps []string) Query {
 	conjunctionQuery := bleve.NewConjunctionQuery()
 	for _, dep := range deps {
 		termQuery := bleve.NewTermQuery(dep)
-		termQuery.SetField(index.DependsOn)
+		termQuery.SetField(kinds.DependsOn)
 		conjunctionQuery.AddQuery(termQuery)
 	}
 	q.addQuery(conjunctionQuery)
@@ -141,35 +142,35 @@ func (q *manifestQuery) WithAllDependencies(deps []string) Query {
 
 func (q *manifestQuery) WithCreatedAfter(t time.Time) Query {
 	dateQuery := bleve.NewTermRangeQuery(t.Format(time.RFC3339Nano), "")
-	dateQuery.SetField(index.MetaCreatedAt)
+	dateQuery.SetField(kinds.MetaCreatedAt)
 	q.addQuery(dateQuery)
 	return q
 }
 
 func (q *manifestQuery) WithCreatedBefore(t time.Time) Query {
 	dateQuery := bleve.NewTermRangeQuery("", t.Format(time.RFC3339Nano))
-	dateQuery.SetField(index.MetaCreatedAt)
+	dateQuery.SetField(kinds.MetaCreatedAt)
 	q.addQuery(dateQuery)
 	return q
 }
 
 func (q *manifestQuery) WithUpdatedAfter(t time.Time) Query {
 	dateQuery := bleve.NewTermRangeQuery(t.Format(time.RFC3339Nano), "")
-	dateQuery.SetField(index.MetaUpdatedAt)
+	dateQuery.SetField(kinds.MetaUpdatedAt)
 	q.addQuery(dateQuery)
 	return q
 }
 
 func (q *manifestQuery) WithUpdatedBefore(t time.Time) Query {
 	dateQuery := bleve.NewTermRangeQuery("", t.Format(time.RFC3339Nano))
-	dateQuery.SetField(index.MetaUpdatedAt)
+	dateQuery.SetField(kinds.MetaUpdatedAt)
 	q.addQuery(dateQuery)
 	return q
 }
 
 func (q *manifestQuery) WithLastApplied(t time.Time) Query {
 	dateQuery := bleve.NewTermRangeQuery("", t.Format(time.RFC3339Nano))
-	dateQuery.SetField(index.MetaLastApplied)
+	dateQuery.SetField(kinds.MetaLastApplied)
 	q.addQuery(dateQuery)
 	return q
 }

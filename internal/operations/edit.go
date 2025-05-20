@@ -1,6 +1,7 @@
-package edit
+package operations
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -8,13 +9,24 @@ import (
 	"runtime"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/parsing"
 	"gopkg.in/yaml.v3"
 )
 
 var ErrFileNotEdited = errors.New("file was not edited")
 
+func EditFormat(format ParseFormat, manifest manifests.Manifest) (manifests.Manifest, error) {
+	if format == JSONFormat {
+		return editAsJson(manifest)
+	} else {
+		return editAsYaml(manifest)
+	}
+}
+
 func Edit(manifest manifests.Manifest) (manifests.Manifest, error) {
+	return editAsYaml(manifest)
+}
+
+func editAsYaml(manifest manifests.Manifest) (manifests.Manifest, error) {
 	tmpFile, _ := os.CreateTemp("", fmt.Sprintf("%s.*.yaml", manifest.GetID()))
 	defer func() {
 		_ = os.Remove(tmpFile.Name())
@@ -50,7 +62,50 @@ func Edit(manifest manifests.Manifest) (manifests.Manifest, error) {
 
 	var result manifests.Manifest
 
-	if result, err = parsing.ParseManifestAsYAML(updatedData); err != nil {
+	if result, err = Parse(YAMLFormat, updatedData); err != nil {
+		return manifest, err
+	}
+
+	return result, nil
+}
+
+func editAsJson(manifest manifests.Manifest) (manifests.Manifest, error) {
+	tmpFile, _ := os.CreateTemp("", fmt.Sprintf("%s.*.json", manifest.GetID()))
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	var data []byte
+	var err error
+
+	if data, err = json.Marshal(manifest); err != nil {
+		return manifest, fmt.Errorf("error marshalling manifest: %s", err.Error())
+	}
+
+	if _, err = tmpFile.Write(data); err != nil {
+		return manifest, fmt.Errorf("error writing manifest data to temp file: %s", err.Error())
+	}
+
+	if err = tmpFile.Close(); err != nil {
+		return manifest, fmt.Errorf("error closing temp file: %s", err.Error())
+	}
+
+	if err = editManifestFile(tmpFile.Name()); err != nil {
+		if errors.Is(err, ErrFileNotEdited) {
+			return manifest, err
+		}
+
+		return manifest, fmt.Errorf("error editing manifest: %s", err.Error())
+	}
+
+	var updatedData []byte
+	if updatedData, err = os.ReadFile(tmpFile.Name()); err != nil {
+		return manifest, fmt.Errorf("error reading updated manifest: %s", err.Error())
+	}
+
+	var result manifests.Manifest
+
+	if result, err = Parse(JSONFormat, updatedData); err != nil {
 		return manifest, err
 	}
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/apiqube/cli/internal/core/collections"
+	"github.com/apiqube/cli/internal/collections"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 )

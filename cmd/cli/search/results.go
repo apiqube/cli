@@ -1,16 +1,15 @@
 package search
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/apiqube/cli/internal/core/io"
+	"github.com/apiqube/cli/internal/operations"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/ui/cli"
-	"gopkg.in/yaml.v3"
 )
 
 func sortManifests(manifests []manifests.Manifest, fields []string) {
@@ -119,131 +118,22 @@ func handleSearchResults(manifests []manifests.Manifest, opts *Options) error {
 	}
 
 	if opts.output {
-		if err := outputResults(manifests, opts); err != nil {
-			return fmt.Errorf("output failed: %w", err)
+		var parseFormat operations.ParseFormat
+		switch opts.outputFormat {
+		case "json":
+			parseFormat = operations.JSONFormat
+		default:
+			parseFormat = operations.YAMLFormat
+		}
+
+		if opts.outputMode == "combined" {
+			return io.WriteCombined(opts.outputPath, parseFormat, manifests...)
+		} else {
+			return io.WriteSeparate(opts.outputPath, parseFormat, manifests...)
 		}
 	} else {
 		displayResults(manifests)
 	}
 
-	return nil
-}
-
-func outputResults(manifests []manifests.Manifest, opts *Options) error {
-	if err := ensureOutputDirectory(opts.outputPath); err != nil {
-		return err
-	}
-
-	if opts.outputMode == "combined" {
-		return writeCombinedOutput(manifests, opts)
-	}
-	return writeSeparateOutputs(manifests, opts)
-}
-
-func writeCombinedOutput(manifests []manifests.Manifest, opts *Options) error {
-	filename := filepath.Join(opts.outputPath, fmt.Sprintf("manifests.%s", opts.outputFormat))
-	file, err := os.Create(filename)
-	if err != nil {
-		return fmt.Errorf("failed to create output file: %w", err)
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-
-	switch opts.outputFormat {
-	case "yaml":
-		return writeCombinedYAML(file, manifests)
-	case "json":
-		return writeCombinedJSON(file, manifests)
-	default:
-		return fmt.Errorf("unsupported format: %s", opts.outputFormat)
-	}
-}
-
-func writeCombinedYAML(file *os.File, manifests []manifests.Manifest) error {
-	encoder := yaml.NewEncoder(file)
-	for _, m := range manifests {
-		if err := encoder.Encode(m); err != nil {
-			return fmt.Errorf("YAML encoding failed: %w", err)
-		}
-		if _, err := file.WriteString("---\n"); err != nil {
-			return fmt.Errorf("failed to write YAML separator: %w", err)
-		}
-	}
-	return nil
-}
-
-func writeCombinedJSON(file *os.File, manifests []manifests.Manifest) error {
-	if _, err := file.WriteString("[\n"); err != nil {
-		return err
-	}
-
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-
-	for i, m := range manifests {
-		if i > 0 {
-			if _, err := file.WriteString(",\n"); err != nil {
-				return err
-			}
-		}
-		if err := encoder.Encode(m); err != nil {
-			return err
-		}
-	}
-
-	_, err := file.WriteString("\n]")
-	return err
-}
-
-func ensureOutputDirectory(path string) error {
-	if path == "" {
-		path = "."
-	}
-
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		cli.Infof("Creating output directory: %s", path)
-		if err = os.MkdirAll(path, 0o755); err != nil {
-			return fmt.Errorf("failed to create output directory: %w", err)
-		}
-	}
-	return nil
-}
-
-func writeSeparateOutputs(manifests []manifests.Manifest, opts *Options) error {
-	for _, m := range manifests {
-		filename := filepath.Join(opts.outputPath, fmt.Sprintf("%s.%s", m.GetID(), opts.outputFormat))
-		if err := writeSingleManifest(filename, m, opts.outputFormat); err != nil {
-			return fmt.Errorf("failed to write manifest %s: %w", m.GetID(), err)
-		}
-	}
-	cli.Successf("Successfully wrote %d manifests to %s", len(manifests), opts.outputPath)
-	return nil
-}
-
-func writeSingleManifest(filename string, manifest manifests.Manifest, format string) error {
-	file, err := os.Create(filename)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-
-	switch strings.ToLower(format) {
-	case "yaml":
-		encoder := yaml.NewEncoder(file)
-		if err := encoder.Encode(manifest); err != nil {
-			return fmt.Errorf("yaml encoding failed: %w", err)
-		}
-	case "json":
-		encoder := json.NewEncoder(file)
-		encoder.SetIndent("", "  ")
-		if err := encoder.Encode(manifest); err != nil {
-			return fmt.Errorf("json encoding failed: %w", err)
-		}
-	default:
-		return fmt.Errorf("unsupported format: %s", format)
-	}
 	return nil
 }
