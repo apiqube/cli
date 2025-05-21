@@ -102,7 +102,7 @@ func Parse(format ParseFormat, data []byte) (manifests.Manifest, error) {
 	switch raw.Kind {
 	case manifests.PlanManifestKind:
 		manifest = &plan.Plan{}
-	case manifests.ValuesManifestLind:
+	case manifests.ValuesManifestKind:
 		manifest = &values.Values{}
 	case manifests.ServerManifestKind:
 		manifest = &servers.Server{}

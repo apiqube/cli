@@ -24,19 +24,13 @@ func (o *Output) StartCase(manifest manifests.Manifest, caseName string) {
 
 func (o *Output) EndCase(manifest manifests.Manifest, caseName string, result *interfaces.CaseResult) {
 	if result != nil {
-		cli.Infof(fmt.Sprintf(
-			`Finish %s case from %s manifest with next reults
-					Result:  	   %s
- 					Success:	   %v
-					Status Code:   %d
-					Duration: 	   %s`,
+		cli.Infof("Finish %s case from %s manifest with next reults\nResult: %s\nSuccess: %v\nStatus Code: %d\nDuration: %s",
 			caseName,
 			manifest.GetName(),
 			result.Name,
 			result.Success,
 			result.StatusCode,
 			result.Duration.String(),
-		),
 		)
 	} else {
 		cli.Infof("Finish %s case from %s manifest", caseName, manifest.GetName())

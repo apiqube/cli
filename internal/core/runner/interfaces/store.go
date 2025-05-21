@@ -7,7 +7,9 @@ import (
 )
 
 type ManifestStore interface {
-	GetManifest(id string) (manifests.Manifest, error)
+	GetAllManifests() []manifests.Manifest
+	GetManifestsByKind(kind string) ([]manifests.Manifest, error)
+	GetManifestByID(id string) (manifests.Manifest, error)
 }
 
 type DataStore interface {
@@ -18,6 +20,7 @@ type DataStore interface {
 
 	SetTyped(key string, value any, kind reflect.Kind)
 	GetTyped(key string) (any, reflect.Kind, bool)
+
 	AsString(key string) (string, error)
 	AsInt(key string) (int64, error)
 	AsFloat(key string) (float64, error)
