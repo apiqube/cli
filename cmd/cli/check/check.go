@@ -52,10 +52,12 @@ var cmdPlanCheck = &cobra.Command{
 		planManifest, err := extractPlanManifest(loadedManifests)
 		if err != nil {
 			cli.Errorf("Failed to check plan manifest: %v", err)
+			return
 		}
 
 		if err := validatePlan(planManifest); err != nil {
 			cli.Errorf("Failed to check plan: %v", err)
+			return
 		}
 
 		cli.Successf("Successfully checked plan manifest")
