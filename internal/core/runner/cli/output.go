@@ -24,7 +24,7 @@ func (o *Output) StartCase(manifest manifests.Manifest, caseName string) {
 
 func (o *Output) EndCase(manifest manifests.Manifest, caseName string, result *interfaces.CaseResult) {
 	if result != nil {
-		cli.Println(fmt.Sprintf(
+		cli.Infof(fmt.Sprintf(
 			`Finish %s case from %s manifest with next reults
 					Result:  	   %s
  					Success:	   %v
