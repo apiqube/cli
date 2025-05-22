@@ -9,7 +9,7 @@ import (
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 )
 
-const valuesExecutorOutputPrefix = "Executor Values:"
+const valuesExecutorOutputPrefix = "Values Executor:"
 
 var _ interfaces.Executor = (*ValuesExecutor)(nil)
 
@@ -19,43 +19,25 @@ func NewValuesExecutor() *ValuesExecutor {
 	return &ValuesExecutor{}
 }
 
-func (v *ValuesExecutor) Run(ctx interfaces.ExecutionContext) error {
+func (v *ValuesExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifest) error {
 	output := ctx.GetOutput()
 
 	select {
 	case <-ctx.Done():
-		output.Logf(interfaces.DebugLevel, "%s Run cancelled\nReason: run context was canceled", valuesExecutorOutputPrefix)
-		return nil
+		return fmt.Errorf("%s run cancelled, run context was canceled", valuesExecutorOutputPrefix)
 	default:
 	}
 
-	mans, err := ctx.GetManifestsByKind(manifests.ValuesManifestKind)
-	if err != nil {
-		output.Logf(interfaces.DebugLevel, "%s manifests with kind %s not found in run context", valuesExecutorOutputPrefix, manifests.ValuesManifestKind)
-		return nil
+	valueMan, ok := manifest.(*values.Values)
+	if !ok {
+		return fmt.Errorf("%s manifest %s is not a %s kind", valuesExecutorOutputPrefix, manifest.GetID(), manifests.ValuesManifestKind)
 	}
 
-	valuesMans := make([]values.Values, 0, len(mans))
-	for _, man := range mans {
-		if valuesMan, ok := man.(*values.Values); ok {
-			valuesMans = append(valuesMans, *valuesMan)
-		}
+	for key, data := range valueMan.Spec.Data {
+		ctx.SetTyped(fmt.Sprintf("%s.%s", valueMan.GetID(), key), data, reflect.TypeOf(data).Kind())
 	}
 
-	if len(valuesMans) == 0 {
-		output.Logf(interfaces.DebugLevel, "%s didn't find manually any Values manifests in run context", valuesExecutorOutputPrefix)
-		return nil
-	}
-
-	for _, valMan := range valuesMans {
-		for key, data := range valMan.Spec.Data {
-			ctx.SetTyped(fmt.Sprintf("%s.%s", valMan.GetID(), key), data, reflect.TypeOf(data).Kind())
-		}
-
-		output.Logf(interfaces.InfoLevel, "%s data from %s Values manifests successfully loaded to run context", valuesExecutorOutputPrefix, valMan.GetName())
-	}
-
-	output.Logf(interfaces.InfoLevel, "%s run successfully finished", valuesExecutorOutputPrefix)
+	output.Logf(interfaces.InfoLevel, "%s data from %s Values manifests successfully loaded to run context", valuesExecutorOutputPrefix, valueMan.GetName())
 
 	return nil
 }

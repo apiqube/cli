@@ -11,6 +11,7 @@ import (
 var DefaultRegistry = &DefaultExecutorRegistry{
 	executors: map[string]interfaces.Executor{
 		manifests.ValuesManifestKind: executors.NewValuesExecutor(),
+		manifests.ServerManifestKind: executors.NewServerExecutor(),
 	},
 }
 

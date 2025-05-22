@@ -2,6 +2,7 @@ package plan
 
 import (
 	"fmt"
+	"github.com/apiqube/cli/internal/core/runner/hooks"
 	"time"
 
 	"github.com/apiqube/cli/internal/core/manifests/utils"
@@ -35,19 +36,14 @@ type Stage struct {
 	Parallel    bool           `yaml:"parallel,omitempty" json:"parallel,omitempty"`
 	Params      map[string]any `yaml:"params,omitempty" json:"params,omitempty" validate:"omitempty"`
 	Mode        string         `yaml:"mode,omitempty" json:"mode,omitempty" validate:"omitempty,oneof=strict parallel"` // (strict|parallel)
-	Hooks       Hooks          `yaml:"hooks,omitempty" json:"hooks,omitempty" validate:"omitempty,dive"`
+	Hooks       *Hooks         `yaml:"hooks,omitempty" json:"hooks,omitempty" validate:"omitempty,dive"`
 }
 
 type Hooks struct {
-	BeforeStart []Action `yaml:"beforeStart,omitempty" json:"beforeStart,omitempty" validate:"omitempty,dive"`
-	AfterFinish []Action `yaml:"afterFinish,omitempty" json:"afterFinish,omitempty" validate:"omitempty,dive"`
-	OnSuccess   []Action `yaml:"onSuccess,omitempty" json:"onSuccess,omitempty" validate:"omitempty,dive"`
-	OnFailure   []Action `yaml:"onFailure,omitempty" json:"onFailure,omitempty" validate:"omitempty,dive"`
-}
-
-type Action struct {
-	Type   string         `yaml:"type" json:"type" validate:"required,oneof=log save skip fail exec notify"` // eg log/save/skip/fail/exec/notify
-	Params map[string]any `yaml:"params" json:"params" validate:"required"`
+	BeforeRun []hooks.Action `yaml:"beforeRun,omitempty" json:"beforeRun,omitempty" validate:"omitempty,dive"`
+	AfterRun  []hooks.Action `yaml:"afterRun,omitempty" json:"afterRun,omitempty" validate:"omitempty,dive"`
+	OnSuccess []hooks.Action `yaml:"onSuccess,omitempty" json:"onSuccess,omitempty" validate:"omitempty,dive"`
+	OnFailure []hooks.Action `yaml:"onFailure,omitempty" json:"onFailure,omitempty" validate:"omitempty,dive"`
 }
 
 func (p *Plan) GetID() string {
