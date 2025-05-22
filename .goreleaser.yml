@@ -61,6 +61,7 @@ release:
   footer: |
     **Full Changelog**: https://github.com/apiqube/cli/compare/{{ .PreviousTag }}...{{ .Tag }}
 
+    {{ if not .IsNightly }}
     ## Where to go next?
 
     * Find examples and commented usage of all options in our [website](https://github.com/apiqube/cli).
