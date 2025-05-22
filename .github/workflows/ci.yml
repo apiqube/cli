@@ -11,9 +11,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -47,9 +44,6 @@ jobs:
     permissions:
       contents: write
 
-    outputs:
-      tag: ${{ steps.get_tag.outputs.tag }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -61,49 +55,17 @@ jobs:
         with:
           go-version: '1.24.3'
 
-      - name: Run go-semantic-release
-        uses: go-semantic-release/action@v1
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v4
         with:
-          hooks: goreleaser
+          version: latest
+          install-only: true
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Fetch tags
-        run: git fetch --tags
-
-      - name: Get latest tag or fallback
-        id: get_tag
-        run: |
-          TAG=$(git describe --tags --abbrev=0 || echo "v1.0.0")
-          echo "tag=$TAG"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-      - name: Build release binaries
-        run: |
-          TAG=$(git describe --tags --always)
-          COMMIT=$(git rev-parse --short HEAD)
-          DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          
-          go build -ldflags="-X github.com/apiqube/cli/cmd/cli.version=$TAG -X github.com/apiqube/cli/cmd/cli.commit=$COMMIT -X github.com/apiqube/cli/cmd/cli.date=$DATE" -o qube ./cmd/qube
-          
-          ./qube version
-          mkdir -p bin
-          mv qube bin/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: qube-binaries
-          path: bin/qube
-
-      - name: Create GitHub Release (if not exists)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.get_tag.outputs.tag }}
-        run: |
-          if [ -n "$VERSION" ]; then
-            gh release view "$VERSION" >/dev/null 2>&1 || \
-            gh release create "$VERSION" --generate-notes
-          else
-            echo "No new tag created, skipping release step."
-          fi
