@@ -5,6 +5,12 @@ import (
 	uicli "github.com/apiqube/cli/ui/cli"
 )
 
+var (
+	Version = "dev"
+	Commit  = ""
+	Date    = ""
+)
+
 func main() {
 	uicli.Init()
 	defer uicli.Stop()
