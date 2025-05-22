@@ -16,13 +16,13 @@ tasks:
     desc: 🔧 Build Qube CLI
     cmds:
       - echo "🔧 Building {{.BINARY_NAME}} version {{.VERSION}}"
-      - go build -ldflags="-X github.com/apiqube/cli/cmd.version={{.VERSION}}" -o={{.BUILD_DIR}}/{{.BINARY_NAME}}.exe {{.MAIN}}
+      - go build -ldflags="-X github.com/apiqube/cli/cmd/qube.version={{.VERSION}}" -o={{.BUILD_DIR}}/{{.BINARY_NAME}}.exe {{.MAIN}}
 
   build-versioned:
     desc: 🔧 Build Qube CLI
     cmds:
       - echo "🔧 Building {{.BINARY_NAME}} version {{.VERSION}}"
-      - go build -ldflags="-X github.com/apiqube/cli/cmd.version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-{{.VERSION}}.exe {{.MAIN}}
+      - go build -ldflags="-X github.com/apiqube/cli/cmd/qube.version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-{{.VERSION}}.exe {{.MAIN}}
 
   clean:
     desc: 🧹 Clean build directory

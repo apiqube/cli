@@ -1,6 +1,6 @@
 version: 2
 builds:
-  - main: ./cmd
+  - main: ./cmd/qube
     id: "qube"
     binary: qube
     ldflags:

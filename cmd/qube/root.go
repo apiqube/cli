@@ -6,13 +6,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/apiqube/cli/cmd/apply"
-	"github.com/apiqube/cli/cmd/check"
-	"github.com/apiqube/cli/cmd/cleanup"
-	"github.com/apiqube/cli/cmd/edit"
-	"github.com/apiqube/cli/cmd/generator"
-	"github.com/apiqube/cli/cmd/rollback"
-	"github.com/apiqube/cli/cmd/search"
+	"github.com/apiqube/cli/cmd/qube/apply"
+	"github.com/apiqube/cli/cmd/qube/check"
+	"github.com/apiqube/cli/cmd/qube/cleanup"
+	"github.com/apiqube/cli/cmd/qube/edit"
+	"github.com/apiqube/cli/cmd/qube/generator"
+	"github.com/apiqube/cli/cmd/qube/rollback"
+	"github.com/apiqube/cli/cmd/qube/search"
 
 	"github.com/apiqube/cli/ui/cli"
 
