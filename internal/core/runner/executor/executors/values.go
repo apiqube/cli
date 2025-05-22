@@ -19,7 +19,7 @@ func NewValuesExecutor() *ValuesExecutor {
 	return &ValuesExecutor{}
 }
 
-func (v *ValuesExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifest) error {
+func (e *ValuesExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifest) error {
 	output := ctx.GetOutput()
 
 	select {

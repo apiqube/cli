@@ -2,11 +2,12 @@ package executors
 
 import (
 	"fmt"
+	"net/http"
+	"reflect"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/servers"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
-	"net/http"
-	"reflect"
 )
 
 const serverExecutorOutputPrefix = "Server Executor:"
@@ -19,7 +20,7 @@ func NewServerExecutor() *ServerExecutor {
 	return &ServerExecutor{}
 }
 
-func (s *ServerExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifest) error {
+func (e *ServerExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifest) error {
 	output := ctx.GetOutput()
 	var err error
 
