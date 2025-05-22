@@ -8,6 +8,8 @@ builds:
       - -X github.com/apiqube/cli/cmd/cli.version={{.Version}}
       - -X github.com/apiqube/cli/cmd/cli.commit={{.ShortCommit}}
       - -X github.com/apiqube/cli/cmd/cli.date={{.Date}}
+    env:
+      - CGO_ENABLED=0
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
 

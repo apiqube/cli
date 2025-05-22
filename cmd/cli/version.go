@@ -7,25 +7,25 @@ import (
 )
 
 var (
-	version = "dev"
-	commit  = ""
-	date    = ""
+	Version = "dev"
+	Commit  = ""
+	Date    = ""
 )
 
 var versionCmd = &cobra.Command{
-	Use:           "version",
-	Short:         "Print the version number",
+	Use:           "Version",
+	Short:         "Print the Version number",
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	Run: func(cmd *cobra.Command, args []string) {
-		data := fmt.Sprintf("Qube CLI\nVersion: %s", version)
+		data := fmt.Sprintf("Qube CLI\nVersion: %s", Version)
 
-		if commit != "" {
-			data += fmt.Sprintf("\nCommit: %s", commit)
+		if Commit != "" {
+			data += fmt.Sprintf("\nCommit: %s", Commit)
 		}
 
-		if date != "" {
-			data += fmt.Sprintf("\nDate: %s", date)
+		if Date != "" {
+			data += fmt.Sprintf("\nDate: %s", Date)
 		}
 
 		fmt.Println(data)
