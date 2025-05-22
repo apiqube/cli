@@ -12,3 +12,7 @@ builds:
       - -X github.com/apiqube/cli/cmd/cli.date={{.Date}}
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
+
+release:
+  git:
+    skip_validate: true
