@@ -19,7 +19,8 @@ type Server struct {
 	kinds.BaseManifest `yaml:",inline" json:",inline" validate:"required"`
 
 	Spec struct {
-		BaseUrl string            `yaml:"baseUrl" json:"baseUrl" validate:"required,url"`
+		BaseURL string            `yaml:"baseUrl" json:"baseUrl" validate:"required,url"`
+		Health  string            `yaml:"health" json:"health" validate:"omitempty,max=100"`
 		Headers map[string]string `yaml:"headers,omitempty" json:"headers"`
 	} `yaml:"spec" json:"spec" validate:"required"`
 

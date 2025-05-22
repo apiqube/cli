@@ -48,7 +48,37 @@ func (c *ctxBaseImpl) Value(key any) any {
 	return c.Context.Value(key)
 }
 
-func (c *ctxBaseImpl) GetManifest(id string) (manifests.Manifest, error) {
+func (c *ctxBaseImpl) GetAllManifests() []manifests.Manifest {
+	c.manifestsMutex.RLock()
+	defer c.manifestsMutex.RUnlock()
+
+	ret := make([]manifests.Manifest, 0, len(c.manifests))
+	for _, m := range c.manifests {
+		ret = append(ret, m)
+	}
+
+	return ret
+}
+
+func (c *ctxBaseImpl) GetManifestsByKind(kind string) ([]manifests.Manifest, error) {
+	c.manifestsMutex.RLock()
+	defer c.manifestsMutex.RUnlock()
+
+	ret := make([]manifests.Manifest, 0, len(c.manifests))
+	for _, m := range c.manifests {
+		if m.GetKind() == kind {
+			ret = append(ret, m)
+		}
+	}
+
+	if len(ret) == 0 {
+		return nil, fmt.Errorf("no such manifest: %s", kind)
+	}
+
+	return ret, nil
+}
+
+func (c *ctxBaseImpl) GetManifestByID(id string) (manifests.Manifest, error) {
 	c.manifestsMutex.RLock()
 	defer c.manifestsMutex.RUnlock()
 
@@ -64,8 +94,12 @@ func (c *ctxBaseImpl) Set(key string, value any) {
 func (c *ctxBaseImpl) Get(key string) (any, bool) {
 	c.storeMutex.RLock()
 	defer c.storeMutex.RUnlock()
-	v, ok := c.values[key]
-	return v, ok
+
+	if v, ok := c.values[key]; ok {
+		return v, true
+	}
+
+	return nil, false
 }
 
 func (c *ctxBaseImpl) Delete(key string) {
@@ -90,12 +124,12 @@ func (c *ctxBaseImpl) SetTyped(key string, value any, kind reflect.Kind) {
 func (c *ctxBaseImpl) GetTyped(key string) (any, reflect.Kind, bool) {
 	c.storeMutex.RLock()
 	defer c.storeMutex.RUnlock()
-	v, ok := c.values[key]
-	if !ok {
-		return nil, reflect.Invalid, false
+
+	if v, ok := c.values[key]; ok {
+		return v, c.kinds[key], true
 	}
 
-	return v, c.kinds[key], true
+	return nil, reflect.Invalid, false
 }
 
 func (c *ctxBaseImpl) AsString(key string) (string, error) {

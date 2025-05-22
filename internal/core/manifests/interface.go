@@ -14,7 +14,7 @@ const (
 
 const (
 	PlanManifestKind            = "Plan"
-	ValuesManifestLind          = "Values"
+	ValuesManifestKind          = "Values"
 	ServerManifestKind          = "Server"
 	ServiceManifestKind         = "Service"
 	HttpTestManifestKind        = "HttpTest"

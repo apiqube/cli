@@ -3,7 +3,7 @@ package interfaces
 import (
 	"context"
 
-	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
+	"github.com/apiqube/cli/internal/core/manifests"
 )
 
 type ExecutorRegistry interface {
@@ -12,11 +12,11 @@ type ExecutorRegistry interface {
 }
 
 type Executor interface {
-	Run(ctx ExecutionContext) error
+	Run(ctx ExecutionContext, manifest manifests.Manifest) error
 }
 
 type PlanRunner interface {
-	RunPlan(ctx ExecutionContext, plan *plan.Plan) error
+	RunPlan(ctx ExecutionContext, plan manifests.Manifest) error
 }
 
 type ExecutionContext interface {

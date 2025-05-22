@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/apiqube/cli/internal/core/runner/cli"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 )
@@ -35,6 +37,7 @@ func NewCtxBuilder() *CtxBuilder {
 		passChans: make(map[string]chan any),
 		passKinds: make(map[string]reflect.Kind),
 		passDone:  make(map[string]bool),
+		output:    cli.NewOutput(),
 	}
 }
 
