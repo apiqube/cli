@@ -1,9 +1,15 @@
-package main
+package cli
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+)
+
+var (
+	Version = "dev"
+	Commit  = ""
+	Date    = ""
 )
 
 var versionCmd = &cobra.Command{
@@ -24,8 +30,4 @@ var versionCmd = &cobra.Command{
 
 		fmt.Println(data)
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(versionCmd)
 }

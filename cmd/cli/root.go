@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"context"
@@ -6,13 +6,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/apiqube/cli/cmd/qube/apply"
-	"github.com/apiqube/cli/cmd/qube/check"
-	"github.com/apiqube/cli/cmd/qube/cleanup"
-	"github.com/apiqube/cli/cmd/qube/edit"
-	"github.com/apiqube/cli/cmd/qube/generator"
-	"github.com/apiqube/cli/cmd/qube/rollback"
-	"github.com/apiqube/cli/cmd/qube/search"
+	"github.com/apiqube/cli/cmd/cli/apply"
+	"github.com/apiqube/cli/cmd/cli/check"
+	"github.com/apiqube/cli/cmd/cli/cleanup"
+	"github.com/apiqube/cli/cmd/cli/edit"
+	"github.com/apiqube/cli/cmd/cli/generator"
+	"github.com/apiqube/cli/cmd/cli/rollback"
+	"github.com/apiqube/cli/cmd/cli/search"
 
 	"github.com/apiqube/cli/ui/cli"
 
@@ -39,6 +39,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	rootCmd.AddCommand(
+		versionCmd,
 		apply.Cmd,
 		check.Cmd,
 		cleanup.Cmd,

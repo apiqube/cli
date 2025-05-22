@@ -4,9 +4,9 @@ builds:
     id: "qube"
     binary: qube
     ldflags:
-      - -s -w -X main.Version={{.Version}}
-      - -s -w -X main.Commit={{.ShortCommit}}
-      - -s -w -X main.Date={{.Date}}
+      - -s -w -X github.com/apiqube/cli/cmd/cli.Version={{.Version}}
+      - -s -w -X github.com/apiqube/cli/cmd/cli.Commit={{.ShortCommit}}
+      - -s -w -X github.com/apiqube/cli/cmd/cli.Date={{.Date}}
     env:
       - CGO_ENABLED=0
     goos: [linux, darwin, windows]
