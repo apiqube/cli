@@ -1,4 +1,4 @@
-package cli
+package main
 
 import (
 	"context"
@@ -6,16 +6,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/apiqube/cli/cmd/cli/edit"
+	"github.com/apiqube/cli/cmd/apply"
+	"github.com/apiqube/cli/cmd/check"
+	"github.com/apiqube/cli/cmd/cleanup"
+	"github.com/apiqube/cli/cmd/edit"
+	"github.com/apiqube/cli/cmd/generator"
+	"github.com/apiqube/cli/cmd/rollback"
+	"github.com/apiqube/cli/cmd/search"
 
 	"github.com/apiqube/cli/ui/cli"
-
-	"github.com/apiqube/cli/cmd/cli/apply"
-	"github.com/apiqube/cli/cmd/cli/check"
-	"github.com/apiqube/cli/cmd/cli/cleanup"
-	"github.com/apiqube/cli/cmd/cli/generator"
-	"github.com/apiqube/cli/cmd/cli/rollback"
-	"github.com/apiqube/cli/cmd/cli/search"
 
 	"github.com/apiqube/cli/internal/config"
 	"github.com/spf13/cobra"

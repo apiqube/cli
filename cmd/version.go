@@ -1,4 +1,4 @@
-package cli
+package main
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ var (
 )
 
 var versionCmd = &cobra.Command{
-	Use:           "Version",
+	Use:           "version",
 	Short:         "Print the Version number",
 	SilenceUsage:  true,
 	SilenceErrors: true,
