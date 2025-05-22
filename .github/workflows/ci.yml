@@ -50,6 +50,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch All tags
+        run: git fetch --tags --force
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
