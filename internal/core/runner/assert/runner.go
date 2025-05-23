@@ -64,10 +64,10 @@ func (r *Runner) assertStatus(_ interfaces.ExecutionContext, assert *tests.Asser
 	return nil
 }
 
-func (r *Runner) assertBody(ctx interfaces.ExecutionContext, assert *tests.Assert, resp *http.Response, raw []byte) error {
+func (r *Runner) assertBody(_ interfaces.ExecutionContext, _ *tests.Assert, _ *http.Response, _ []byte) error {
 	return nil
 }
 
-func (r *Runner) assertHeaders(ctx interfaces.ExecutionContext, assert *tests.Assert, resp *http.Response) error {
+func (r *Runner) assertHeaders(_ interfaces.ExecutionContext, _ *tests.Assert, _ *http.Response) error {
 	return nil
 }

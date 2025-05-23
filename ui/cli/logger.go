@@ -14,6 +14,14 @@ type LogPair struct {
 	Style   *lipgloss.Style
 }
 
+func (p LogPair) String() string {
+	if p.Style == nil {
+		return LogStyle.Render(p.Message)
+	}
+
+	return p.Style.Render(p.Message)
+}
+
 func (u *UI) Log(level ui.LogLevel, msg string) {
 	fmt.Print(formatLog(level, msg))
 }

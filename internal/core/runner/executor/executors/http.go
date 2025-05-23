@@ -99,7 +99,6 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 	start := time.Now()
 	caseResult := &interfaces.CaseResult{
 		Name:    c.Name,
-		Success: false,
 		Values:  make(map[string]any),
 		Details: make(map[string]any),
 	}
@@ -122,9 +121,17 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 	url := c.Url
 
 	if url == "" {
-		url = strings.TrimRight(man.Spec.Target, "/") + "/" + strings.TrimLeft(c.Endpoint, "/")
-	}
+		baseUrl := strings.TrimRight(man.Spec.Target, "/")
+		endpoint := strings.TrimLeft(c.Endpoint, "/")
 
+		if baseUrl != "" && endpoint != "" {
+			url = baseUrl + "/" + endpoint
+		} else if baseUrl != "" {
+			url = baseUrl
+		} else {
+			url = endpoint
+		}
+	}
 	url = e.passer.Apply(ctx, url, c.Pass)
 	headers := e.passer.MapHeaders(ctx, c.Headers, c.Pass)
 	body := e.passer.ApplyBody(ctx, c.Body, c.Pass)
@@ -187,9 +194,12 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 		output.Logf(interfaces.InfoLevel, "%s reponse asserting for %s %s ", httpExecutorOutputPrefix, man.GetName(), man.Spec.Target)
 
 		if err = e.assertor.Assert(ctx, c.Assert, resp, respBody); err != nil {
+			caseResult.Assert = "no"
 			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("assertion failed: %s", err.Error()))
 			return fmt.Errorf("assert failed: %w", err)
 		}
+
+		caseResult.Assert = "yes"
 	}
 
 	caseResult.StatusCode = resp.StatusCode

@@ -39,19 +39,29 @@ func (r *DefaultPlanRunner) RunPlan(ctx interfaces.ExecutionContext, manifest ma
 	planID := p.GetID()
 	output.Logf(interfaces.InfoLevel, "%s starting plan: %s", planRunnerOutputPrefix, planID)
 
+	if err = ctx.Err(); err != nil {
+		output.Logf(interfaces.ErrorLevel, "%s plan execution canceled before start: %v", planRunnerOutputPrefix, err)
+		return err
+	}
+
 	if p.Spec.Hooks != nil {
-		if err = r.hooksRunner.RunHooks(ctx, hooks.BeforeRun, p.Spec.Hooks.BeforeRun); err != nil {
+		if err = r.runHooksWithContext(ctx, hooks.BeforeRun, p.Spec.Hooks.BeforeRun); err != nil {
 			output.Logf(interfaces.ErrorLevel, "%s plan before start hooks running failed\nReason: %s", planRunnerOutputPrefix, err.Error())
 			return err
 		}
 	}
 
 	for _, stage := range p.Spec.Stages {
+		if err = ctx.Err(); err != nil {
+			output.Logf(interfaces.ErrorLevel, "%s plan execution canceled before stage %s: %v", planRunnerOutputPrefix, stage.Name, err)
+			return err
+		}
+
 		stageName := stage.Name
 		output.Logf(interfaces.InfoLevel, "%s %s stage starting...", planRunnerOutputPrefix, stageName)
 
 		if stage.Hooks != nil {
-			if err = r.hooksRunner.RunHooks(ctx, hooks.BeforeRun, stage.Hooks.BeforeRun); err != nil {
+			if err = r.runHooksWithContext(ctx, hooks.BeforeRun, stage.Hooks.BeforeRun); err != nil {
 				output.Logf(interfaces.ErrorLevel, "%s stage %s before start hooks running failed\nReason: %s", planRunnerOutputPrefix, stageName, err.Error())
 				return err
 			}
@@ -64,8 +74,13 @@ func (r *DefaultPlanRunner) RunPlan(ctx interfaces.ExecutionContext, manifest ma
 			execErr = r.runManifestsStrict(ctx, stage.Manifests)
 		}
 
+		if err = ctx.Err(); err != nil {
+			output.Logf(interfaces.ErrorLevel, "%s plan execution canceled after stage %s: %v", planRunnerOutputPrefix, stage.Name, err)
+			return err
+		}
+
 		if stage.Hooks != nil {
-			if err = r.hooksRunner.RunHooks(ctx, hooks.AfterRun, stage.Hooks.AfterRun); err != nil {
+			if err = r.runHooksWithContext(ctx, hooks.AfterRun, stage.Hooks.AfterRun); err != nil {
 				output.Logf(interfaces.ErrorLevel, "%s stage %s after finish hooks running failed: %s", planRunnerOutputPrefix, stageName, err.Error())
 				return err
 			}
@@ -75,15 +90,15 @@ func (r *DefaultPlanRunner) RunPlan(ctx interfaces.ExecutionContext, manifest ma
 			output.Logf(interfaces.ErrorLevel, "%s stage %s failed\nReason: %s", planRunnerOutputPrefix, stageName, execErr.Error())
 
 			if stage.Hooks != nil {
-				if err = r.hooksRunner.RunHooks(ctx, hooks.OnFailure, stage.Hooks.OnFailure); err != nil {
+				if err = r.runHooksWithContext(ctx, hooks.OnFailure, stage.Hooks.OnFailure); err != nil {
 					output.Logf(interfaces.ErrorLevel, "%s stage %s on failure hooks running failed\nReason: %s", planRunnerOutputPrefix, stageName, err.Error())
 					return err
 				}
 			}
 
 			if p.Spec.Hooks != nil {
-				if err = r.hooksRunner.RunHooks(ctx, hooks.OnFailure, p.Spec.Hooks.OnFailure); err != nil {
-					output.Logf(interfaces.ErrorLevel, "%s plan on failure hooks runnin failed\nReason: %s", planRunnerOutputPrefix, err.Error())
+				if err = r.runHooksWithContext(ctx, hooks.OnFailure, p.Spec.Hooks.OnFailure); err != nil {
+					output.Logf(interfaces.ErrorLevel, "%s plan on failure hooks running failed\nReason: %s", planRunnerOutputPrefix, err.Error())
 					return errors.Join(execErr, err)
 				}
 			}
@@ -91,21 +106,26 @@ func (r *DefaultPlanRunner) RunPlan(ctx interfaces.ExecutionContext, manifest ma
 			return execErr
 		}
 
-		if p.Spec.Hooks != nil {
-			if err = r.hooksRunner.RunHooks(ctx, hooks.OnSuccess, stage.Hooks.OnSuccess); err != nil {
-				output.Logf(interfaces.ErrorLevel, "%s plan on success hooks running failed\nReason: %s", planRunnerOutputPrefix, err.Error())
+		if stage.Hooks != nil {
+			if err = r.runHooksWithContext(ctx, hooks.OnSuccess, stage.Hooks.OnSuccess); err != nil {
+				output.Logf(interfaces.ErrorLevel, "%s stage %s on success hooks running failed\nReason: %s", planRunnerOutputPrefix, stageName, err.Error())
 				return err
 			}
 		}
 	}
 
+	if err = ctx.Err(); err != nil {
+		output.Logf(interfaces.ErrorLevel, "%s plan execution canceled before final hooks: %v", planRunnerOutputPrefix, err)
+		return err
+	}
+
 	if p.Spec.Hooks != nil {
-		if err = r.hooksRunner.RunHooks(ctx, hooks.AfterRun, p.Spec.Hooks.AfterRun); err != nil {
+		if err = r.runHooksWithContext(ctx, hooks.AfterRun, p.Spec.Hooks.AfterRun); err != nil {
 			output.Logf(interfaces.ErrorLevel, "%s plan after finish hooks running failed\nReason: %s", planRunnerOutputPrefix, err.Error())
 			return err
 		}
 
-		if err = r.hooksRunner.RunHooks(ctx, hooks.OnSuccess, p.Spec.Hooks.OnSuccess); err != nil {
+		if err = r.runHooksWithContext(ctx, hooks.OnSuccess, p.Spec.Hooks.OnSuccess); err != nil {
 			output.Logf(interfaces.ErrorLevel, "%s plan on success hooks running failed\nReason: %s", planRunnerOutputPrefix, err.Error())
 			return err
 		}
@@ -193,4 +213,17 @@ func (r *DefaultPlanRunner) runManifestsParallel(ctx interfaces.ExecutionContext
 	}
 
 	return nil
+}
+
+func (r *DefaultPlanRunner) runHooksWithContext(ctx interfaces.ExecutionContext, event hooks.HookEvent, actions []hooks.Action) error {
+	if len(actions) == 0 {
+		return nil
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return r.hooksRunner.RunHooks(ctx, event, actions)
+	}
 }

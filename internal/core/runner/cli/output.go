@@ -38,6 +38,17 @@ func (o *Output) EndCase(manifest manifests.Manifest, caseName string, result *i
 			successText = "no"
 		}
 
+		assertStyle := cli.SuccessStyle
+		var assertText string
+		if result.Assert != "" {
+			if result.Assert == "no" {
+				assertText = result.Assert
+				assertStyle = cli.ErrorStyle
+			} else {
+				assertText = result.Assert
+			}
+		}
+
 		errorsFormatted := ""
 		if len(result.Errors) > 0 {
 			var errorsBuilder strings.Builder
@@ -65,22 +76,37 @@ func (o *Output) EndCase(manifest manifests.Manifest, caseName string, result *i
 			detailsFormatted = fmt.Sprintf("\nDetails: %s", detailsBuilder.String())
 		}
 
-		cli.LogStyledf(
-			ui.TypeInfo,
-			"Finish [%s] case from [%s] manifest with next results\n"+
-				"Result: %s\n"+
-				"Success: %s\n"+
-				"Status Code: %s\n"+
-				"Duration: %s%s%s",
-			cli.LogPair{Message: caseName, Style: &cli.InfoStyle},
+		var builder strings.Builder
+
+		builder.WriteString(fmt.Sprintf("Finish [%s] case from [%s] manifest with next results",
+			cli.LogPair{Message: caseName, Style: &cli.InfoStyle}.String(),
 			cli.LogPair{Message: manifest.GetName(), Style: &cli.WarningStyle},
-			cli.LogPair{Message: result.Name},
-			cli.LogPair{Message: successText, Style: &successStyle},
-			cli.LogPair{Message: fmt.Sprint(result.StatusCode)},
-			cli.LogPair{Message: result.Duration.String()},
-			cli.LogPair{Message: errorsFormatted, Style: &cli.ErrorStyle},
-			cli.LogPair{Message: detailsFormatted, Style: &cli.TimestampStyle},
-		)
+		))
+
+		builder.WriteString(fmt.Sprintf("\nResult: %s", cli.LogPair{Message: result.Name}.String()))
+		builder.WriteString(fmt.Sprintf("\nSuccess: %s", cli.LogPair{Message: successText, Style: &successStyle}.String()))
+
+		if assertText != "" {
+			builder.WriteString(fmt.Sprintf("\nAssert: %s", cli.LogPair{Message: assertText, Style: &assertStyle}.String()))
+		}
+
+		if result.StatusCode != 0 {
+			builder.WriteString(fmt.Sprintf("\nStatus Code: %s", cli.LogPair{Message: fmt.Sprint(result.StatusCode)}.String()))
+		}
+
+		if result.Duration != 0 {
+			builder.WriteString(fmt.Sprintf("\nDuration: %s", cli.LogPair{Message: result.Duration.String()}.String()))
+		}
+
+		if len(errorsFormatted) > 0 {
+			builder.WriteString(cli.LogPair{Message: errorsFormatted, Style: &cli.ErrorStyle}.String())
+		}
+
+		if len(detailsFormatted) > 0 {
+			builder.WriteString(cli.LogPair{Message: detailsFormatted, Style: &cli.TimestampStyle}.String())
+		}
+
+		cli.Info(builder.String())
 	} else {
 		cli.LogStyledf(ui.TypeInfo,
 			"Finish [%s] case from [%s] manifest with next results",
