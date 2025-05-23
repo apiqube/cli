@@ -132,6 +132,7 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 			url = endpoint
 		}
 	}
+
 	url = e.passer.Apply(ctx, url, c.Pass)
 	headers := e.passer.MapHeaders(ctx, c.Headers, c.Pass)
 	body := e.passer.ApplyBody(ctx, c.Body, c.Pass)

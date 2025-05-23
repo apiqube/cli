@@ -42,9 +42,13 @@ spec:
       
       # body: Request payload (automatically JSON-encoded)
       body:
-        name: user_name                 # Example field
-        email: user_email@example.com   # Example field
-      
+        name: "{{ Fake.name }}"                 # Generate fake name for request
+        email: "{{ Fake.email }}"               # Generate fake email for request
+        age: "{{ Fake.uint.10.100 }}"           # Generate fake positive number between 10 and 100 including
+        address:
+          street: "{{ Fake.email }}"
+          number: "{{ Fake.name }}"
+
       assert:
         - target: status
           equals: 201                   # HTTP 201 Created
@@ -62,6 +66,3 @@ spec:
       method: GET
       endpoint: /slow?delay=2s          # Test endpoint with artificial delay
       timeout: 3s                       # Fail if response > 3 seconds
-      assert:
-        - target: status
-          equals: 200                   # Should still return 200 if within timeout
