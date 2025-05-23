@@ -5,11 +5,11 @@ import (
 	"strings"
 )
 
-func methodToUpper(value any, args ...string) (any, error) {
+func methodToUpper(value any, _ ...string) (any, error) {
 	return strings.ToUpper(fmt.Sprintf("%v", value)), nil
 }
 
-func methodToLower(value any, args ...string) (any, error) {
+func methodToLower(value any, _ ...string) (any, error) {
 	return strings.ToLower(fmt.Sprintf("%v", value)), nil
 }
 

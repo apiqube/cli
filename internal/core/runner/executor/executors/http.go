@@ -12,13 +12,13 @@ import (
 	"sync"
 	"time"
 
-	metrics "github.com/apiqube/cli/internal/core/runner/metrics"
+	"github.com/apiqube/cli/internal/core/runner/metrics"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 	"github.com/apiqube/cli/internal/core/runner/assert"
+	"github.com/apiqube/cli/internal/core/runner/form"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
-	"github.com/apiqube/cli/internal/core/runner/pass"
 	"github.com/apiqube/cli/internal/core/runner/values"
 )
 
@@ -30,7 +30,7 @@ type HTTPExecutor struct {
 	client    *http.Client
 	extractor *values.Extractor
 	assertor  *assert.Runner
-	passer    *pass.Runner
+	passer    *form.Runner
 }
 
 func NewHTTPExecutor() *HTTPExecutor {
@@ -38,7 +38,7 @@ func NewHTTPExecutor() *HTTPExecutor {
 		client:    &http.Client{Timeout: 30 * time.Second},
 		extractor: values.NewExtractor(),
 		assertor:  assert.NewRunner(),
-		passer:    pass.NewRunner(),
+		passer:    form.NewRunner(),
 	}
 }
 

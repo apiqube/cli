@@ -48,12 +48,19 @@ spec:
         address:
           street: "{{ Fake.email }}"
           number: "{{ Fake.name }}"
-
       assert:
         - target: status
           equals: 201                   # HTTP 201 Created
 
-    # Test Case 3: Absolute URL test
+    # Test Case 3: Getting and validating a user
+    - name: Get User By ID Test
+      method: GET
+      endpoint: /users/1 # Endpoint with user ID
+      assert:
+        - target: status
+          equals: 200
+
+    # Test Case 4: Absolute URL test
     - name: Always Fail Endpoint Test
       method: GET
       url: http://127.0.0.1:8081/fail   # Overrides spec.target
@@ -61,7 +68,7 @@ spec:
         - target: status
           equals: 500                   # Expecting server error
 
-    # Test Case 4: Performance testing
+    # Test Case 5: Performance testing
     - name: Slow Endpoint Response Test
       method: GET
       endpoint: /slow?delay=2s          # Test endpoint with artificial delay
