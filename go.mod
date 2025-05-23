@@ -5,6 +5,7 @@ go 1.24.3
 require (
 	github.com/adrg/xdg v0.5.3
 	github.com/blevesearch/bleve/v2 v2.5.1
+	github.com/brianvoe/gofakeit/v7 v7.2.1
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/dgraph-io/badger/v4 v4.7.0
 	github.com/go-playground/validator/v10 v10.26.0

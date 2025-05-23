@@ -2,6 +2,7 @@ package executors
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,11 +12,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/apiqube/cli/internal/core/runner/metrics"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 	"github.com/apiqube/cli/internal/core/runner/assert"
+	"github.com/apiqube/cli/internal/core/runner/form"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
-	"github.com/apiqube/cli/internal/core/runner/pass"
 	"github.com/apiqube/cli/internal/core/runner/values"
 )
 
@@ -27,7 +30,7 @@ type HTTPExecutor struct {
 	client    *http.Client
 	extractor *values.Extractor
 	assertor  *assert.Runner
-	passer    *pass.Runner
+	passer    *form.Runner
 }
 
 func NewHTTPExecutor() *HTTPExecutor {
@@ -35,7 +38,7 @@ func NewHTTPExecutor() *HTTPExecutor {
 		client:    &http.Client{Timeout: 30 * time.Second},
 		extractor: values.NewExtractor(),
 		assertor:  assert.NewRunner(),
-		passer:    pass.NewRunner(),
+		passer:    form.NewRunner(),
 	}
 }
 
@@ -92,10 +95,42 @@ func (e *HTTPExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests.M
 
 func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c api.HttpCase) error {
 	output := ctx.GetOutput()
+
+	start := time.Now()
+	caseResult := &interfaces.CaseResult{
+		Name:    c.Name,
+		Values:  make(map[string]any),
+		Details: make(map[string]any),
+	}
+
+	var (
+		req  *http.Request
+		resp *http.Response
+		err  error
+	)
+
+	output.StartCase(man, c.Name)
+
+	defer func() {
+		metrics.CollectHTTPMetrics(req, resp, c.Details, caseResult)
+
+		caseResult.Duration = time.Since(start)
+		output.EndCase(man, c.Name, caseResult)
+	}()
+
 	url := c.Url
 
 	if url == "" {
-		url = strings.TrimRight(man.Spec.Target, "/") + "/" + strings.TrimLeft(c.Endpoint, "/")
+		baseUrl := strings.TrimRight(man.Spec.Target, "/")
+		endpoint := strings.TrimLeft(c.Endpoint, "/")
+
+		if baseUrl != "" && endpoint != "" {
+			url = baseUrl + "/" + endpoint
+		} else if baseUrl != "" {
+			url = baseUrl
+		} else {
+			url = endpoint
+		}
 	}
 
 	url = e.passer.Apply(ctx, url, c.Pass)
@@ -106,12 +141,14 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 
 	if body != nil {
 		if err := json.NewEncoder(reqBody).Encode(body); err != nil {
+			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to encode request body: %s", err.Error()))
 			return fmt.Errorf("encode body failed: %w", err)
 		}
 	}
 
-	req, err := http.NewRequest(c.Method, url, reqBody)
+	req, err = http.NewRequest(c.Method, url, reqBody)
 	if err != nil {
+		caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to create request: %s", err.Error()))
 		return fmt.Errorf("create request failed: %w", err)
 	}
 
@@ -121,41 +158,53 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 
 	timeout := c.Timeout
 	if timeout == 0 {
-		timeout = 30 * time.Second
+		timeout = 5 * time.Second
 	}
 
 	client := &http.Client{Timeout: timeout}
-	resp, err := client.Do(req)
+	resp, err = client.Do(req)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			caseResult.Errors = append(caseResult.Errors, "request timed out")
+			return fmt.Errorf("request to %s timed out", url)
+		}
+
 		return fmt.Errorf("http request failed: %w", err)
 	}
 
 	defer func() {
 		if err = resp.Body.Close(); err != nil {
+			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to close response body: %s", err.Error()))
 			output.Logf(interfaces.ErrorLevel, "%s %s response body closed failed\nTarget: %s\nName: %s\nMathod: %s\nReason: %s", httpExecutorOutputPrefix, man.GetName(), man.Spec.Target, c.Name, c.Method, err.Error())
 		}
 	}()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to read response body: %s", err.Error()))
 		return fmt.Errorf("read response body failed: %w", err)
 	}
 
-	var jsonBody any
-	if err = json.Unmarshal(respBody, &jsonBody); err != nil {
-		return fmt.Errorf("parse response body failed: %w", err)
-	}
-
 	if c.Save != nil {
-		e.extractor.Extract(ctx, man.GetID(), c.HttpCase, resp, respBody, jsonBody)
+		output.Logf(interfaces.InfoLevel, "%s data extraction for %s %s ", httpExecutorOutputPrefix, man.GetName(), man.Spec.Target)
+
+		e.extractor.Extract(ctx, man.GetID(), c.HttpCase, resp, respBody)
 	}
 
 	if c.Assert != nil {
-		if err = e.assertor.Assert(ctx, c.Assert, resp, respBody, jsonBody); err != nil {
+		output.Logf(interfaces.InfoLevel, "%s reponse asserting for %s %s ", httpExecutorOutputPrefix, man.GetName(), man.Spec.Target)
+
+		if err = e.assertor.Assert(ctx, c.Assert, resp, respBody); err != nil {
+			caseResult.Assert = "no"
+			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("assertion failed: %s", err.Error()))
 			return fmt.Errorf("assert failed: %w", err)
 		}
+
+		caseResult.Assert = "yes"
 	}
 
+	caseResult.StatusCode = resp.StatusCode
+	caseResult.Success = true
 	output.Logf(interfaces.InfoLevel, "%s HTTP Test %s passed", httpExecutorOutputPrefix, c.Name)
 
 	return nil

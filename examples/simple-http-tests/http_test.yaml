@@ -1,0 +1,75 @@
+# API Test Configuration File
+# --------------------------
+# version: Defines the schema version for future compatibility
+version: v1
+
+# kind: Specifies the test type (HttpTest for HTTP API testing)
+kind: HttpTest
+
+# Metadata section - Contains identifying information
+metadata:
+  # name: Unique identifier for this test suite
+  name: simple-test-example
+  
+  # namespace: Logical grouping for organizational purposes
+  namespace: simple-http-tests
+
+# spec: Main configuration container
+spec:
+  # target: Base URL for all test cases (can be overridden per-case)
+  target: http://127.0.0.1:8081
+
+  # cases: List of test scenarios to execute
+  cases:
+    # Test Case 1: Basic GET request validation
+    - name: Get All Users Test          # Descriptive test name
+      method: GET                       # HTTP method (GET/POST/PUT/etc)
+      endpoint: /users                  # Appended to target URL
+      
+      # assert: Validation rules
+      assert:
+        - target: status                # What to validate (status code)
+          equals: 200                   # Expected value (HTTP 200 OK)
+
+    # Test Case 2: POST request with payload
+    - name: Create New User With Body
+      method: POST
+      endpoint: /users
+      
+      # headers: Request headers to include
+      headers:
+        Content-Type: application/json  # Specifies JSON payload
+      
+      # body: Request payload (automatically JSON-encoded)
+      body:
+        name: "{{ Fake.name }}"                 # Generate fake name for request
+        email: "{{ Fake.email }}"               # Generate fake email for request
+        age: "{{ Fake.uint.10.100 }}"           # Generate fake positive number between 10 and 100 including
+        address:
+          street: "{{ Fake.email }}"
+          number: "{{ Fake.name }}"
+      assert:
+        - target: status
+          equals: 201                   # HTTP 201 Created
+
+    # Test Case 3: Getting and validating a user
+    - name: Get User By ID Test
+      method: GET
+      endpoint: /users/1 # Endpoint with user ID
+      assert:
+        - target: status
+          equals: 200
+
+    # Test Case 4: Absolute URL test
+    - name: Always Fail Endpoint Test
+      method: GET
+      url: http://127.0.0.1:8081/fail   # Overrides spec.target
+      assert:
+        - target: status
+          equals: 500                   # Expecting server error
+
+    # Test Case 5: Performance testing
+    - name: Slow Endpoint Response Test
+      method: GET
+      endpoint: /slow?delay=2s          # Test endpoint with artificial delay
+      timeout: 3s                       # Fail if response > 3 seconds

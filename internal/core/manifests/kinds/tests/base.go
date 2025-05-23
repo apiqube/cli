@@ -11,20 +11,17 @@ type HttpCase struct {
 	Url      string            `yaml:"url,omitempty" json:"url,omitempty" validate:"omitempty,url"`
 	Headers  map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"  validate:"omitempty,min=1,max=100"`
 	Body     map[string]any    `yaml:"body,omitempty" json:"body,omitempty" validate:"omitempty,min=1,max=100"`
-	Assert   *Assert           `yaml:"assert,omitempty" json:"assert,omitempty" validate:"omitempty"`
+	Assert   []*Assert         `yaml:"assert,omitempty" json:"assert,omitempty" validate:"omitempty,min=1,max=50,dive"`
 	Save     *Save             `yaml:"save,omitempty" json:"save,omitempty" validate:"omitempty"`
 	Pass     []Pass            `yaml:"pass,omitempty" json:"pass,omitempty" validate:"omitempty,min=1,max=25,dive"`
 	Timeout  time.Duration     `yaml:"timeout,omitempty" json:"timeout,omitempty" validate:"omitempty,duration"`
 	Parallel bool              `yaml:"async,omitempty" json:"async,omitempty" validate:"omitempty,boolean"`
+	Details  []string          `yaml:"details,omitempty" json:"details,omitempty" validate:"omitempty,min=1,max=100"`
 }
 
 type Assert struct {
-	Assertions []AssertElement `yaml:",inline,omitempty" json:",inline,omitempty" validate:"required,min=1,max=50,dive"`
-}
-
-type AssertElement struct {
-	Target   string `yaml:"target,omitempty" json:"target,omitempty" validate:"required,min=3,max=128"`
-	Equals   any    `yaml:"equals,omitempty" json:"equals,omitempty"`
+	Target   string `yaml:"target,omitempty" json:"target,omitempty" validate:"required,oneof=status body headers"`
+	Equals   any    `yaml:"equals,omitempty" json:"equals,omitempty" validate:"omitempty,min=1,max=100"`
 	Contains string `yaml:"contains,omitempty" json:"contains,omitempty" validate:"omitempty,min=1,max=100"`
 	Exists   bool   `yaml:"exists,omitempty" json:"exists,omitempty" validate:"omitempty,boolean"`
 	Template string `yaml:"template,omitempty" json:"template,omitempty" validate:"omitempty,min=1,max=100,contains_template"`

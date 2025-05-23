@@ -3,7 +3,7 @@ version: '3'
 vars:
   BINARY_NAME: qube
   BUILD_DIR: C:/Users/admin/go/bin
-  MAIN: ./cmd
+  MAIN: ./cmd/qube
   VERSION:
     sh: git describe --tags --abbrev=0 2>/dev/null || echo "dev"
 

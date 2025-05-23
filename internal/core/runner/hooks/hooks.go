@@ -64,28 +64,28 @@ func (r *DefaultHooksRunner) RegisterHooksHandler(event HookEvent, handler HookH
 	r.entries[event] = append(r.entries[event], handler)
 }
 
-func (r *DefaultHooksRunner) runBeforeRunHooks(ctx interfaces.ExecutionContext, event HookEvent, actions []Action) error {
+func (r *DefaultHooksRunner) runBeforeRunHooks(ctx interfaces.ExecutionContext, event HookEvent, _ []Action) error {
 	output := ctx.GetOutput()
 	output.Logf(interfaces.InfoLevel, "%s running %s hooks", hooksRunnerOutputPrefix, event.String())
 
 	return nil
 }
 
-func (r *DefaultHooksRunner) runAfterRunHooks(ctx interfaces.ExecutionContext, event HookEvent, actions []Action) error {
+func (r *DefaultHooksRunner) runAfterRunHooks(ctx interfaces.ExecutionContext, event HookEvent, _ []Action) error {
 	output := ctx.GetOutput()
 	output.Logf(interfaces.InfoLevel, "%s running %s hooks", hooksRunnerOutputPrefix, event.String())
 
 	return nil
 }
 
-func (r *DefaultHooksRunner) runOnSuccessHooks(ctx interfaces.ExecutionContext, event HookEvent, actions []Action) error {
+func (r *DefaultHooksRunner) runOnSuccessHooks(ctx interfaces.ExecutionContext, event HookEvent, _ []Action) error {
 	output := ctx.GetOutput()
 	output.Logf(interfaces.InfoLevel, "%s running %s hooks", hooksRunnerOutputPrefix, event.String())
 
 	return nil
 }
 
-func (r *DefaultHooksRunner) runOnFailureHooks(ctx interfaces.ExecutionContext, event HookEvent, actions []Action) error {
+func (r *DefaultHooksRunner) runOnFailureHooks(ctx interfaces.ExecutionContext, event HookEvent, _ []Action) error {
 	output := ctx.GetOutput()
 	output.Logf(interfaces.InfoLevel, "%s running %s hooks", hooksRunnerOutputPrefix, event.String())
 
