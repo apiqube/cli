@@ -16,6 +16,7 @@ type HttpCase struct {
 	Pass     []Pass            `yaml:"pass,omitempty" json:"pass,omitempty" validate:"omitempty,min=1,max=25,dive"`
 	Timeout  time.Duration     `yaml:"timeout,omitempty" json:"timeout,omitempty" validate:"omitempty,duration"`
 	Parallel bool              `yaml:"async,omitempty" json:"async,omitempty" validate:"omitempty,boolean"`
+	Details  []string          `yaml:"details,omitempty" json:"details,omitempty" validate:"omitempty,min=1,max=100"`
 }
 
 type Assert struct {

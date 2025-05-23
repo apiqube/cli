@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	metrics "github.com/apiqube/cli/internal/core/runner/metrics"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 	"github.com/apiqube/cli/internal/core/runner/assert"
@@ -102,8 +104,17 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 		Details: make(map[string]any),
 	}
 
+	var (
+		req  *http.Request
+		resp *http.Response
+		err  error
+	)
+
 	output.StartCase(man, c.Name)
+
 	defer func() {
+		metrics.CollectHTTPMetrics(req, resp, c.Details, caseResult)
+
 		caseResult.Duration = time.Since(start)
 		output.EndCase(man, c.Name, caseResult)
 	}()
@@ -127,7 +138,7 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 		}
 	}
 
-	req, err := http.NewRequest(c.Method, url, reqBody)
+	req, err = http.NewRequest(c.Method, url, reqBody)
 	if err != nil {
 		caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to create request: %s", err.Error()))
 		return fmt.Errorf("create request failed: %w", err)
@@ -143,10 +154,10 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 	}
 
 	client := &http.Client{Timeout: timeout}
-	resp, err := client.Do(req)
+	resp, err = client.Do(req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("request timed out"))
+			caseResult.Errors = append(caseResult.Errors, "request timed out")
 			return fmt.Errorf("request to %s timed out", url)
 		}
 
@@ -180,13 +191,6 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 			return fmt.Errorf("assert failed: %w", err)
 		}
 	}
-
-	caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("[1] !assertion! failed: %s", resp.Status))
-	caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("[2] !assertion! failed: %s", resp.Status))
-
-	caseResult.Details["Method"] = c.Method
-	caseResult.Details["StatusCode"] = resp.StatusCode
-	caseResult.Details["Duration"] = time.Since(start)
 
 	caseResult.StatusCode = resp.StatusCode
 	caseResult.Success = true

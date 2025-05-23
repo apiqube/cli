@@ -6,12 +6,20 @@ metadata:
 spec:
   target: http://localhost:8081
   cases:
+
     - name: Get All Users Test
       method: GET
       endpoint: /users
       assert:
         - target: status
           equals: 200
+      details:
+        - Request-General
+        - Response-General
+        - Request-Content-Length
+        - Request-Content-Type
+        - Response-Content-Length
+        - Response-Status
 
     - name: Create New User With Body
       method: POST
@@ -22,6 +30,9 @@ spec:
       assert:
         - target: status
           equals: 201
+      details:
+        - Request-General
+        - Response-General
 
     - name: Always Fail Endpoint Test
       method: GET
@@ -29,8 +40,14 @@ spec:
       assert:
         - target: status
           equals: 500
+      details:
+        - Request-General
+        - Response-General
 
     - name: Slow Endpoint Response Test
       method: GET
       endpoint: /slow?delay=2s
-      timeout: 3s # Delay if request is 2s, if set timeout less it will fail
+      timeout: 3s # Delay of request is 2s, if set timeout less it will fail
+      details:
+        - Request-General
+        - Response-General

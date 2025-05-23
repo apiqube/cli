@@ -2,8 +2,10 @@ package cli
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/ui"
+	"sort"
 	"strings"
+
+	"github.com/apiqube/cli/ui"
 
 	"github.com/apiqube/cli/ui/cli"
 
@@ -20,7 +22,11 @@ func NewOutput() *Output {
 }
 
 func (o *Output) StartCase(manifest manifests.Manifest, caseName string) {
-	cli.Infof("Start [%s] case from [%s] manifest", caseName, manifest.GetName())
+	cli.LogStyledf(ui.TypeInfo,
+		"Start [%s] case from [%s] manifest",
+		cli.LogPair{Message: caseName, Style: &cli.InfoStyle},
+		cli.LogPair{Message: manifest.GetName(), Style: &cli.WarningStyle},
+	)
 }
 
 func (o *Output) EndCase(manifest manifests.Manifest, caseName string, result *interfaces.CaseResult) {
@@ -44,9 +50,18 @@ func (o *Output) EndCase(manifest manifests.Manifest, caseName string, result *i
 		detailsFormatted := ""
 		if len(result.Details) > 0 {
 			var detailsBuilder strings.Builder
-			for key, value := range result.Details {
-				detailsBuilder.WriteString(fmt.Sprintf("\n- %s: %v", key, value))
+			var keys []string
+
+			for key := range result.Details {
+				keys = append(keys, key)
 			}
+
+			sort.Strings(keys)
+
+			for _, key := range keys {
+				detailsBuilder.WriteString(fmt.Sprintf("\n- %s: %v", key, result.Details[key]))
+			}
+
 			detailsFormatted = fmt.Sprintf("\nDetails: %s", detailsBuilder.String())
 		}
 
@@ -67,7 +82,11 @@ func (o *Output) EndCase(manifest manifests.Manifest, caseName string, result *i
 			cli.LogPair{Message: detailsFormatted, Style: &cli.TimestampStyle},
 		)
 	} else {
-		cli.Infof("Finish [%s] case from [%s] manifest", caseName, manifest.GetName())
+		cli.LogStyledf(ui.TypeInfo,
+			"Finish [%s] case from [%s] manifest with next results",
+			cli.LogPair{Message: caseName, Style: &cli.InfoStyle},
+			cli.LogPair{Message: manifest.GetName(), Style: &cli.WarningStyle},
+		)
 	}
 }
 
@@ -85,6 +104,8 @@ func (o *Output) Log(level interfaces.LogLevel, msg string) {
 		cli.Warning(msg)
 	case interfaces.ErrorLevel:
 		cli.Error(msg)
+	case interfaces.FatalLevel:
+		cli.Fatal(msg)
 	default:
 		cli.Info(msg)
 	}
@@ -100,6 +121,8 @@ func (o *Output) Logf(level interfaces.LogLevel, format string, args ...any) {
 		cli.Warningf(format, args...)
 	case interfaces.ErrorLevel:
 		cli.Errorf(format, args...)
+	case interfaces.FatalLevel:
+		cli.Fatalf(format, args...)
 	default:
 		cli.Infof(format, args...)
 	}
