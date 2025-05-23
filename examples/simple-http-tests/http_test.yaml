@@ -1,0 +1,36 @@
+version: v1
+kind: HttpTest
+metadata:
+  name: simple-test-example
+  namespace: simple-http-tests
+spec:
+  target: http://localhost:8081
+  cases:
+    - name: Get All Users Test
+      method: GET
+      endpoint: /users
+      assert:
+        - target: status
+          equals: 200
+
+    - name: Create New User With Body
+      method: POST
+      endpoint: /users
+      body:
+        name: user_name
+        email: user_email@example.com
+      assert:
+        - target: status
+          equals: 201
+
+    - name: Always Fail Endpoint Test
+      method: GET
+      endpoint: /fail
+      assert:
+        - target: status
+          equals: 500
+
+    - name: Slow Endpoint Response Test
+      method: GET
+      endpoint: /slow?delay=2s
+      timeout: 3s # Delay if request is 2s, if set timeout less it will fail
