@@ -2,6 +2,7 @@ package executors
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -92,6 +93,21 @@ func (e *HTTPExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests.M
 
 func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c api.HttpCase) error {
 	output := ctx.GetOutput()
+
+	start := time.Now()
+	caseResult := &interfaces.CaseResult{
+		Name:    c.Name,
+		Success: false,
+		Values:  make(map[string]any),
+		Details: make(map[string]any),
+	}
+
+	output.StartCase(man, c.Name)
+	defer func() {
+		caseResult.Duration = time.Since(start)
+		output.EndCase(man, c.Name, caseResult)
+	}()
+
 	url := c.Url
 
 	if url == "" {
@@ -106,12 +122,14 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 
 	if body != nil {
 		if err := json.NewEncoder(reqBody).Encode(body); err != nil {
+			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to encode request body: %s", err.Error()))
 			return fmt.Errorf("encode body failed: %w", err)
 		}
 	}
 
 	req, err := http.NewRequest(c.Method, url, reqBody)
 	if err != nil {
+		caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to create request: %s", err.Error()))
 		return fmt.Errorf("create request failed: %w", err)
 	}
 
@@ -121,41 +139,57 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 
 	timeout := c.Timeout
 	if timeout == 0 {
-		timeout = 30 * time.Second
+		timeout = 5 * time.Second
 	}
 
 	client := &http.Client{Timeout: timeout}
 	resp, err := client.Do(req)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("request timed out"))
+			return fmt.Errorf("request to %s timed out", url)
+		}
+
 		return fmt.Errorf("http request failed: %w", err)
 	}
 
 	defer func() {
 		if err = resp.Body.Close(); err != nil {
+			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to close response body: %s", err.Error()))
 			output.Logf(interfaces.ErrorLevel, "%s %s response body closed failed\nTarget: %s\nName: %s\nMathod: %s\nReason: %s", httpExecutorOutputPrefix, man.GetName(), man.Spec.Target, c.Name, c.Method, err.Error())
 		}
 	}()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to read response body: %s", err.Error()))
 		return fmt.Errorf("read response body failed: %w", err)
 	}
 
-	var jsonBody any
-	if err = json.Unmarshal(respBody, &jsonBody); err != nil {
-		return fmt.Errorf("parse response body failed: %w", err)
-	}
-
 	if c.Save != nil {
-		e.extractor.Extract(ctx, man.GetID(), c.HttpCase, resp, respBody, jsonBody)
+		output.Logf(interfaces.InfoLevel, "%s data extraction for %s %s ", httpExecutorOutputPrefix, man.GetName(), man.Spec.Target)
+
+		e.extractor.Extract(ctx, man.GetID(), c.HttpCase, resp, respBody)
 	}
 
 	if c.Assert != nil {
-		if err = e.assertor.Assert(ctx, c.Assert, resp, respBody, jsonBody); err != nil {
+		output.Logf(interfaces.InfoLevel, "%s reponse asserting for %s %s ", httpExecutorOutputPrefix, man.GetName(), man.Spec.Target)
+
+		if err = e.assertor.Assert(ctx, c.Assert, resp, respBody); err != nil {
+			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("assertion failed: %s", err.Error()))
 			return fmt.Errorf("assert failed: %w", err)
 		}
 	}
 
+	caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("[1] !assertion! failed: %s", resp.Status))
+	caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("[2] !assertion! failed: %s", resp.Status))
+
+	caseResult.Details["Method"] = c.Method
+	caseResult.Details["StatusCode"] = resp.StatusCode
+	caseResult.Details["Duration"] = time.Since(start)
+
+	caseResult.StatusCode = resp.StatusCode
+	caseResult.Success = true
 	output.Logf(interfaces.InfoLevel, "%s HTTP Test %s passed", httpExecutorOutputPrefix, c.Name)
 
 	return nil

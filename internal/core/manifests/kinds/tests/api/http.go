@@ -22,7 +22,7 @@ type Http struct {
 
 	Spec struct {
 		Target string     `yaml:"target,omitempty" json:"target,omitempty" validate:"required"`
-		Cases  []HttpCase `yaml:"cases" json:"cases" valid:"required,min=1,max=100,dive"`
+		Cases  []HttpCase `yaml:"cases" json:"cases" validate:"required,min=1,max=100,dive"`
 	} `yaml:"spec" json:"spec" validate:"required"`
 
 	kinds.Dependencies `yaml:",inline" json:",inline" validate:"omitempty"`

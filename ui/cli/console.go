@@ -101,3 +101,15 @@ func Done(msg string) {
 		instance.Done(msg)
 	}
 }
+
+func LogStyled(level ui.LogLevel, pairs ...LogPair) {
+	if isEnabled() {
+		instance.LogStyled(level, pairs...)
+	}
+}
+
+func LogStyledf(level ui.LogLevel, format string, pairs ...LogPair) {
+	if isEnabled() {
+		instance.LogStyledf(level, format, pairs...)
+	}
+}

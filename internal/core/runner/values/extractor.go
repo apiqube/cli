@@ -17,7 +17,7 @@ func NewExtractor() *Extractor {
 	return &Extractor{}
 }
 
-func (e *Extractor) Extract(ctx interfaces.ExecutionContext, manifestID string, c tests.HttpCase, resp *http.Response, raw []byte, _ any) {
+func (e *Extractor) Extract(ctx interfaces.ExecutionContext, manifestID string, c tests.HttpCase, resp *http.Response, body []byte) {
 	group := c.Save.Group
 
 	saveKey := func(key string) string {
@@ -34,7 +34,7 @@ func (e *Extractor) Extract(ctx interfaces.ExecutionContext, manifestID string, 
 
 	// Json
 	for key, jsonPath := range c.Save.Json {
-		val := gjson.GetBytes(raw, jsonPath).Value()
+		val := gjson.GetBytes(body, jsonPath).Value()
 		ctx.SetTyped(saveKey(key), val, reflect.TypeOf(val).Kind())
 	}
 
@@ -47,12 +47,12 @@ func (e *Extractor) Extract(ctx interfaces.ExecutionContext, manifestID string, 
 
 	if c.Save.All || c.Save.Status && c.Save.Body {
 		ctx.SetTyped(saveKey("status"), resp.StatusCode, reflect.Int)
-		ctx.Set(saveKey("body"), string(raw))
+		ctx.Set(saveKey("body"), string(body))
 	} else {
 		if c.Save.Status {
 			ctx.SetTyped(saveKey("status"), resp.StatusCode, reflect.Int)
 		} else if c.Save.Body {
-			ctx.Set(saveKey("body"), string(raw))
+			ctx.Set(saveKey("body"), string(body))
 		}
 	}
 }

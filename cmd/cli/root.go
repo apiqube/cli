@@ -6,6 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/apiqube/cli/cmd/cli/run"
+
 	"github.com/apiqube/cli/cmd/cli/apply"
 	"github.com/apiqube/cli/cmd/cli/check"
 	"github.com/apiqube/cli/cmd/cli/cleanup"
@@ -40,6 +42,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	rootCmd.AddCommand(
 		versionCmd,
+		run.Cmd,
 		apply.Cmd,
 		check.Cmd,
 		cleanup.Cmd,

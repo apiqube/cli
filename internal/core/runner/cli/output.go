@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"github.com/apiqube/cli/ui"
 	"strings"
 
 	"github.com/apiqube/cli/ui/cli"
@@ -19,21 +20,54 @@ func NewOutput() *Output {
 }
 
 func (o *Output) StartCase(manifest manifests.Manifest, caseName string) {
-	cli.Infof("Start %s case from %s manifest", caseName, manifest.GetName())
+	cli.Infof("Start [%s] case from [%s] manifest", caseName, manifest.GetName())
 }
 
 func (o *Output) EndCase(manifest manifests.Manifest, caseName string, result *interfaces.CaseResult) {
 	if result != nil {
-		cli.Infof("Finish %s case from %s manifest with next reults\nResult: %s\nSuccess: %v\nStatus Code: %d\nDuration: %s",
-			caseName,
-			manifest.GetName(),
-			result.Name,
-			result.Success,
-			result.StatusCode,
-			result.Duration.String(),
+		successStyle := cli.SuccessStyle
+		successText := "yes"
+		if !result.Success {
+			successStyle = cli.ErrorStyle
+			successText = "no"
+		}
+
+		errorsFormatted := ""
+		if len(result.Errors) > 0 {
+			var errorsBuilder strings.Builder
+			for _, err := range result.Errors {
+				errorsBuilder.WriteString(fmt.Sprintf("\n- %s", err))
+			}
+			errorsFormatted = fmt.Sprintf("\nErrors: %s", errorsBuilder.String())
+		}
+
+		detailsFormatted := ""
+		if len(result.Details) > 0 {
+			var detailsBuilder strings.Builder
+			for key, value := range result.Details {
+				detailsBuilder.WriteString(fmt.Sprintf("\n- %s: %v", key, value))
+			}
+			detailsFormatted = fmt.Sprintf("\nDetails: %s", detailsBuilder.String())
+		}
+
+		cli.LogStyledf(
+			ui.TypeInfo,
+			"Finish [%s] case from [%s] manifest with next results\n"+
+				"Result: %s\n"+
+				"Success: %s\n"+
+				"Status Code: %s\n"+
+				"Duration: %s%s%s",
+			cli.LogPair{Message: caseName, Style: &cli.InfoStyle},
+			cli.LogPair{Message: manifest.GetName(), Style: &cli.WarningStyle},
+			cli.LogPair{Message: result.Name},
+			cli.LogPair{Message: successText, Style: &successStyle},
+			cli.LogPair{Message: fmt.Sprint(result.StatusCode)},
+			cli.LogPair{Message: result.Duration.String()},
+			cli.LogPair{Message: errorsFormatted, Style: &cli.ErrorStyle},
+			cli.LogPair{Message: detailsFormatted, Style: &cli.TimestampStyle},
 		)
 	} else {
-		cli.Infof("Finish %s case from %s manifest", caseName, manifest.GetName())
+		cli.Infof("Finish [%s] case from [%s] manifest", caseName, manifest.GetName())
 	}
 }
 

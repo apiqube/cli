@@ -11,19 +11,19 @@ func NewRunner() *Runner {
 	return &Runner{}
 }
 
-func (p *Runner) Apply(ctx interfaces.ExecutionContext, input string, passes []tests.Pass) string {
+func (p *Runner) Apply(_ interfaces.ExecutionContext, input string, _ []tests.Pass) string {
 	// заменить плейсхолдеры в URL: {{.token}}, {{.user.id}}, и т.п.
 	// + обрабатывать Pass.Map
-	return ""
+	return input
 	// return ReplaceWithStoreValues(ctx, input, passes)
 }
 
-func (p *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any, passes []tests.Pass) map[string]any {
+func (p *Runner) ApplyBody(_ interfaces.ExecutionContext, body map[string]any, _ []tests.Pass) map[string]any {
 	// аналогично — пройтись по body и заменить шаблоны
 	return body
 }
 
-func (p *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]string, passes []tests.Pass) map[string]string {
+func (p *Runner) MapHeaders(_ctx interfaces.ExecutionContext, headers map[string]string, _ []tests.Pass) map[string]string {
 	// заменить плейсхолдеры в заголовках
 	return headers
 }

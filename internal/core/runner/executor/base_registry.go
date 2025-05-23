@@ -10,8 +10,9 @@ import (
 
 var DefaultRegistry = &DefaultExecutorRegistry{
 	executors: map[string]interfaces.Executor{
-		manifests.ValuesManifestKind: executors.NewValuesExecutor(),
-		manifests.ServerManifestKind: executors.NewServerExecutor(),
+		manifests.ValuesManifestKind:   executors.NewValuesExecutor(),
+		manifests.ServerManifestKind:   executors.NewServerExecutor(),
+		manifests.HttpTestManifestKind: executors.NewHTTPExecutor(),
 	},
 }
 
@@ -23,9 +24,7 @@ type DefaultExecutorRegistry struct {
 }
 
 func NewDefaultExecutorRegistry() *DefaultExecutorRegistry {
-	return &DefaultExecutorRegistry{
-		executors: make(map[string]interfaces.Executor),
-	}
+	return DefaultRegistry
 }
 
 func (r *DefaultExecutorRegistry) Register(kind string, exec interfaces.Executor) {

@@ -3,29 +3,29 @@ package cli
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	timestampStyle = lipgloss.NewStyle().
+	TimestampStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#949494"))
 
-	logStyle = lipgloss.NewStyle().
+	LogStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#e4e4e4"))
 
-	debugStyle = lipgloss.NewStyle().
+	DebugStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#005fff"))
 
-	infoStyle = lipgloss.NewStyle().
+	InfoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#00afff"))
 
-	warningStyle = lipgloss.NewStyle().
+	WarningStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#ff8700"))
 
-	errorStyle = lipgloss.NewStyle().
+	ErrorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#d70000")).
 			Bold(true)
 
-	fatalStyle = lipgloss.NewStyle().
+	FatalStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF0000")).
 			Bold(true)
 
-	successStyle = lipgloss.NewStyle().
+	SuccessStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#5fd700"))
 )
