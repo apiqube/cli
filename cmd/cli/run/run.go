@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/apiqube/cli/internal/validate"
+
 	"github.com/apiqube/cli/internal/core/io"
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/runner/context"
@@ -35,6 +37,19 @@ var Cmd = &cobra.Command{
 		}
 
 		cli.Infof("Loaded %d manifests", len(loadedManifests))
+
+		cli.Info("Validating manifests...")
+		validator := validate.NewManifestValidator(validate.NewValidator(), cli.Instance())
+
+		validator.Validate(loadedManifests...)
+
+		validMans := validator.Valid()
+		if len(validMans) == 0 {
+			cli.Warning("No valid manifests to run tests")
+			return
+		}
+
+		cli.Success("All manifests valid")
 		cli.Info("Generating plan...")
 
 		manager := runner.NewPlanManagerBuilder().
