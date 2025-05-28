@@ -39,6 +39,8 @@ var Cmd = &cobra.Command{
 			return
 		}
 
+		printManifestsLoadResult(loadedMans, cachedMans)
+
 		cli.Info("Validating manifests...")
 		validator := validate.NewManifestValidator(validate.NewValidator(), cli.Instance())
 
@@ -46,11 +48,9 @@ var Cmd = &cobra.Command{
 
 		validMans := validator.Valid()
 		if len(validMans) == 0 {
-			cli.Warning("No valid manifests to apply")
+			cli.Info("No new valid manifests to apply")
 			return
 		}
-
-		printManifestsLoadResult(validMans, cachedMans)
 
 		cli.Infof("Saving %d manifests to storage...", len(validMans))
 		if err := store.Save(validMans...); err != nil {
