@@ -100,6 +100,7 @@ func processFile(filePath string, manifestsSet map[string]struct{}) (new []manif
 		if existingManifest != nil {
 			if _, exists := manifestsSet[existingManifest.GetID()]; !exists {
 				manifestsSet[existingManifest.GetID()] = struct{}{}
+				cachedManifests = append(cachedManifests, existingManifest)
 			}
 			continue
 		}
