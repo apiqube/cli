@@ -22,12 +22,12 @@ spec:
   # cases: List of test scenarios to execute
   cases:
     # Test Case 1: Basic GET request validation
-    - name: Get All Users Test          # Descriptive test name
-      method: GET                       # HTTP method (GET/POST/PUT/etc)
-      endpoint: /users                  # Appended to target URL
-      assert:                           # Assert: Validation rules
-        - target: status                # What to validate (status code)
-          equals: 200                   # Expected value (HTTP 200 OK)
+    - name: Get All Users Test                  # Descriptive test name
+      method: GET                               # HTTP method (GET/POST/PUT/etc)
+      endpoint: /users                          # Appended to target URL
+      assert:                                   # Assert: Validation rules
+        - target: status                        # What to validate (status code)
+          equals: 200                           # Expected value (HTTP 200 OK)
 
     # Test Case 2: POST request with payload
     - name: Create New User With Body

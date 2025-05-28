@@ -131,8 +131,6 @@ func (r *DefaultPlanRunner) RunPlan(ctx interfaces.ExecutionContext, manifest ma
 		}
 	}
 
-	output.Logf(interfaces.InfoLevel, "%s plan finished", planID)
-
 	return nil
 }
 
