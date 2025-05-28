@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 var (
 	validationFuncs = map[string]func(fl validator.FieldLevel) bool{
 		"duration": func(fl validator.FieldLevel) bool {
-			_, err := time.ParseDuration(fl.Field().String())
+			_, err := time.ParseDuration(fmt.Sprint(fl.Field()))
 			return err == nil
 		},
 		"contains_template": func(fl validator.FieldLevel) bool {

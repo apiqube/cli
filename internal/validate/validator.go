@@ -90,7 +90,7 @@ func (e *ValidationError) Error() string {
 }
 
 func buildErrorMessage(fieldErr validator.FieldError) string {
-	fieldName := fieldErr.Field()
+	fieldName := strings.ToLower(fieldErr.Field())
 
 	switch fieldErr.Tag() {
 	case "required":
@@ -107,6 +107,8 @@ func buildErrorMessage(fieldErr validator.FieldError) string {
 		return fmt.Sprintf("field '%s' must be exclusive between: %s and %s", fieldName, fieldName, strings.Join(strings.Split(strings.TrimSpace(fieldErr.Param()), " "), " | "))
 	case "eq":
 		return fmt.Sprintf("field '%s' must be equal to %s", fieldName, fieldErr.Param())
+	case "duration":
+		return fmt.Sprintf("field '%s' has wrong format '%s' must be duration", fieldName, fieldErr.Value())
 	default:
 		return fmt.Sprintf("field '%s' failed validation '%s'", fieldName, fieldErr.Tag())
 	}

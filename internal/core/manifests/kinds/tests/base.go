@@ -21,10 +21,10 @@ type HttpCase struct {
 
 type Assert struct {
 	Target   string `yaml:"target,omitempty" json:"target,omitempty" validate:"required,oneof=status body headers"`
-	Equals   any    `yaml:"equals,omitempty" json:"equals,omitempty" validate:"omitempty,min=1,max=100"`
-	Contains string `yaml:"contains,omitempty" json:"contains,omitempty" validate:"omitempty,min=1,max=100"`
+	Equals   any    `yaml:"equals,omitempty" json:"equals,omitempty" validate:"omitempty"`
+	Contains string `yaml:"contains,omitempty" json:"contains,omitempty" validate:"omitempty,min=1"`
 	Exists   bool   `yaml:"exists,omitempty" json:"exists,omitempty" validate:"omitempty,boolean"`
-	Template string `yaml:"template,omitempty" json:"template,omitempty" validate:"omitempty,min=1,max=100,contains_template"`
+	Template string `yaml:"template,omitempty" json:"template,omitempty" validate:"omitempty,min=1,contains_template"`
 }
 
 type Save struct {
