@@ -30,7 +30,7 @@ func (e *ValuesExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests
 
 	valueMan, ok := manifest.(*values.Values)
 	if !ok {
-		return fmt.Errorf("%s manifest %s is not a %s kind", valuesExecutorOutputPrefix, manifest.GetID(), manifests.ValuesManifestKind)
+		return fmt.Errorf("%s manifest %s is not a %s kind", valuesExecutorOutputPrefix, manifest.GetID(), manifests.ValuesKind)
 	}
 
 	for key, data := range valueMan.Spec.Data {

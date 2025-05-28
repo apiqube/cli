@@ -32,7 +32,7 @@ func (e *ServerExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests
 
 	serverMan, ok := manifest.(*servers.Server)
 	if !ok {
-		return fmt.Errorf("%s manifest %s is not a %s kind", serverExecutorOutputPrefix, manifest.GetID(), manifests.ServerManifestKind)
+		return fmt.Errorf("%s manifest %s is not a %s kind", serverExecutorOutputPrefix, manifest.GetID(), manifests.ServerKind)
 	}
 
 	if serverMan.Spec.Health != "" {

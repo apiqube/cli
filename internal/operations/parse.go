@@ -100,17 +100,17 @@ func Parse(format ParseFormat, data []byte) (manifests.Manifest, error) {
 
 	var manifest manifests.Manifest
 	switch raw.Kind {
-	case manifests.PlanManifestKind:
+	case manifests.PlanKind:
 		manifest = &plan.Plan{}
-	case manifests.ValuesManifestKind:
+	case manifests.ValuesKind:
 		manifest = &values.Values{}
-	case manifests.ServerManifestKind:
+	case manifests.ServerKind:
 		manifest = &servers.Server{}
-	case manifests.ServiceManifestKind:
+	case manifests.ServiceKind:
 		manifest = &services.Service{}
-	case manifests.HttpTestManifestKind:
+	case manifests.HttpTestKind:
 		manifest = &api.Http{}
-	case manifests.HttpLoadTestManifestKind:
+	case manifests.HttpLoadTestKind:
 		manifest = &load.Http{}
 	default:
 		return nil, fmt.Errorf("unknown manifest kind: %s", raw.Kind)

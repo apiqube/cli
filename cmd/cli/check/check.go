@@ -139,7 +139,7 @@ func loadManifests(opts *checkPlanOptions) ([]manifests.Manifest, error) {
 }
 
 func extractPlanManifest(mans []manifests.Manifest) (*plan.Plan, error) {
-	man, err := findManifestWithKind(manifests.PlanManifestKind, mans)
+	man, err := findManifestWithKind(manifests.PlanKind, mans)
 	if err != nil {
 		return nil, err
 	}

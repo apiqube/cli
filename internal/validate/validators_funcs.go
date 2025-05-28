@@ -22,7 +22,7 @@ var (
 	}
 
 	manifestKinsValidationFuncs = map[string]func(fl validator.FieldLevel) bool{
-		manifests.PlanManifestKind: planValidationFunc,
+		manifests.PlanKind: planValidationFunc,
 	}
 )
 

@@ -10,9 +10,9 @@ import (
 
 var DefaultRegistry = &DefaultExecutorRegistry{
 	executors: map[string]interfaces.Executor{
-		manifests.ValuesManifestKind:   executors.NewValuesExecutor(),
-		manifests.ServerManifestKind:   executors.NewServerExecutor(),
-		manifests.HttpTestManifestKind: executors.NewHTTPExecutor(),
+		manifests.ValuesKind:   executors.NewValuesExecutor(),
+		manifests.ServerKind:   executors.NewServerExecutor(),
+		manifests.HttpTestKind: executors.NewHTTPExecutor(),
 	},
 }
 

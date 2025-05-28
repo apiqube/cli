@@ -21,7 +21,7 @@ type Server struct {
 	Spec struct {
 		BaseURL string            `yaml:"baseUrl" json:"baseUrl" validate:"required,url"`
 		Health  string            `yaml:"health" json:"health" validate:"omitempty,max=100"`
-		Headers map[string]string `yaml:"headers,omitempty" json:"headers"`
+		Headers map[string]string `yaml:"headers,omitempty" json:"headers" validate:"omitempty,max=20"`
 	} `yaml:"spec" json:"spec" validate:"required"`
 
 	Meta *kinds.Meta `yaml:"-" json:"meta"`

@@ -32,35 +32,40 @@ var Cmd = &cobra.Command{
 			return
 		}
 
-		cli.Infof("Loading manifests from: %s", file)
-		loadedMans, cachedMans, err := io.LoadManifests(file)
-		if err != nil {
-			cli.Errorf("Critical load error:\n%s", formatLoadError(err, file))
-			return
-		}
-
-		printManifestsLoadResult(loadedMans, cachedMans)
-
-		cli.Info("Validating manifests...")
-		validator := validate.NewManifestValidator(validate.NewValidator(), cli.Instance())
-
-		validator.Validate(loadedMans...)
-
-		validMans := validator.Valid()
-		if len(validMans) == 0 {
-			cli.Info("No new valid manifests to apply")
-			return
-		}
-
-		cli.Infof("Saving %d manifests to storage...", len(validMans))
-		if err := store.Save(validMans...); err != nil {
-			cli.Errorf("Storage error: -\n%s", err.Error())
-			return
-		}
-
-		printPostApplySummary(validMans)
-		cli.Successf("Successfully applied %d manifests", len(validMans))
+		_ = applyManifests(file)
 	},
+}
+
+func applyManifests(filePath string) error {
+	cli.Infof("Loading manifests from: %s", filePath)
+	loadedMans, cachedMans, err := io.LoadManifests(filePath)
+	if err != nil {
+		cli.Errorf("Critical load error:\n%s", formatLoadError(err, filePath))
+		return err
+	}
+
+	printManifestsLoadResult(loadedMans, cachedMans)
+
+	cli.Info("Validating manifests...")
+	validator := validate.NewManifestValidator(validate.NewValidator(), cli.Instance())
+
+	validator.Validate(loadedMans...)
+
+	validMans := validator.Valid()
+	if len(validMans) == 0 {
+		cli.Info("No new valid manifests to apply")
+		return errors.New("no new valid manifests to apply")
+	}
+
+	cli.Infof("Saving %d manifests to storage...", len(validMans))
+	if err = store.Save(validMans...); err != nil {
+		cli.Errorf("Storage error: -\n%s", err.Error())
+		return err
+	}
+
+	printPostApplySummary(validMans)
+	cli.Successf("Successfully applied %d manifests", len(validMans))
+	return nil
 }
 
 func formatLoadError(err error, file string) string {
