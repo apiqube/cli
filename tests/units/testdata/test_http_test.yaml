@@ -1,0 +1,13 @@
+version: v1
+kind: HttpTest
+metadata:
+  name: test_http_test
+spec:
+  target: http://127.0.0.1:8081
+  cases:
+    - name: Get All Users Test
+      method: GET
+      endpoint: /users
+      assert:
+        - target: status
+          equals: 200

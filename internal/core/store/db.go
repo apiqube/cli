@@ -47,7 +47,11 @@ type Storage struct {
 }
 
 func NewStorage() (*Storage, error) {
-	path, err := xdg.DataFile(StorageDirPath)
+	return NewStorageWithPath(StorageDirPath)
+}
+
+func NewStorageWithPath(path string) (*Storage, error) {
+	path, err := xdg.DataFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("error getting data file path: %v", err)
 	}
