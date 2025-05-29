@@ -28,7 +28,7 @@ type Assert struct {
 }
 
 type Save struct {
-	Json    map[string]string `yaml:"json,omitempty" json:"json,omitempty" validate:"omitempty,dive,keys,endkeys,json"`
+	Json    map[string]string `yaml:"json,omitempty" json:"json,omitempty" validate:"omitempty,dive,keys,endkeys"`
 	Headers map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"  validate:"omitempty,dive,keys,endkeys"`
 	Status  bool              `yaml:"status,omitempty" json:"status,omitempty" validate:"omitempty,boolean"`
 	Body    bool              `yaml:"body,omitempty" json:"body,omitempty" validate:"omitempty,boolean"`
@@ -38,5 +38,5 @@ type Save struct {
 
 type Pass struct {
 	From string            `yaml:"from" json:"from" validate:"required,min=1,max=100"`
-	Map  map[string]string `yaml:"map,omitempty" json:"map,omitempty" validate:"omitempty,min=1,max=100,keys,endkeys"`
+	Map  map[string]string `yaml:"map,omitempty" json:"map,omitempty" validate:"omitempty,min=1,max=100,dive,keys,endkeys"`
 }
