@@ -14,7 +14,7 @@ var _ ManifestsValidator = (*ManifestValidator)(nil)
 type ManifestValidator struct {
 	validator      Validator
 	ui             ui.UI
-	valid, inValid []manifests.Manifest
+	valid, invalid []manifests.Manifest
 }
 
 func NewManifestValidator(validator Validator, ui ui.UI) *ManifestValidator {
@@ -40,7 +40,7 @@ func (v *ManifestValidator) Validate(manifests ...manifests.Manifest) bool {
 				errorBuilder.AddGenericError(err)
 			}
 
-			v.inValid = append(v.inValid, man)
+			v.invalid = append(v.invalid, man)
 		} else {
 			v.valid = append(v.valid, man)
 		}
@@ -56,7 +56,7 @@ func (v *ManifestValidator) Valid() []manifests.Manifest {
 }
 
 func (v *ManifestValidator) Invalid() []manifests.Manifest {
-	return v.inValid
+	return v.invalid
 }
 
 type ManifestErrorBuilder struct {

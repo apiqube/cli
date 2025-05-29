@@ -21,14 +21,14 @@ type HttpCase struct {
 
 type Assert struct {
 	Target   string `yaml:"target,omitempty" json:"target,omitempty" validate:"required,oneof=status body headers"`
-	Equals   any    `yaml:"equals,omitempty" json:"equals,omitempty" validate:"omitempty,min=1,max=100"`
-	Contains string `yaml:"contains,omitempty" json:"contains,omitempty" validate:"omitempty,min=1,max=100"`
+	Equals   any    `yaml:"equals,omitempty" json:"equals,omitempty" validate:"omitempty"`
+	Contains string `yaml:"contains,omitempty" json:"contains,omitempty" validate:"omitempty,min=1"`
 	Exists   bool   `yaml:"exists,omitempty" json:"exists,omitempty" validate:"omitempty,boolean"`
-	Template string `yaml:"template,omitempty" json:"template,omitempty" validate:"omitempty,min=1,max=100,contains_template"`
+	Template string `yaml:"template,omitempty" json:"template,omitempty" validate:"omitempty,min=1,contains_template"`
 }
 
 type Save struct {
-	Json    map[string]string `yaml:"json,omitempty" json:"json,omitempty" validate:"omitempty,dive,keys,endkeys,json"`
+	Json    map[string]string `yaml:"json,omitempty" json:"json,omitempty" validate:"omitempty,dive,keys,endkeys"`
 	Headers map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"  validate:"omitempty,dive,keys,endkeys"`
 	Status  bool              `yaml:"status,omitempty" json:"status,omitempty" validate:"omitempty,boolean"`
 	Body    bool              `yaml:"body,omitempty" json:"body,omitempty" validate:"omitempty,boolean"`
@@ -38,5 +38,5 @@ type Save struct {
 
 type Pass struct {
 	From string            `yaml:"from" json:"from" validate:"required,min=1,max=100"`
-	Map  map[string]string `yaml:"map,omitempty" json:"map,omitempty" validate:"omitempty,min=1,max=100,keys,endkeys"`
+	Map  map[string]string `yaml:"map,omitempty" json:"map,omitempty" validate:"omitempty,min=1,max=100,dive,keys,endkeys"`
 }

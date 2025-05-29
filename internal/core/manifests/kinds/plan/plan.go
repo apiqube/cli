@@ -24,7 +24,7 @@ type Plan struct {
 
 	Spec struct {
 		Stages []Stage `yaml:"stages" json:"stages" validate:"required,min=1,dive"`
-		Hooks  *Hooks  `yaml:"hooks,omitempty" json:"hooks,omitempty" validate:"omitempty,dive"`
+		Hooks  *Hooks  `yaml:"hooks,omitempty" json:"hooks,omitempty" validate:"omitempty"`
 	} `yaml:"spec" json:"spec" validate:"required"`
 
 	Meta *kinds.Meta `yaml:"-" json:"meta"`
@@ -37,7 +37,7 @@ type Stage struct {
 	Parallel    bool           `yaml:"parallel,omitempty" json:"parallel,omitempty"`
 	Params      map[string]any `yaml:"params,omitempty" json:"params,omitempty" validate:"omitempty"`
 	Mode        string         `yaml:"mode,omitempty" json:"mode,omitempty" validate:"omitempty,oneof=strict parallel"` // (strict|parallel)
-	Hooks       *Hooks         `yaml:"hooks,omitempty" json:"hooks,omitempty" validate:"omitempty,dive"`
+	Hooks       *Hooks         `yaml:"hooks,omitempty" json:"hooks,omitempty" validate:"omitempty"`
 }
 
 type Hooks struct {
@@ -88,8 +88,8 @@ func (p *Plan) GetMeta() manifests.Meta {
 }
 
 func (p *Plan) Default() {
-	if p.Version != manifests.V1Version {
-		p.Version = manifests.V1Version
+	if p.Version != manifests.V1 {
+		p.Version = manifests.V1
 	}
 
 	if p.Name == "" {
@@ -97,7 +97,7 @@ func (p *Plan) Default() {
 	}
 
 	if p.Kind == "" {
-		p.Kind = manifests.PlanManifestKind
+		p.Kind = manifests.PlanKind
 	}
 
 	if p.Namespace == "" {
@@ -115,7 +115,7 @@ func (p *Plan) Prepare() {
 	}
 
 	if p.Kind == "" {
-		p.Kind = manifests.PlanManifestKind
+		p.Kind = manifests.PlanKind
 	}
 
 	if p.Meta == nil {

@@ -31,12 +31,16 @@ jobs:
           gofumpt -l -w .
           git diff --exit-code
 
-      - name: golangci-lint
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           skip-pkg-cache: true
           args: --issues-exit-code=0
+
+      - name: Run Units Tests
+        run: |
+          go test -v -coverpkg=./... ./...
 
   release:
     needs: build-and-test

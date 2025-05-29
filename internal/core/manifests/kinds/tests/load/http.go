@@ -40,7 +40,7 @@ type HttpCase struct {
 	Wave      *WaveConfig   `yaml:"wave,omitempty" json:"wave,omitempty" validate:"omitempty"`
 	Step      *StepConfig   `yaml:"step,omitempty" json:"step,omitempty" validate:"omitempty"`
 	Duration  time.Duration `yaml:"duration,omitempty" json:"duration,omitempty" validate:"omitempty,duration"`
-	SaveEvery int           `yaml:"saveEvery,omitempty" json:"saveEvery,omitempty" validate:"omitempty,min=1,max=1000"`
+	SaveEntry int           `yaml:"saveEntry,omitempty" json:"saveEntry,omitempty" validate:"omitempty,min=1,max=1000"` // Int value or precent of saving
 }
 
 type WaveConfig struct {

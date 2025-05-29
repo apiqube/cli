@@ -27,3 +27,4 @@ run:
     - "tests"
   skip-files:
     - ".*\\.pb\\.go
+    - ".*\\_test.go"

@@ -96,7 +96,7 @@ func (g *basicManager) Generate() (*plan.Plan, error) {
 	graph := newDepGraph()
 
 	for id, m := range g.manifests {
-		if m.GetKind() == manifests.PlanManifestKind {
+		if m.GetKind() == manifests.PlanKind {
 			delete(g.manifests, id)
 			continue
 		}

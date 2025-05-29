@@ -54,7 +54,7 @@ func (e *HTTPExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests.M
 
 	httpMan, ok := manifest.(*api.Http)
 	if !ok {
-		return fmt.Errorf("%s manifest %s is not a %s kind", httpExecutorOutputPrefix, manifest.GetID(), manifests.HttpTestManifestKind)
+		return fmt.Errorf("%s manifest %s is not a %s kind", httpExecutorOutputPrefix, manifest.GetID(), manifests.HttpTestKind)
 	}
 
 	var wg sync.WaitGroup

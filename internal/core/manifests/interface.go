@@ -9,22 +9,22 @@ const (
 )
 
 const (
-	V1Version = "v1"
+	V1 = "v1"
 )
 
 const (
-	PlanManifestKind            = "Plan"
-	ValuesManifestKind          = "Values"
-	ServerManifestKind          = "Server"
-	ServiceManifestKind         = "Service"
-	HttpTestManifestKind        = "HttpTest"
-	HttpLoadTestManifestKind    = "HttpLoadTest"
-	GRPCTestManifestKind        = "GRPCTest"
-	GRPCLoadTestManifestKind    = "GRPCLoadTest"
-	WSTestManifestKind          = "WSTest"
-	WSLoadTestManifestKind      = "WSLoadTest"
-	GRAPHQLTestManifestKind     = "GraphQLTest"
-	GRAPHQLLoadTestManifestKind = "GraphQLLoadTest"
+	PlanKind            = "Plan"
+	ValuesKind          = "Values"
+	ServerKind          = "Server"
+	ServiceKind         = "Service"
+	HttpTestKind        = "HttpTest"
+	HttpLoadTestKind    = "HttpLoadTest"
+	GRPCTestKind        = "GRPCTest"
+	GRPCLoadTestKind    = "GRPCLoadTest"
+	WSTestKind          = "WSTest"
+	WSLoadTestKind      = "WSLoadTest"
+	GRAPHQLTestKind     = "GraphQLTest"
+	GRAPHQLLoadTestKind = "GraphQLLoadTest"
 )
 
 type Manifest interface {
