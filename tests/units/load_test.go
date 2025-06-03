@@ -2,13 +2,14 @@ package units
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/adrg/xdg"
 	"github.com/apiqube/cli/internal/core/io"
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/store"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
 )
 
 const testDataPath = "testdata"

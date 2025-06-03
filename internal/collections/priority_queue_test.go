@@ -1,10 +1,11 @@
 package collections
 
 import (
-	"github.com/stretchr/testify/require"
 	"slices"
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestPriorityQueue(t *testing.T) {
