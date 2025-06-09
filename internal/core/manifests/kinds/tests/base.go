@@ -13,7 +13,7 @@ type HttpCase struct {
 	Body     map[string]any    `yaml:"body,omitempty" json:"body,omitempty" validate:"omitempty,min=1,max=100"`
 	Assert   []*Assert         `yaml:"assert,omitempty" json:"assert,omitempty" validate:"omitempty,min=1,max=50,dive"`
 	Save     *Save             `yaml:"save,omitempty" json:"save,omitempty" validate:"omitempty"`
-	Pass     []Pass            `yaml:"pass,omitempty" json:"pass,omitempty" validate:"omitempty,min=1,max=25,dive"`
+	Pass     []*Pass           `yaml:"pass,omitempty" json:"pass,omitempty" validate:"omitempty,min=1,max=25,dive"`
 	Timeout  time.Duration     `yaml:"timeout,omitempty" json:"timeout,omitempty" validate:"omitempty,duration"`
 	Parallel bool              `yaml:"async,omitempty" json:"async,omitempty" validate:"omitempty,boolean"`
 	Details  []string          `yaml:"details,omitempty" json:"details,omitempty" validate:"omitempty,min=1,max=100"`
@@ -28,12 +28,13 @@ type Assert struct {
 }
 
 type Save struct {
-	Json    map[string]string `yaml:"json,omitempty" json:"json,omitempty" validate:"omitempty,dive,keys,endkeys"`
-	Headers map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"  validate:"omitempty,dive,keys,endkeys"`
-	Status  bool              `yaml:"status,omitempty" json:"status,omitempty" validate:"omitempty,boolean"`
-	Body    bool              `yaml:"body,omitempty" json:"body,omitempty" validate:"omitempty,boolean"`
-	All     bool              `yaml:"all,omitempty" json:"all,omitempty" validate:"omitempty,boolean"`
-	Group   string            `yaml:"group,omitempty" json:"group,omitempty" validate:"omitempty,min=1,max=100"`
+	Request  *SaveEntry `yaml:"request,omitempty" json:"request,omitempty" validate:"omitempty"`
+	Response *SaveEntry `yaml:"response,omitempty" json:"response,omitempty" validate:"omitempty"`
+}
+
+type SaveEntry struct {
+	Body    map[string]string `yaml:"body,omitempty" json:"body,omitempty" validate:"omitempty,min=1,max=20,dive,keys,endkeys"`
+	Headers []string          `yaml:"headers,omitempty" json:"headers,omitempty"  validate:"omitempty,min=1,max=20"`
 }
 
 type Pass struct {

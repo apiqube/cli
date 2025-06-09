@@ -1,0 +1,30 @@
+version: v1
+kind: HttpTest
+metadata:
+  name: simple-test-example-1
+  namespace: simple-http-tests-1
+
+spec:
+  target: http://127.0.0.1:8081
+  cases:
+
+    - name: Create New User
+      method: POST
+      endpoint: /users
+      assert:
+        - target: status
+          equals: 201
+      body:
+        name: "{{ Fake.name }}"
+        email: "{{ Fake.email }}"
+        age: "{{ Fake.uint.10.100 }}"
+        address:
+          street: "{{ Fake.email }}"
+          number: "{{ Fake.uint.1.10.ToString() }}"
+      save:
+        request:
+          body:
+            req: "*"
+        response:
+          body:
+            res: "*"

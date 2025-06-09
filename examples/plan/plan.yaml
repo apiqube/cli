@@ -5,7 +5,7 @@ metadata:
 spec:
   stages:
     - name: "Preparation..."
-      description: "First stage with loading values to context"
+      description: "First stage with loading save to context"
       manifests:
         - Values.simple-value
     - name: "Starting and checking server"

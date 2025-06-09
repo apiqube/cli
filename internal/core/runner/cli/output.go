@@ -161,7 +161,7 @@ func (o *Output) DumpValues(values map[string]any) {
 			rows = append(rows, fmt.Sprintf("%v: %v", k, v))
 		}
 
-		cli.Printf("Damping values: \n%s", strings.Join(rows, "\n"))
+		cli.Printf("Damping save: \n%s", strings.Join(rows, "\n"))
 	}
 }
 

@@ -93,7 +93,7 @@ func fakeUint(args ...string) (any, error) {
 		minInt, maxInt = maxInt, minInt
 	}
 
-	return gofakeit.UintRange(uint(minInt-1), uint(maxInt+1)), nil
+	return gofakeit.UintRange(uint(minInt), uint(maxInt)), nil
 }
 
 func fakeFloat(_ ...string) (any, error) {

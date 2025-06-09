@@ -21,3 +21,7 @@ func methodTrim(value any, args ...string) (any, error) {
 
 	return strings.Trim(fmt.Sprintf("%v", value), cutset), nil
 }
+
+func methodToString(value any, _ ...string) (any, error) {
+	return fmt.Sprintf("%v", value), nil
+}

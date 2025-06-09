@@ -8,31 +8,32 @@ import (
 )
 
 type TemplateEngine struct {
-	generators map[string]GeneratorFunc
-	methods    map[string]MethodFunc
-	mu         sync.RWMutex
-	cache      *sync.Map
+	funcs   map[string]TemplateFunc
+	methods map[string]MethodFunc
+	mu      sync.RWMutex
+	cache   *sync.Map
 }
 
-type GeneratorFunc func(args ...string) (any, error)
+type TemplateFunc func(args ...string) (any, error)
 
 type MethodFunc func(value any, args ...string) (any, error)
 
 func New() *TemplateEngine {
 	engine := &TemplateEngine{
-		generators: make(map[string]GeneratorFunc),
-		methods:    make(map[string]MethodFunc),
-		cache:      &sync.Map{},
+		funcs:   make(map[string]TemplateFunc),
+		methods: make(map[string]MethodFunc),
+		cache:   &sync.Map{},
 	}
 
-	engine.RegisterGenerator("Fake.name", fakeName)
-	engine.RegisterGenerator("Fake.email", fakeEmail)
-	engine.RegisterGenerator("Fake.password", fakePassword)
-	engine.RegisterGenerator("Fake.int", fakeInt)
-	engine.RegisterGenerator("Fake.uint", fakeUint)
-	engine.RegisterGenerator("Fake.float", fakeFloat)
-	engine.RegisterGenerator("Fake.bool", fakeBool)
+	engine.RegisterFunc("Fake.name", fakeName)
+	engine.RegisterFunc("Fake.email", fakeEmail)
+	engine.RegisterFunc("Fake.password", fakePassword)
+	engine.RegisterFunc("Fake.int", fakeInt)
+	engine.RegisterFunc("Fake.uint", fakeUint)
+	engine.RegisterFunc("Fake.float", fakeFloat)
+	engine.RegisterFunc("Fake.bool", fakeBool)
 
+	engine.RegisterMethod("ToString", methodToString)
 	engine.RegisterMethod("ToUpper", methodToUpper)
 	engine.RegisterMethod("ToLower", methodToLower)
 	engine.RegisterMethod("Trim", methodTrim)
@@ -40,10 +41,10 @@ func New() *TemplateEngine {
 	return engine
 }
 
-func (e *TemplateEngine) RegisterGenerator(name string, fn GeneratorFunc) {
+func (e *TemplateEngine) RegisterFunc(name string, fn TemplateFunc) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.generators[name] = fn
+	e.funcs[name] = fn
 }
 
 func (e *TemplateEngine) RegisterMethod(name string, fn MethodFunc) {
@@ -157,10 +158,10 @@ func (e *TemplateEngine) processDirective(directive string) (any, error) {
 	return value, nil
 }
 
-func (e *TemplateEngine) getGenerator(name string) (GeneratorFunc, bool) {
+func (e *TemplateEngine) getGenerator(name string) (TemplateFunc, bool) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	fn, ok := e.generators[name]
+	fn, ok := e.funcs[name]
 	return fn, ok
 }
 

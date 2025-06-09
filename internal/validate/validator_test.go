@@ -292,7 +292,7 @@ var (
 							},
 						},
 						Save: &tests.Save{
-							Json: map[string]string{"foo": "bar"},
+							Body: map[string]string{"foo": "bar"},
 							Headers: map[string]string{
 								"Authorization": "Bearer token",
 							},

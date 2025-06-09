@@ -11,16 +11,16 @@ import (
 )
 
 type Runner struct {
-	fakeEngine *templates.TemplateEngine
+	templateEngine *templates.TemplateEngine
 }
 
 func NewRunner() *Runner {
 	return &Runner{
-		fakeEngine: templates.New(),
+		templateEngine: templates.New(),
 	}
 }
 
-func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string, pass []tests.Pass) string {
+func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string, pass []*tests.Pass) string {
 	result := input
 	for _, p := range pass {
 		if p.Map != nil {
@@ -43,7 +43,7 @@ func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string, pass []tes
 		}
 
 		if strings.HasPrefix(key, "Fake.") {
-			if val, err := r.fakeEngine.Execute(match); err == nil {
+			if val, err := r.templateEngine.Execute(match); err == nil {
 				return fmt.Sprintf("%v", val)
 			}
 		}
@@ -54,7 +54,7 @@ func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string, pass []tes
 	return result
 }
 
-func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any, pass []tests.Pass) map[string]any {
+func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any, pass []*tests.Pass) map[string]any {
 	if body == nil {
 		return nil
 	}
@@ -77,7 +77,7 @@ func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any,
 	return result
 }
 
-func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]string, pass []tests.Pass) map[string]string {
+func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]string, pass []*tests.Pass) map[string]string {
 	if headers == nil {
 		return nil
 	}
@@ -94,23 +94,21 @@ func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]
 }
 
 func (r *Runner) renderTemplate(_ interfaces.ExecutionContext, raw string) any {
-	if !strings.Contains(raw, "{{") {
-		return raw
-	}
+	if strings.Contains(raw, "{{") {
+		if strings.Contains(raw, "Fake") {
+			result, err := r.templateEngine.Execute(raw)
+			if err != nil {
+				return raw
+			}
 
-	if strings.Contains(raw, "Fake") {
-		result, err := r.fakeEngine.Execute(raw)
-		if err != nil {
-			return raw
+			return result
 		}
-
-		return result
 	}
 
 	return raw
 }
 
-func (r *Runner) applyArray(ctx interfaces.ExecutionContext, arr []any, pass []tests.Pass) []any {
+func (r *Runner) applyArray(ctx interfaces.ExecutionContext, arr []any, pass []*tests.Pass) []any {
 	if arr == nil {
 		return nil
 	}
