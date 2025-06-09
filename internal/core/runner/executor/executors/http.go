@@ -24,6 +24,8 @@ import (
 
 const httpExecutorOutputPrefix = "HTTP Executor:"
 
+const httpExecutorRunTimeout = time.Second * 30
+
 var _ interfaces.Executor = (*HTTPExecutor)(nil)
 
 type HTTPExecutor struct {
@@ -35,7 +37,7 @@ type HTTPExecutor struct {
 
 func NewHTTPExecutor() *HTTPExecutor {
 	return &HTTPExecutor{
-		client:    &http.Client{Timeout: 30 * time.Second},
+		client:    &http.Client{Timeout: httpExecutorRunTimeout},
 		extractor: values.NewExtractor(),
 		assertor:  assert.NewRunner(),
 		passer:    form.NewRunner(),
@@ -118,21 +120,10 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 		output.EndCase(man, c.Name, caseResult)
 	}()
 
-	url := c.Url
+	// Building url to testing target
+	url := buildHttpURL(c.Url, man.Spec.Target, c.Endpoint)
 
-	if url == "" {
-		baseUrl := strings.TrimRight(man.Spec.Target, "/")
-		endpoint := strings.TrimLeft(c.Endpoint, "/")
-
-		if baseUrl != "" && endpoint != "" {
-			url = baseUrl + "/" + endpoint
-		} else if baseUrl != "" {
-			url = baseUrl
-		} else {
-			url = endpoint
-		}
-	}
-
+	// Applying values from Pass declaration
 	url = e.passer.Apply(ctx, url, c.Pass)
 	headers := e.passer.MapHeaders(ctx, c.Headers, c.Pass)
 	body := e.passer.ApplyBody(ctx, c.Body, c.Pass)
@@ -140,7 +131,7 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 	reqBody := &bytes.Buffer{}
 
 	if body != nil {
-		if err := json.NewEncoder(reqBody).Encode(body); err != nil {
+		if err = json.NewEncoder(reqBody).Encode(body); err != nil {
 			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to encode request body: %s", err.Error()))
 			return fmt.Errorf("encode body failed: %w", err)
 		}
@@ -158,7 +149,7 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 
 	timeout := c.Timeout
 	if timeout == 0 {
-		timeout = 5 * time.Second
+		timeout = httpExecutorRunTimeout
 	}
 
 	client := &http.Client{Timeout: timeout}
@@ -187,7 +178,6 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 
 	if c.Save != nil {
 		output.Logf(interfaces.InfoLevel, "%s data extraction for %s %s ", httpExecutorOutputPrefix, man.GetName(), man.Spec.Target)
-
 		e.extractor.Extract(ctx, man.GetID(), c.HttpCase, resp, respBody)
 	}
 
@@ -208,4 +198,21 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 	output.Logf(interfaces.InfoLevel, "%s HTTP Test %s passed", httpExecutorOutputPrefix, c.Name)
 
 	return nil
+}
+
+func buildHttpURL(url, target, endpoint string) string {
+	if url == "" {
+		baseUrl := strings.TrimRight(target, "/")
+		ep := strings.TrimLeft(endpoint, "/")
+
+		if baseUrl != "" && ep != "" {
+			url = baseUrl + "/" + ep
+		} else if baseUrl != "" {
+			url = baseUrl
+		} else {
+			url = ep
+		}
+	}
+
+	return url
 }

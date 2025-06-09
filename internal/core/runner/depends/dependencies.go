@@ -11,10 +11,9 @@ import (
 )
 
 var priorityOrder = map[string]int{
-	"Values":    100,
-	"ConfigMap": 90,
-	"Target":    50,
-	"Service":   30,
+	manifests.ValuesKind:  100,
+	manifests.ServerKind:  40,
+	manifests.ServiceKind: 30,
 }
 
 type GraphResult struct {
