@@ -45,6 +45,11 @@ tasks:
     cmds:
       - go test -v -coverpkg=./... -coverprofile=cover.out ./...
 
+  cover:
+    desc: Create SVG cover heatmap from cover.out
+    cmds:
+      - go-cover-treemap -percent=true -w=1080 -h=360 -coverprofile cover.out > cover.svg
+
   fmt:
     desc: 🧹 Cleaning all go code
     cmds:

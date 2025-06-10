@@ -68,7 +68,7 @@ func (e *Extractor) Extract(ctx interfaces.ExecutionContext, man manifests.Manif
 			if resp != nil {
 				result.Request.Headers = e.extractHeaders(c.Save.Request.Headers, resp.Request.Header, result.Request.Headers)
 			}
-			result.Request.Body = e.extractBody(c.Save.Request.Body, reqBody, result.Response.Body)
+			result.Request.Body = e.extractBody(c.Save.Request.Body, reqBody, result.Request.Body)
 		}
 
 		if c.Save.Response != nil {

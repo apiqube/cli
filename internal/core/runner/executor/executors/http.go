@@ -105,11 +105,13 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 		respBody = &bytes.Buffer{}
 		err      error
 	)
+	var reqBodyCopy []byte
 
 	output.StartCase(man, c.Name)
 	defer func() {
 		metrics.CollectHTTPMetrics(req, resp, c.Details, caseResult)
-		e.extractor.Extract(ctx, man, c.HttpCase, resp, reqBody.Bytes(), respBody.Bytes(), caseResult)
+		e.extractor.Extract(ctx, man, c.HttpCase, resp, reqBodyCopy, respBody.Bytes(), caseResult)
+
 		output.EndCase(man, c.Name, caseResult)
 	}()
 
@@ -125,6 +127,7 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 		}
 	}
 
+	reqBodyCopy = reqBody.Bytes()
 	req, err = http.NewRequest(c.Method, url, reqBody)
 	if err != nil {
 		caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to create request: %s", err.Error()))

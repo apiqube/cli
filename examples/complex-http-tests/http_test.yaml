@@ -24,3 +24,10 @@ spec:
             address:
               street: "{{ Fake.address }}"
               number: "{{ Regex(\"^[a-z]{5,10}@[a-z]{5,10}\\.(com|net|org)$\") }}"
+      save:
+        request:
+          body:
+            users: "*"
+        response:
+          body:
+            data: "*"
