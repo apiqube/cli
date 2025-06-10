@@ -7,22 +7,27 @@ import (
 	"sync"
 )
 
+// TemplateEngine is a pluggable engine for evaluating template expressions with generators and methods.
 type TemplateEngine struct {
-	funcs   map[string]TemplateFunc
-	methods map[string]MethodFunc
+	funcs   map[string]TemplateFunc // Registered generators (e.g. Fake.name, Fake.email)
+	methods map[string]MethodFunc   // Registered methods (e.g. ToUpper, Replace)
 	mu      sync.RWMutex
 }
 
+// TemplateFunc is a generator function (e.g. Fake.name, Fake.int)
 type TemplateFunc func(args ...string) (any, error)
 
+// MethodFunc is a method that operates on a value (e.g. ToUpper, Replace)
 type MethodFunc func(value any, args ...string) (any, error)
 
+// New creates a new TemplateEngine with built-in Fake generators and methods.
 func New() *TemplateEngine {
 	engine := &TemplateEngine{
 		funcs:   make(map[string]TemplateFunc),
 		methods: make(map[string]MethodFunc),
 	}
 
+	// --- Built-in Fake generators ---
 	engine.RegisterFunc("Fake.name", fakeName)
 	engine.RegisterFunc("Fake.email", fakeEmail)
 	engine.RegisterFunc("Fake.password", fakePassword)
@@ -30,29 +35,64 @@ func New() *TemplateEngine {
 	engine.RegisterFunc("Fake.uint", fakeUint)
 	engine.RegisterFunc("Fake.float", fakeFloat)
 	engine.RegisterFunc("Fake.bool", fakeBool)
+	engine.RegisterFunc("Fake.phone", fakePhone)
+	engine.RegisterFunc("Fake.address", fakeAddress)
+	engine.RegisterFunc("Fake.company", fakeCompany)
+	engine.RegisterFunc("Fake.date", fakeDate)
+	engine.RegisterFunc("Fake.uuid", fakeUUID)
+	engine.RegisterFunc("Fake.url", fakeURL)
+	engine.RegisterFunc("Fake.color", fakeColor)
+	engine.RegisterFunc("Fake.word", fakeWord)
+	engine.RegisterFunc("Fake.sentence", fakeSentence)
+	engine.RegisterFunc("Fake.country", fakeCountry)
+	engine.RegisterFunc("Fake.city", fakeCity)
+	engine.RegisterFunc("Fake.regex", fakeRegex)
+	engine.RegisterFunc("Fake.word", fakeWord)
 
+	// --- Built-in methods ---
 	engine.RegisterMethod("ToString", methodToString)
 	engine.RegisterMethod("ToUpper", methodToUpper)
 	engine.RegisterMethod("ToLower", methodToLower)
 	engine.RegisterMethod("Trim", methodTrim)
 	engine.RegisterMethod("Clone", methodClone)
 	engine.RegisterMethod("Replace", methodReplace)
+	engine.RegisterMethod("PadLeft", methodPadLeft)
+	engine.RegisterMethod("PadRight", methodPadRight)
+	engine.RegisterMethod("Substring", methodSubstring)
+	engine.RegisterMethod("Capitalize", methodCapitalize)
+	engine.RegisterMethod("Reverse", methodReverse)
+	engine.RegisterMethod("RandomCase", methodRandomCase)
+	engine.RegisterMethod("SnakeCase", methodSnakeCase)
+	engine.RegisterMethod("CamelCase", methodCamelCase)
+	engine.RegisterMethod("Split", methodSplit)
+	engine.RegisterMethod("Join", methodJoin)
+	engine.RegisterMethod("Index", methodIndex)
+	engine.RegisterMethod("Cut", methodCut)
+	engine.RegisterMethod("ToInt", methodToInt)
+	engine.RegisterMethod("ToUint", methodToUint)
+	engine.RegisterMethod("ToFloat", methodToFloat)
+	engine.RegisterMethod("ToBool", methodToBool)
+	engine.RegisterMethod("ToArray", methodToArray)
 
 	return engine
 }
 
+// RegisterFunc registers a new generator function.
 func (e *TemplateEngine) RegisterFunc(name string, fn TemplateFunc) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.funcs[name] = fn
 }
 
+// RegisterMethod registers a new method.
 func (e *TemplateEngine) RegisterMethod(name string, fn MethodFunc) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.methods[name] = fn
 }
 
+// Execute evaluates a template string, replacing all {{ ... }} expressions with generated values.
+// Supports both pure directives (e.g. {{ Fake.name }}) and mixed strings (e.g. "User: {{ Fake.name }} <{{ Fake.email }}>").
 func (e *TemplateEngine) Execute(template string) (any, error) {
 	if isPureDirective(template) {
 		return e.processDirective(extractDirective(template))
@@ -80,19 +120,19 @@ func (e *TemplateEngine) Execute(template string) (any, error) {
 	return result.String(), nil
 }
 
+// processDirective parses and evaluates a directive with optional methods.
+//
+// Example: "Fake.name.ToUpper().Replace(' ','_')"
 func (e *TemplateEngine) processDirective(directive string) (any, error) {
 	parts := strings.Split(directive, ".")
 	if len(parts) < 1 {
 		return nil, fmt.Errorf("invalid directive format")
 	}
 
-	fmt.Printf("directive: %s parts: %v\n", directive, parts)
-
+	// --- Generator resolution ---
 	var value any
 	var err error
 	processed := 0
-
-	// Попытка найти генератор
 	for i := 0; i < len(parts); i++ {
 		current := strings.Join(parts[:i+1], ".")
 		if generator, ok := e.getGenerator(current); ok {
@@ -113,9 +153,8 @@ func (e *TemplateEngine) processDirective(directive string) (any, error) {
 		}
 	}
 
-	// 🔧 Новый блок: если генератор не найден — считаем, что это литерал
+	// If no generator found, treat as literal value
 	if value == nil {
-		// строка до первого метода — это значение
 		var literalParts []string
 		for i := 0; i < len(parts); i++ {
 			if strings.Contains(parts[i], "(") {
@@ -127,7 +166,7 @@ func (e *TemplateEngine) processDirective(directive string) (any, error) {
 		value = strings.Join(literalParts, ".")
 	}
 
-	// Обработка методов
+	// --- Method chain resolution ---
 	for i := processed; i < len(parts); i++ {
 		if strings.Contains(parts[i], "(") {
 			methodName := strings.Split(parts[i], "(")[0]
@@ -166,6 +205,7 @@ func (e *TemplateEngine) getMethod(name string) (MethodFunc, bool) {
 	return fn, ok
 }
 
+// isPureDirective checks if the template is a single directive (e.g. {{ Fake.name }})
 func isPureDirective(template string) bool {
 	trimmed := strings.TrimSpace(template)
 	if !strings.HasPrefix(trimmed, "{{") || !strings.HasSuffix(trimmed, "}}") {
@@ -176,6 +216,7 @@ func isPureDirective(template string) bool {
 	return !strings.Contains(content, "{{") && !strings.Contains(content, "}}")
 }
 
+// extractDirective extracts the inner directive from a template string.
 func extractDirective(template string) string {
 	return strings.TrimSpace(template[2 : len(template)-2])
 }

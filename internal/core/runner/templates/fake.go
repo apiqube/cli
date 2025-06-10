@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -102,4 +103,57 @@ func fakeFloat(_ ...string) (any, error) {
 
 func fakeBool(_ ...string) (any, error) {
 	return gofakeit.Bool(), nil
+}
+
+func fakePhone(_ ...string) (any, error) {
+	return gofakeit.Phone(), nil
+}
+
+func fakeAddress(_ ...string) (any, error) {
+	return gofakeit.Address().Address, nil
+}
+
+func fakeCompany(_ ...string) (any, error) {
+	return gofakeit.Company(), nil
+}
+
+func fakeDate(_ ...string) (any, error) {
+	return gofakeit.Date(), nil
+}
+
+func fakeUUID(_ ...string) (any, error) {
+	return gofakeit.UUID(), nil
+}
+
+func fakeURL(_ ...string) (any, error) {
+	return gofakeit.URL(), nil
+}
+
+func fakeColor(_ ...string) (any, error) {
+	return gofakeit.Color(), nil
+}
+
+func fakeWord(_ ...string) (any, error) {
+	return gofakeit.Word(), nil
+}
+
+func fakeSentence(_ ...string) (any, error) {
+	return gofakeit.SentenceSimple(), nil
+}
+
+func fakeCountry(_ ...string) (any, error) {
+	return gofakeit.Country(), nil
+}
+
+func fakeCity(_ ...string) (any, error) {
+	return gofakeit.City(), nil
+}
+
+func fakeRegex(args ...string) (any, error) {
+	if len(args) > 0 {
+		fmt.Println(args)
+		return gofakeit.Regex(clearArg(args[0])), nil
+	}
+
+	return nil, fmt.Errorf("please provide a valid regex pattern")
 }

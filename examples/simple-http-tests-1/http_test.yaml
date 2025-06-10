@@ -22,5 +22,5 @@ spec:
             email: "{{ Fake.email }}"
             age: "{{ Fake.uint.10.100 }}"
             address:
-              street: "{{ Body.users.#.name.ToLower().Replace(' ','_')}}_{{ Body.users.#.age }}_{{ Fake.uint.10.100.ToString() }}"
-              number: "{{ Fake.uint.1.10.ToString() }}"
+              street: "{{ Fake.address }}"
+              number: "{{ Regex(^[a-z]{5,10}@[a-z]{5,10}\\.(com|net|org)$\) }}"
