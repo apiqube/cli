@@ -30,10 +30,7 @@ func (e *Extractor) Extract(ctx interfaces.ExecutionContext, man manifests.Manif
 	result := &Result{
 		ManifestID: man.GetID(),
 		CaseName:   c.Name,
-		Target:     resp.Request.URL.String(),
-		Method:     resp.Request.Method,
-		StatusCode: resp.StatusCode,
-		Duration:   caseResult.Duration,
+		ResultCase: caseResult,
 		Request: &Entry{
 			Headers: make(map[string]string),
 			Body:    make(map[string]any),
@@ -44,11 +41,16 @@ func (e *Extractor) Extract(ctx interfaces.ExecutionContext, man manifests.Manif
 		},
 	}
 
+	if resp != nil {
+		result.Target = resp.Request.URL.String()
+		result.Method = resp.Request.Method
+	}
+
 	defer func() {
 		var builder strings.Builder
 
 		builder.WriteString("\nExtractor:")
-		builder.WriteString(fmt.Sprintf("\nID: %s\nCase: %s\nTarget: %s\n Status: %d", result.ManifestID, result.CaseName, result.Target, result.StatusCode))
+		builder.WriteString(fmt.Sprintf("\nID: %s\nCase: %s\nTarget: %s\n Status: %d", result.ManifestID, result.CaseName, result.Target, result.ResultCase.StatusCode))
 
 		reqData, _ := json.MarshalIndent(result.Request, "", " ")
 		builder.WriteString(fmt.Sprintf("\n\tRequest: %v", string(reqData)))
@@ -63,12 +65,16 @@ func (e *Extractor) Extract(ctx interfaces.ExecutionContext, man manifests.Manif
 
 	if c.Save != nil {
 		if c.Save.Request != nil {
-			result.Request.Headers = e.extractHeaders(c.Save.Request.Headers, resp.Request.Header, result.Request.Headers)
+			if resp != nil {
+				result.Request.Headers = e.extractHeaders(c.Save.Request.Headers, resp.Request.Header, result.Request.Headers)
+			}
 			result.Request.Body = e.extractBody(c.Save.Request.Body, reqBody, result.Response.Body)
 		}
 
 		if c.Save.Response != nil {
-			result.Response.Headers = e.extractHeaders(c.Save.Response.Headers, resp.Header, result.Response.Headers)
+			if resp != nil {
+				result.Response.Headers = e.extractHeaders(c.Save.Response.Headers, resp.Header, result.Response.Headers)
+			}
 			result.Response.Body = e.extractBody(c.Save.Response.Body, respBody, result.Response.Body)
 		}
 	}
@@ -88,6 +94,10 @@ func (e *Extractor) extractHeaders(list []string, origin http.Header, source map
 }
 
 func (e *Extractor) extractBody(mapList map[string]string, origin []byte, source map[string]any) map[string]any {
+	if len(origin) == 0 {
+		return source
+	}
+
 	var value any
 	var once bool
 

@@ -59,8 +59,17 @@ func (r *Runner) Assert(ctx interfaces.ExecutionContext, asserts []*tests.Assert
 
 func (r *Runner) assertStatus(_ interfaces.ExecutionContext, assert *tests.Assert, resp *http.Response) error {
 	if assert.Equals != nil {
-		expectedCode, ok := assert.Equals.(int)
-		if !ok {
+		var expectedCode int
+		switch val := assert.Equals.(type) {
+		case uint:
+			expectedCode = int(val)
+		case uint64:
+			expectedCode = int(val)
+		case int64:
+			expectedCode = int(val)
+		case int:
+			expectedCode = val
+		default:
 			return fmt.Errorf("expected status type [int] got %T", assert.Equals)
 		}
 

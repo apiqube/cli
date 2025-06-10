@@ -2,7 +2,8 @@ package save
 
 import (
 	"fmt"
-	"time"
+
+	"github.com/apiqube/cli/internal/core/runner/interfaces"
 )
 
 type Result struct {
@@ -10,8 +11,8 @@ type Result struct {
 	CaseName   string
 	Target     string
 	Method     string
-	Duration   time.Duration
-	StatusCode int
+
+	ResultCase *interfaces.CaseResult
 
 	Request  *Entry
 	Response *Entry
