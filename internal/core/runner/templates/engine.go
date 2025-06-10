@@ -27,7 +27,7 @@ func New() *TemplateEngine {
 		methods: make(map[string]MethodFunc),
 	}
 
-	// --- Built-in Fake generators ---
+	// Register built-in Fake generators
 	engine.RegisterFunc("Fake.name", fakeName)
 	engine.RegisterFunc("Fake.email", fakeEmail)
 	engine.RegisterFunc("Fake.password", fakePassword)
@@ -46,12 +46,11 @@ func New() *TemplateEngine {
 	engine.RegisterFunc("Fake.sentence", fakeSentence)
 	engine.RegisterFunc("Fake.country", fakeCountry)
 	engine.RegisterFunc("Fake.city", fakeCity)
-	engine.RegisterFunc("Fake.word", fakeWord)
 
-	// --- Built-in Regex generator ---
+	// Register built-in Regex generator
 	engine.RegisterFunc("Regex", regex)
 
-	// --- Built-in methods ---
+	// Register built-in methods
 	engine.RegisterMethod("ToString", methodToString)
 	engine.RegisterMethod("ToUpper", methodToUpper)
 	engine.RegisterMethod("ToLower", methodToLower)
@@ -106,102 +105,34 @@ func (e *TemplateEngine) Execute(template string) (any, error) {
 
 	for _, match := range re.FindAllStringSubmatchIndex(template, -1) {
 		result.WriteString(template[lastIndex:match[0]])
-
-		inner := strings.Trim(template[match[2]:match[3]], " \t")
+		inner := strings.TrimSpace(template[match[2]:match[3]])
 		val, err := e.processDirective(inner)
 		if err != nil {
 			return nil, fmt.Errorf("template error: %v", err)
 		}
-
 		result.WriteString(fmt.Sprintf("%v", val))
 		lastIndex = match[1]
 	}
-
 	result.WriteString(template[lastIndex:])
-
 	return result.String(), nil
 }
 
 // processDirective parses and evaluates a directive with optional methods.
+// Example: "Fake.uint.10.100.ToString()" or "Regex('pattern').ToUpper()"
 func (e *TemplateEngine) processDirective(directive string) (any, error) {
-	// Correctly extract generator name (e.g. Fake.name, Body.field, Regex(...)) and method chain
-	genEnd := len(directive)
-	methodsStart := len(directive)
-
-	if strings.HasPrefix(directive, "Regex(") {
-		// Regex(...) - find closing parenthesis
-		parenDepth := 0
-		for i, r := range directive {
-			if r == '(' {
-				parenDepth++
-			} else if r == ')' {
-				parenDepth--
-				if parenDepth == 0 {
-					genEnd = i + 1
-					break
-				}
-			}
+	// Fast path: no methods
+	if !strings.Contains(directive, ".") && !strings.Contains(directive, "(") {
+		generator, ok := e.getGenerator(directive)
+		if !ok {
+			return nil, fmt.Errorf("unknown generator: %s", directive)
 		}
-		methodsStart = genEnd
-	} else {
-		// For Fake.*, Body.*, and other generators with dot notation and digits (e.g. Fake.uint.10.100)
-		parenDepth := 0
-		for i := 0; i < len(directive); i++ {
-			r := directive[i]
-			switch r {
-			case '(':
-				parenDepth++
-			case ')':
-				if parenDepth > 0 {
-					parenDepth--
-				}
-			case '.':
-				if parenDepth == 0 && i+1 < len(directive) {
-					next := directive[i+1]
-					// Only treat as method if next is uppercase letter (A-Z)
-					if next >= 'A' && next <= 'Z' {
-						genEnd = i
-						methodsStart = i
-						break
-					}
-				}
-			}
-			if genEnd != len(directive) {
-				break
-			}
-		}
+		return generator()
 	}
 
-	genPart := directive[:genEnd]
-	methodsPart := ""
-	if methodsStart < len(directive) {
-		methodsPart = directive[methodsStart:]
-	}
+	// Parse generator and method chain
+	genPart, methodsPart := splitGeneratorAndMethods(directive)
+	genName, genArgs := parseGeneratorNameAndArgs(genPart)
 
-	// Parse generator name and arguments
-	// Special handling for dot-argument generators (e.g. Fake.uint.10.100)
-	genName := genPart
-	var genArgs []string
-	if strings.HasPrefix(genPart, "Fake.") || strings.HasPrefix(genPart, "Body.") {
-		parts := strings.Split(genPart, ".")
-		if len(parts) > 2 {
-			genName = strings.Join(parts[:2], ".")
-			genArgs = append(genArgs, parts[2:]...)
-		}
-	}
-	// Also support argument passing via parentheses (e.g. Regex(...))
-	if idx := strings.Index(genPart, "("); idx != -1 && strings.HasSuffix(genPart, ")") {
-		genName = genPart[:idx]
-		argsStr := genPart[idx+1 : len(genPart)-1]
-		if len(argsStr) > 0 {
-			args := splitArgs(argsStr)
-			for _, a := range args {
-				genArgs = append(genArgs, strings.TrimSpace(a))
-			}
-		}
-	}
-
-	// Call the generator function (e.g. Fake.name, Regex, etc.)
 	generator, ok := e.getGenerator(genName)
 	if !ok {
 		return nil, fmt.Errorf("unknown generator: %s", genName)
@@ -214,7 +145,8 @@ func (e *TemplateEngine) processDirective(directive string) (any, error) {
 	// Apply method chain if present
 	methods := parseMethods(methodsPart)
 	for _, m := range methods {
-		method, ok := e.getMethod(m.name)
+		var method MethodFunc
+		method, ok = e.getMethod(m.name)
 		if !ok {
 			return nil, fmt.Errorf("unknown method: %s", m.name)
 		}
@@ -223,10 +155,72 @@ func (e *TemplateEngine) processDirective(directive string) (any, error) {
 			return nil, err
 		}
 	}
-
 	return value, nil
 }
 
+// splitGeneratorAndMethods splits directive into generator part and method chain part.
+// Handles Fake.uint.10.100, Regex(...), and method chains like .ToUpper().Replace(...)
+func splitGeneratorAndMethods(directive string) (string, string) {
+	// Regex(...) special case: find closing parenthesis
+	if strings.HasPrefix(directive, "Regex(") {
+		paren := 0
+		for i, r := range directive {
+			if r == '(' {
+				paren++
+			} else if r == ')' {
+				paren--
+				if paren == 0 {
+					return directive[:i+1], directive[i+1:]
+				}
+			}
+		}
+		return directive, ""
+	}
+	// For Fake.*, Body.*, and other dot generators
+	paren := 0
+	for i := 0; i < len(directive); i++ {
+		r := directive[i]
+		switch r {
+		case '(':
+			paren++
+		case ')':
+			if paren > 0 {
+				paren--
+			}
+		case '.':
+			if paren == 0 && i+1 < len(directive) {
+				next := directive[i+1]
+				if next >= 'A' && next <= 'Z' {
+					return directive[:i], directive[i:]
+				}
+			}
+		}
+	}
+	return directive, ""
+}
+
+// parseGeneratorNameAndArgs parses generator name and arguments from the generator part.
+// For Fake.uint.10.100 returns (Fake.uint, [10, 100])
+func parseGeneratorNameAndArgs(genPart string) (string, []string) {
+	if strings.HasPrefix(genPart, "Fake.") || strings.HasPrefix(genPart, "Body.") {
+		parts := strings.Split(genPart, ".")
+		if len(parts) > 2 {
+			return strings.Join(parts[:2], "."), parts[2:]
+		}
+		return genPart, nil
+	}
+	if idx := strings.Index(genPart, "("); idx != -1 && strings.HasSuffix(genPart, ")") {
+		name := genPart[:idx]
+		argsStr := genPart[idx+1 : len(genPart)-1]
+		if len(argsStr) > 0 {
+			return name, splitArgs(argsStr)
+		}
+		return name, nil
+	}
+	return genPart, nil
+}
+
+// splitArgs splits arguments by comma, respecting quotes.
 func splitArgs(s string) []string {
 	var args []string
 	var cur strings.Builder
@@ -260,6 +254,7 @@ type methodCall struct {
 	args []string
 }
 
+// parseMethods parses method chain from a string (e.g. .ToUpper().Replace(' ','_'))
 func parseMethods(s string) []methodCall {
 	var methods []methodCall
 	i := 0
@@ -314,12 +309,8 @@ func (e *TemplateEngine) getMethod(name string) (MethodFunc, bool) {
 // isPureDirective checks if the template is a single directive (e.g. {{ Fake.name }})
 func isPureDirective(template string) bool {
 	trimmed := strings.TrimSpace(template)
-	if !strings.HasPrefix(trimmed, "{{") || !strings.HasSuffix(trimmed, "}}") {
-		return false
-	}
-
-	content := trimmed[2 : len(trimmed)-2]
-	return !strings.Contains(content, "{{") && !strings.Contains(content, "}}")
+	return strings.HasPrefix(trimmed, "{{") && strings.HasSuffix(trimmed, "}}") &&
+		strings.Count(trimmed, "{{") == 1 && strings.Count(trimmed, "}}") == 1
 }
 
 // extractDirective extracts the inner directive from a template string.
