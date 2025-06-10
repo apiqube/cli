@@ -23,4 +23,4 @@ spec:
             age: "{{ Fake.uint.10.100 }}"
             address:
               street: "{{ Fake.address }}"
-              number: "{{ Regex(^[a-z]{5,10}@[a-z]{5,10}\\.(com|net|org)$\) }}"
+              number: "{{ Regex(\"^[a-z]{5,10}@[a-z]{5,10}\\.(com|net|org)$\") }}"

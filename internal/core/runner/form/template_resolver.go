@@ -23,7 +23,7 @@ func NewDefaultTemplateResolver(templateEngine *templates.TemplateEngine, valueE
 	}
 }
 
-func (r *DefaultTemplateResolver) Resolve(ctx interfaces.ExecutionContext, templateStr string, pass []*tests.Pass, processedData map[string]any, indexStack []int) (any, error) {
+func (r *DefaultTemplateResolver) Resolve(ctx interfaces.ExecutionContext, templateStr string, _ []*tests.Pass, processedData map[string]any, indexStack []int) (any, error) {
 	templateStr = strings.TrimSpace(templateStr)
 	content := templateStr
 	// If input was wrapped in {{ }}, remove them for processing
@@ -44,6 +44,16 @@ func (r *DefaultTemplateResolver) Resolve(ctx interfaces.ExecutionContext, templ
 
 	// Handle Fake.* templates: always wrap in {{ ... }} for template engine
 	if strings.HasPrefix(content, "Fake.") {
+		wrapped := "{{ " + content + " }}"
+		result, err := r.templateEngine.Execute(wrapped)
+		if err != nil {
+			return wrapped, err
+		}
+		return result, nil
+	}
+
+	// Handle Regex.* templates: always wrap in {{ ... }} for template engine
+	if strings.HasPrefix(content, "Regex(") {
 		wrapped := "{{ " + content + " }}"
 		result, err := r.templateEngine.Execute(wrapped)
 		if err != nil {

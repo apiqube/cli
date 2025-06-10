@@ -46,8 +46,10 @@ func New() *TemplateEngine {
 	engine.RegisterFunc("Fake.sentence", fakeSentence)
 	engine.RegisterFunc("Fake.country", fakeCountry)
 	engine.RegisterFunc("Fake.city", fakeCity)
-	engine.RegisterFunc("Fake.regex", fakeRegex)
 	engine.RegisterFunc("Fake.word", fakeWord)
+
+	// --- Built-in Regex generator ---
+	engine.RegisterFunc("Regex", regex)
 
 	// --- Built-in methods ---
 	engine.RegisterMethod("ToString", methodToString)
@@ -121,74 +123,178 @@ func (e *TemplateEngine) Execute(template string) (any, error) {
 }
 
 // processDirective parses and evaluates a directive with optional methods.
-//
-// Example: "Fake.name.ToUpper().Replace(' ','_')"
 func (e *TemplateEngine) processDirective(directive string) (any, error) {
-	parts := strings.Split(directive, ".")
-	if len(parts) < 1 {
-		return nil, fmt.Errorf("invalid directive format")
-	}
+	// Correctly extract generator name (e.g. Fake.name, Body.field, Regex(...)) and method chain
+	genEnd := len(directive)
+	methodsStart := len(directive)
 
-	// --- Generator resolution ---
-	var value any
-	var err error
-	processed := 0
-	for i := 0; i < len(parts); i++ {
-		current := strings.Join(parts[:i+1], ".")
-		if generator, ok := e.getGenerator(current); ok {
-			args := parts[i+1:]
-			var genArgs []string
-			for j := 0; j < len(args); j++ {
-				if strings.Contains(args[j], "(") {
+	if strings.HasPrefix(directive, "Regex(") {
+		// Regex(...) - find closing parenthesis
+		parenDepth := 0
+		for i, r := range directive {
+			if r == '(' {
+				parenDepth++
+			} else if r == ')' {
+				parenDepth--
+				if parenDepth == 0 {
+					genEnd = i + 1
 					break
 				}
-				genArgs = append(genArgs, args[j])
 			}
-			value, err = generator(genArgs...)
-			if err != nil {
-				return nil, err
-			}
-			processed = i + len(genArgs) + 1
-			break
 		}
-	}
-
-	// If no generator found, treat as literal value
-	if value == nil {
-		var literalParts []string
-		for i := 0; i < len(parts); i++ {
-			if strings.Contains(parts[i], "(") {
+		methodsStart = genEnd
+	} else {
+		// For Fake.*, Body.*, and other generators with dot notation and digits (e.g. Fake.uint.10.100)
+		parenDepth := 0
+		for i := 0; i < len(directive); i++ {
+			r := directive[i]
+			switch r {
+			case '(':
+				parenDepth++
+			case ')':
+				if parenDepth > 0 {
+					parenDepth--
+				}
+			case '.':
+				if parenDepth == 0 && i+1 < len(directive) {
+					next := directive[i+1]
+					// Only treat as method if next is uppercase letter (A-Z)
+					if next >= 'A' && next <= 'Z' {
+						genEnd = i
+						methodsStart = i
+						break
+					}
+				}
+			}
+			if genEnd != len(directive) {
 				break
 			}
-			literalParts = append(literalParts, parts[i])
-			processed++
 		}
-		value = strings.Join(literalParts, ".")
 	}
 
-	// --- Method chain resolution ---
-	for i := processed; i < len(parts); i++ {
-		if strings.Contains(parts[i], "(") {
-			methodName := strings.Split(parts[i], "(")[0]
-			method, ok := e.getMethod(methodName)
-			if !ok {
-				return nil, fmt.Errorf("unknown method: %s", methodName)
-			}
+	genPart := directive[:genEnd]
+	methodsPart := ""
+	if methodsStart < len(directive) {
+		methodsPart = directive[methodsStart:]
+	}
 
-			argsStr := strings.TrimSuffix(strings.SplitN(parts[i], "(", 2)[1], ")")
-			args := strings.Split(argsStr, ",")
-			for j := range args {
-				args[j] = strings.TrimSpace(args[j])
+	// Parse generator name and arguments
+	// Special handling for dot-argument generators (e.g. Fake.uint.10.100)
+	genName := genPart
+	var genArgs []string
+	if strings.HasPrefix(genPart, "Fake.") || strings.HasPrefix(genPart, "Body.") {
+		parts := strings.Split(genPart, ".")
+		if len(parts) > 2 {
+			genName = strings.Join(parts[:2], ".")
+			genArgs = append(genArgs, parts[2:]...)
+		}
+	}
+	// Also support argument passing via parentheses (e.g. Regex(...))
+	if idx := strings.Index(genPart, "("); idx != -1 && strings.HasSuffix(genPart, ")") {
+		genName = genPart[:idx]
+		argsStr := genPart[idx+1 : len(genPart)-1]
+		if len(argsStr) > 0 {
+			args := splitArgs(argsStr)
+			for _, a := range args {
+				genArgs = append(genArgs, strings.TrimSpace(a))
 			}
+		}
+	}
 
-			value, err = method(value, args...)
-			if err != nil {
-				return nil, err
-			}
+	// Call the generator function (e.g. Fake.name, Regex, etc.)
+	generator, ok := e.getGenerator(genName)
+	if !ok {
+		return nil, fmt.Errorf("unknown generator: %s", genName)
+	}
+	value, err := generator(genArgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply method chain if present
+	methods := parseMethods(methodsPart)
+	for _, m := range methods {
+		method, ok := e.getMethod(m.name)
+		if !ok {
+			return nil, fmt.Errorf("unknown method: %s", m.name)
+		}
+		value, err = method(value, m.args...)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return value, nil
+}
+
+func splitArgs(s string) []string {
+	var args []string
+	var cur strings.Builder
+	inQuotes := false
+	quoteChar := byte(0)
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c == '\'' || c == '"') && (i == 0 || s[i-1] != '\\') {
+			if inQuotes && c == quoteChar {
+				inQuotes = false
+			} else if !inQuotes {
+				inQuotes = true
+				quoteChar = c
+			}
+		}
+		if c == ',' && !inQuotes {
+			args = append(args, cur.String())
+			cur.Reset()
+		} else {
+			cur.WriteByte(c)
+		}
+	}
+	if cur.Len() > 0 {
+		args = append(args, cur.String())
+	}
+	return args
+}
+
+type methodCall struct {
+	name string
+	args []string
+}
+
+func parseMethods(s string) []methodCall {
+	var methods []methodCall
+	i := 0
+	for i < len(s) {
+		if s[i] != '.' {
+			i++
+			continue
+		}
+		j := i + 1
+		for j < len(s) && ((s[j] >= 'A' && s[j] <= 'Z') || (s[j] >= 'a' && s[j] <= 'z')) {
+			j++
+		}
+		name := s[i+1 : j]
+		var args []string
+		if j < len(s) && s[j] == '(' {
+			k := j + 1
+			paren := 1
+			for k < len(s) && paren > 0 {
+				if s[k] == '(' {
+					paren++
+				} else if s[k] == ')' {
+					paren--
+				}
+				k++
+			}
+			if paren == 0 {
+				argStr := s[j+1 : k-1]
+				args = splitArgs(argStr)
+				j = k
+			}
+		}
+		methods = append(methods, methodCall{name, args})
+		i = j
+	}
+	return methods
 }
 
 func (e *TemplateEngine) getGenerator(name string) (TemplateFunc, bool) {

@@ -1,7 +1,6 @@
 package templates
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -147,13 +146,4 @@ func fakeCountry(_ ...string) (any, error) {
 
 func fakeCity(_ ...string) (any, error) {
 	return gofakeit.City(), nil
-}
-
-func fakeRegex(args ...string) (any, error) {
-	if len(args) > 0 {
-		fmt.Println(args)
-		return gofakeit.Regex(clearArg(args[0])), nil
-	}
-
-	return nil, fmt.Errorf("please provide a valid regex pattern")
 }
