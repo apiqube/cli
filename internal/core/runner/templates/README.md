@@ -8,7 +8,7 @@ A high-performance, extensible template engine for generating dynamic data in Go
 - [Overview](#overview)
 - [Key Concepts](#key-concepts)
 - [Supported Directives](#supported-directives)
-- [Generators](#generators)
+- [Generators](#supported-directives)
 - [Methods](#methods)
 - [Syntax & Examples](#syntax--examples)
 ---
