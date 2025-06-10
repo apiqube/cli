@@ -1,10 +1,11 @@
 package form
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"

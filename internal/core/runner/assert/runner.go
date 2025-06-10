@@ -2,12 +2,13 @@ package assert
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/apiqube/cli/internal/core/runner/templates"
 

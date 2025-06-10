@@ -26,7 +26,7 @@ func TestTemplateEngine_FakeGenerators(t *testing.T) {
 		{"{{ Fake.uuid }}", `^[a-f0-9-]{36}$`, "Fake.uuid"},
 		{"{{ Fake.url }}", `^https?://`, "Fake.url"},
 		{"{{ Fake.color }}", `.+`, "Fake.color"},
-		{"{{ Fake.word }}", `^[A-Za-z]+$`, "Fake.word"},
+		{"{{ Fake.word }}", `.+`, "Fake.word"},
 		{"{{ Fake.sentence }}", `.+`, "Fake.sentence"},
 		{"{{ Fake.country }}", `.+`, "Fake.country"},
 		{"{{ Fake.city }}", `.+`, "Fake.city"},

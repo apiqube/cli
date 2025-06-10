@@ -1,12 +1,13 @@
 package operations
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
+
+	"github.com/goccy/go-json"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/goccy/go-yaml"

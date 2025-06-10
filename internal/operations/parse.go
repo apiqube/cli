@@ -2,9 +2,10 @@ package operations
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/goccy/go-json"
 
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
 

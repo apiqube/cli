@@ -2,10 +2,11 @@ package operations
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/goccy/go-yaml"
@@ -16,7 +17,7 @@ func NormalizeJSON(m manifests.Manifest) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to normalize manifest: %v", err)
 	}
-	var raw interface{}
+	var raw any
 	if err = json.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("failed to normalize manifest: %v", err)
 	}
@@ -39,7 +40,7 @@ func NormalizeYAML(m manifests.Manifest) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to normalize manifest: %v", err)
 	}
-	var raw interface{}
+	var raw any
 	if err = json.Unmarshal(jsonData, &raw); err != nil {
 		return nil, fmt.Errorf("failed to normalize manifest: %v", err)
 	}

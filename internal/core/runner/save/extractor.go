@@ -1,10 +1,11 @@
 package save
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"

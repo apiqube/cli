@@ -130,7 +130,7 @@ func TestNormalize_StableHashes(t *testing.T) {
 						return
 					}
 					mu.Lock()
-					hashesJSON = append(hashesYAML, hash(data))
+					hashesJSON = append(hashesJSON, hash(data))
 					mu.Unlock()
 				}()
 			}
