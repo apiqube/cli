@@ -1,0 +1,26 @@
+version: v1
+kind: HttpTest
+metadata:
+  name: simple-test-example-1
+  namespace: simple-http-tests-1
+
+spec:
+  target: http://127.0.0.1:8081
+  cases:
+
+    - name: Create New Array of User
+      method: POST
+      endpoint: /users-batch
+      assert:
+        - target: status
+          equals: 201
+      body:
+        users:
+          __repeat: 2
+          __template:
+            name: "{{ Fake.name }}"
+            email: "{{ Fake.email }}"
+            age: "{{ Fake.uint.10.100 }}"
+            address:
+              street: "{{ Fake.address }}"
+              number: "{{ Regex(\"^[a-z]{5,10}@[a-z]{5,10}\\.(com|net|org)$\") }}"

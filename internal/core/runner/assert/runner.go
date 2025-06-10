@@ -3,6 +3,7 @@ package assert
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -37,29 +38,32 @@ func NewRunner() *Runner {
 }
 
 func (r *Runner) Assert(ctx interfaces.ExecutionContext, asserts []*tests.Assert, resp *http.Response, body []byte) error {
+	var err error
+
 	for _, assert := range asserts {
 		switch assert.Target {
 		case Status.String():
-			return r.assertStatus(ctx, assert, resp)
+			err = errors.Join(err, r.assertStatus(ctx, assert, resp))
 		case Body.String():
-			return r.assertBody(ctx, assert, resp, body)
+			err = errors.Join(err, r.assertBody(ctx, assert, resp, body))
 		case Headers.String():
-			return r.assertHeaders(ctx, assert, resp)
+			err = errors.Join(err, r.assertHeaders(ctx, assert, resp))
 		default:
 			return fmt.Errorf("assert failed: unknown assert target %s", assert.Target)
 		}
 	}
-	return nil
+
+	return err
 }
 
 func (r *Runner) assertStatus(_ interfaces.ExecutionContext, assert *tests.Assert, resp *http.Response) error {
 	if assert.Equals != nil {
-		expectedCode, ok := assert.Equals.(float64)
+		expectedCode, ok := assert.Equals.(int)
 		if !ok {
-			return fmt.Errorf("expected status correct value got %v", assert.Equals)
+			return fmt.Errorf("expected status type [int] got %T", assert.Equals)
 		}
 
-		if resp.StatusCode != int(expectedCode) {
+		if resp.StatusCode != expectedCode {
 			return fmt.Errorf("expected status code %v, got %v", expectedCode, resp.StatusCode)
 		}
 	}
@@ -114,7 +118,7 @@ func (r *Runner) assertBody(_ interfaces.ExecutionContext, assert *tests.Assert,
 
 	if assert.Contains != "" {
 		if !bytes.Contains(body, []byte(assert.Contains)) {
-			return fmt.Errorf("expected %v in body", assert.Contains)
+			return fmt.Errorf("expected '%v' in body", assert.Contains)
 		}
 
 		return nil
@@ -126,7 +130,7 @@ func (r *Runner) assertBody(_ interfaces.ExecutionContext, assert *tests.Assert,
 func (r *Runner) assertHeaders(_ interfaces.ExecutionContext, assert *tests.Assert, resp *http.Response) error {
 	if assert.Equals != nil {
 		if equals, ok := assert.Equals.(map[string]any); ok {
-			return fmt.Errorf("expected map assertion got %v", assert.Equals)
+			return fmt.Errorf("expected map type assertion got %T", assert.Equals)
 		} else {
 			for key, expectedVal := range equals {
 				actualVal := resp.Header.Get(key)
@@ -152,7 +156,7 @@ func (r *Runner) assertHeaders(_ interfaces.ExecutionContext, assert *tests.Asse
 		}
 
 		if !found {
-			return fmt.Errorf("expected header %v but not found", assert.Contains)
+			return fmt.Errorf("expected header contains %v but not found", assert.Contains)
 		}
 	}
 

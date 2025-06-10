@@ -34,7 +34,7 @@ var cmdPlanCheck = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		opts, err := parseCheckPlanFlags(cmd, args)
 		if err != nil {
-			cli.Errorf("Failed to parse provided values: %v", err)
+			cli.Errorf("Failed to parse provided save: %v", err)
 			return
 		}
 

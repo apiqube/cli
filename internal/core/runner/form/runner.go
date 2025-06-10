@@ -1,6 +1,7 @@
 package form
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -10,17 +11,94 @@ import (
 	"github.com/apiqube/cli/internal/core/runner/templates"
 )
 
+// Runner is the main form processing engine
 type Runner struct {
-	fakeEngine *templates.TemplateEngine
+	processor         Processor
+	templateResolver  TemplateResolver
+	referenceResolver ReferenceResolver
+	templateEngine    *templates.TemplateEngine
 }
 
+// NewRunner creates a new form runner with all dependencies properly wired
 func NewRunner() *Runner {
+	templateEngine := templates.New()
+	valueExtractor := NewDefaultValueExtractor()
+	templateResolver := NewDefaultTemplateResolver(templateEngine, valueExtractor)
+	referenceResolver := NewDefaultReferenceResolver(templateResolver)
+
+	// Create processor with circular dependency resolution
+	var processor Processor
+	directiveExecutor := newDefaultDirectiveExecutor(nil) // Will be set later
+	processor = NewCompositeProcessor(templateResolver, directiveExecutor)
+
+	// Now set the processor in directive executor
+	directiveExecutor.processor = processor
+
 	return &Runner{
-		fakeEngine: templates.New(),
+		processor:         processor,
+		templateResolver:  templateResolver,
+		referenceResolver: referenceResolver,
+		templateEngine:    templateEngine,
 	}
 }
 
-func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string, pass []tests.Pass) string {
+// Apply processes a string input with pass mappings and template resolution
+func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string, pass []*tests.Pass) string {
+	result := input
+
+	// Apply pass mappings first
+	result = r.applyPassMappings(ctx, result, pass)
+
+	// Apply template resolution
+	result = r.applyTemplateResolution(ctx, result)
+
+	return result
+}
+
+// ApplyBody processes a map body with full form processing capabilities
+func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any, pass []*tests.Pass) map[string]any {
+	if body == nil {
+		return nil
+	}
+
+	// Process the body using the main processor
+	processed := r.processor.Process(ctx, body, pass, nil, []int{})
+
+	// Convert result to map
+	if processedMap, ok := processed.(map[string]any); ok {
+		// Resolve references in the processed data
+		resolved := r.referenceResolver.Resolve(ctx, processedMap, processedMap, pass, []int{})
+
+		if resolvedMap, ok := resolved.(map[string]any); ok {
+			// Debug output (can be removed or made configurable)
+			if data, err := json.MarshalIndent(resolvedMap, "", "  "); err == nil {
+				fmt.Println(string(data))
+			}
+			return resolvedMap
+		}
+	}
+
+	return body
+}
+
+// MapHeaders processes header mappings
+func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]string, pass []*tests.Pass) map[string]string {
+	if headers == nil {
+		return nil
+	}
+
+	result := make(map[string]string, len(headers))
+	for key, value := range headers {
+		processedKey := r.processHeaderValue(ctx, key, pass)
+		processedValue := r.processHeaderValue(ctx, value, pass)
+		result[processedKey] = processedValue
+	}
+	return result
+}
+
+// Private helper methods
+
+func (r *Runner) applyPassMappings(ctx interfaces.ExecutionContext, input string, pass []*tests.Pass) string {
 	result := input
 	for _, p := range pass {
 		if p.Map != nil {
@@ -33,9 +111,12 @@ func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string, pass []tes
 			}
 		}
 	}
+	return result
+}
 
-	re := regexp.MustCompile(`\{\{\s*([^}\s]+)\s*}}`)
-	result = re.ReplaceAllStringFunc(result, func(match string) string {
+func (r *Runner) applyTemplateResolution(ctx interfaces.ExecutionContext, input string) string {
+	reg := regexp.MustCompile(`\{\{\s*([^}\s]+)\s*}}`)
+	return reg.ReplaceAllStringFunc(input, func(match string) string {
 		key := strings.Trim(match, "{} \t")
 
 		if val, ok := ctx.Get(key); ok {
@@ -43,90 +124,31 @@ func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string, pass []tes
 		}
 
 		if strings.HasPrefix(key, "Fake.") {
-			if val, err := r.fakeEngine.Execute(match); err == nil {
+			if val, err := r.templateEngine.Execute(match); err == nil {
 				return fmt.Sprintf("%v", val)
 			}
 		}
 
 		return match
 	})
-
-	return result
 }
 
-func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any, pass []tests.Pass) map[string]any {
-	if body == nil {
-		return nil
+func (r *Runner) processHeaderValue(ctx interfaces.ExecutionContext, value string, pass []*tests.Pass) string {
+	processed := r.processor.Process(ctx, value, pass, nil, []int{})
+	if str, ok := processed.(string); ok {
+		return str
 	}
-
-	result := make(map[string]any, len(body))
-
-	for key, value := range body {
-		switch v := value.(type) {
-		case string:
-			result[key] = r.renderTemplate(ctx, v)
-		case map[string]any:
-			result[key] = r.ApplyBody(ctx, v, pass)
-		case []any:
-			result[key] = r.applyArray(ctx, v, pass)
-		default:
-			result[key] = v
-		}
-	}
-
-	return result
+	return fmt.Sprintf("%v", processed)
 }
 
-func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]string, pass []tests.Pass) map[string]string {
-	if headers == nil {
-		return nil
+// RegisterDirective allows registering custom directives
+func (r *Runner) RegisterDirective(handler DirectiveHandler) {
+	if executor, ok := r.processor.(*CompositeProcessor).mapProcessor.directiveHandler.(*defaultDirectiveExecutor); ok {
+		executor.RegisterDirective(handler)
 	}
-
-	result := make(map[string]string, len(headers))
-
-	for key, value := range headers {
-		processedKey := r.Apply(ctx, key, pass)
-		processedValue := r.Apply(ctx, value, pass)
-		result[processedKey] = processedValue
-	}
-
-	return result
 }
 
-func (r *Runner) renderTemplate(_ interfaces.ExecutionContext, raw string) any {
-	if !strings.Contains(raw, "{{") {
-		return raw
-	}
-
-	if strings.Contains(raw, "Fake") {
-		result, err := r.fakeEngine.Execute(raw)
-		if err != nil {
-			return raw
-		}
-
-		return result
-	}
-
-	return raw
-}
-
-func (r *Runner) applyArray(ctx interfaces.ExecutionContext, arr []any, pass []tests.Pass) []any {
-	if arr == nil {
-		return nil
-	}
-
-	result := make([]any, len(arr))
-	for i, item := range arr {
-		switch v := item.(type) {
-		case string:
-			result[i] = r.renderTemplate(ctx, v)
-		case map[string]any:
-			result[i] = r.ApplyBody(ctx, v, pass)
-		case []any:
-			result[i] = r.applyArray(ctx, v, pass)
-		default:
-			result[i] = v
-		}
-	}
-	return result
+// GetTemplateEngine returns the underlying template engine for advanced usage
+func (r *Runner) GetTemplateEngine() *templates.TemplateEngine {
+	return r.templateEngine
 }

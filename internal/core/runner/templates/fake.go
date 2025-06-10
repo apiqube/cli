@@ -65,7 +65,7 @@ func fakeInt(args ...string) (any, error) {
 		}
 	}
 
-	if minInt >= maxInt {
+	if minInt > maxInt {
 		minInt, maxInt = maxInt, minInt-1
 	}
 
@@ -93,7 +93,7 @@ func fakeUint(args ...string) (any, error) {
 		minInt, maxInt = maxInt, minInt
 	}
 
-	return gofakeit.UintRange(uint(minInt-1), uint(maxInt+1)), nil
+	return gofakeit.UintRange(uint(minInt), uint(maxInt)), nil
 }
 
 func fakeFloat(_ ...string) (any, error) {
@@ -102,4 +102,48 @@ func fakeFloat(_ ...string) (any, error) {
 
 func fakeBool(_ ...string) (any, error) {
 	return gofakeit.Bool(), nil
+}
+
+func fakePhone(_ ...string) (any, error) {
+	return gofakeit.Phone(), nil
+}
+
+func fakeAddress(_ ...string) (any, error) {
+	return gofakeit.Address().Address, nil
+}
+
+func fakeCompany(_ ...string) (any, error) {
+	return gofakeit.Company(), nil
+}
+
+func fakeDate(_ ...string) (any, error) {
+	return gofakeit.Date(), nil
+}
+
+func fakeUUID(_ ...string) (any, error) {
+	return gofakeit.UUID(), nil
+}
+
+func fakeURL(_ ...string) (any, error) {
+	return gofakeit.URL(), nil
+}
+
+func fakeColor(_ ...string) (any, error) {
+	return gofakeit.Color(), nil
+}
+
+func fakeWord(_ ...string) (any, error) {
+	return gofakeit.Word(), nil
+}
+
+func fakeSentence(_ ...string) (any, error) {
+	return gofakeit.SentenceSimple(), nil
+}
+
+func fakeCountry(_ ...string) (any, error) {
+	return gofakeit.Country(), nil
+}
+
+func fakeCity(_ ...string) (any, error) {
+	return gofakeit.City(), nil
 }

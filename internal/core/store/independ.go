@@ -30,6 +30,19 @@ func Init() {
 	})
 }
 
+func InitWithPath(path string) {
+	once.Do(func() {
+		db, err := NewStorageWithPath(path)
+		if err != nil {
+			cli.Errorf("Error initializing storage: %v", err)
+		}
+
+		instance = db
+		enabled = true
+		initialized = true
+	})
+}
+
 func Stop() {
 	if instance != nil && initialized {
 		enabled = false

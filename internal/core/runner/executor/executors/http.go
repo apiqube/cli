@@ -19,24 +19,26 @@ import (
 	"github.com/apiqube/cli/internal/core/runner/assert"
 	"github.com/apiqube/cli/internal/core/runner/form"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
-	"github.com/apiqube/cli/internal/core/runner/values"
+	"github.com/apiqube/cli/internal/core/runner/save"
 )
 
 const httpExecutorOutputPrefix = "HTTP Executor:"
+
+const httpExecutorRunTimeout = time.Second * 30
 
 var _ interfaces.Executor = (*HTTPExecutor)(nil)
 
 type HTTPExecutor struct {
 	client    *http.Client
-	extractor *values.Extractor
+	extractor *save.Extractor
 	assertor  *assert.Runner
 	passer    *form.Runner
 }
 
 func NewHTTPExecutor() *HTTPExecutor {
 	return &HTTPExecutor{
-		client:    &http.Client{Timeout: 30 * time.Second},
-		extractor: values.NewExtractor(),
+		client:    &http.Client{Timeout: httpExecutorRunTimeout},
+		extractor: save.NewExtractor(),
 		assertor:  assert.NewRunner(),
 		passer:    form.NewRunner(),
 	}
@@ -96,7 +98,6 @@ func (e *HTTPExecutor) Run(ctx interfaces.ExecutionContext, manifest manifests.M
 func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c api.HttpCase) error {
 	output := ctx.GetOutput()
 
-	start := time.Now()
 	caseResult := &interfaces.CaseResult{
 		Name:    c.Name,
 		Values:  make(map[string]any),
@@ -114,25 +115,13 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 	defer func() {
 		metrics.CollectHTTPMetrics(req, resp, c.Details, caseResult)
 
-		caseResult.Duration = time.Since(start)
 		output.EndCase(man, c.Name, caseResult)
 	}()
 
-	url := c.Url
+	// Building url to testing target
+	url := buildHttpURL(c.Url, man.Spec.Target, c.Endpoint)
 
-	if url == "" {
-		baseUrl := strings.TrimRight(man.Spec.Target, "/")
-		endpoint := strings.TrimLeft(c.Endpoint, "/")
-
-		if baseUrl != "" && endpoint != "" {
-			url = baseUrl + "/" + endpoint
-		} else if baseUrl != "" {
-			url = baseUrl
-		} else {
-			url = endpoint
-		}
-	}
-
+	// Applying save from Pass declaration
 	url = e.passer.Apply(ctx, url, c.Pass)
 	headers := e.passer.MapHeaders(ctx, c.Headers, c.Pass)
 	body := e.passer.ApplyBody(ctx, c.Body, c.Pass)
@@ -140,7 +129,7 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 	reqBody := &bytes.Buffer{}
 
 	if body != nil {
-		if err := json.NewEncoder(reqBody).Encode(body); err != nil {
+		if err = json.NewEncoder(reqBody).Encode(body); err != nil {
 			caseResult.Errors = append(caseResult.Errors, fmt.Sprintf("failed to encode request body: %s", err.Error()))
 			return fmt.Errorf("encode body failed: %w", err)
 		}
@@ -156,13 +145,14 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 		req.Header.Set(k, v)
 	}
 
-	timeout := c.Timeout
-	if timeout == 0 {
-		timeout = 5 * time.Second
+	if c.Timeout > 0 {
+		e.client.Timeout = c.Timeout
 	}
 
-	client := &http.Client{Timeout: timeout}
-	resp, err = client.Do(req)
+	start := time.Now()
+	resp, err = e.client.Do(req)
+	caseResult.Duration = time.Since(start)
+
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			caseResult.Errors = append(caseResult.Errors, "request timed out")
@@ -185,14 +175,13 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 		return fmt.Errorf("read response body failed: %w", err)
 	}
 
+	e.extractor.Extract(ctx, man, c.HttpCase, resp, reqBody.Bytes(), respBody, caseResult)
 	if c.Save != nil {
-		output.Logf(interfaces.InfoLevel, "%s data extraction for %s %s ", httpExecutorOutputPrefix, man.GetName(), man.Spec.Target)
-
-		e.extractor.Extract(ctx, man.GetID(), c.HttpCase, resp, respBody)
+		output.Logf(interfaces.InfoLevel, "%s data extraction for %s %s", httpExecutorOutputPrefix, man.GetName(), c.Name)
 	}
 
 	if c.Assert != nil {
-		output.Logf(interfaces.InfoLevel, "%s reponse asserting for %s %s ", httpExecutorOutputPrefix, man.GetName(), man.Spec.Target)
+		output.Logf(interfaces.InfoLevel, "%s reponse asserting for %s %s", httpExecutorOutputPrefix, man.GetName(), c.Name)
 
 		if err = e.assertor.Assert(ctx, c.Assert, resp, respBody); err != nil {
 			caseResult.Assert = "no"
@@ -208,4 +197,21 @@ func (e *HTTPExecutor) runCase(ctx interfaces.ExecutionContext, man *api.Http, c
 	output.Logf(interfaces.InfoLevel, "%s HTTP Test %s passed", httpExecutorOutputPrefix, c.Name)
 
 	return nil
+}
+
+func buildHttpURL(url, target, endpoint string) string {
+	if url == "" {
+		baseUrl := strings.TrimRight(target, "/")
+		ep := strings.TrimLeft(endpoint, "/")
+
+		if baseUrl != "" && ep != "" {
+			url = baseUrl + "/" + ep
+		} else if baseUrl != "" {
+			url = baseUrl
+		} else {
+			url = ep
+		}
+	}
+
+	return url
 }
