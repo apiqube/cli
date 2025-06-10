@@ -3,12 +3,13 @@ package save
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 	"github.com/tidwall/gjson"
-	"net/http"
-	"strings"
 )
 
 const (
@@ -48,11 +49,11 @@ func (e *Extractor) Extract(ctx interfaces.ExecutionContext, man manifests.Manif
 		builder.WriteString("\nExtractor:")
 		builder.WriteString(fmt.Sprintf("\nID: %s\nCase: %s\nTarget: %s\n Status: %d", result.ManifestID, result.CaseName, result.Target, result.StatusCode))
 
-		data, _ := json.MarshalIndent(result.Request, "", " ")
-		builder.WriteString(fmt.Sprintf("\n\tRequest: %v", string(data)))
+		reqData, _ := json.MarshalIndent(result.Request, "", " ")
+		builder.WriteString(fmt.Sprintf("\n\tRequest: %v", string(reqData)))
 
-		data, _ = json.MarshalIndent(result.Response, "", " ")
-		builder.WriteString(fmt.Sprintf("\n\tResponse: %v", string(data)))
+		resData, _ := json.MarshalIndent(result.Response, "", " ")
+		builder.WriteString(fmt.Sprintf("\n\tResponse: %v", string(resData)))
 
 		ctx.GetOutput().Logf(interfaces.DebugLevel, builder.String())
 

@@ -30,8 +30,7 @@ type DataStore interface {
 	AsMap(key string) (map[string]any, error)
 }
 
-type SaveStore interface {
-}
+type SaveStore interface{}
 
 type PassStore interface {
 	Channel(key string) chan any

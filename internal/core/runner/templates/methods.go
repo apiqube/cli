@@ -2,6 +2,7 @@ package templates
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -24,4 +25,29 @@ func methodTrim(value any, args ...string) (any, error) {
 
 func methodToString(value any, _ ...string) (any, error) {
 	return fmt.Sprintf("%v", value), nil
+}
+
+func methodClone(value any, args ...string) (any, error) {
+	if len(args) > 0 {
+		amount, err := strconv.Atoi(args[0])
+		if err != nil {
+			return value, nil
+		}
+
+		values := make([]any, amount)
+		for i := 0; i < amount; i++ {
+			values[i] = value
+		}
+
+		return values, nil
+	}
+	return value, nil
+}
+
+func methodReplace(value any, args ...string) (any, error) {
+	if len(args)%2 != 0 {
+		return value, nil
+	}
+
+	return strings.ReplaceAll(fmt.Sprint(value), strings.Trim(args[0], "'"), strings.Trim(args[1], "'")), nil
 }

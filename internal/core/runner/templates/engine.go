@@ -11,7 +11,6 @@ type TemplateEngine struct {
 	funcs   map[string]TemplateFunc
 	methods map[string]MethodFunc
 	mu      sync.RWMutex
-	cache   *sync.Map
 }
 
 type TemplateFunc func(args ...string) (any, error)
@@ -22,7 +21,6 @@ func New() *TemplateEngine {
 	engine := &TemplateEngine{
 		funcs:   make(map[string]TemplateFunc),
 		methods: make(map[string]MethodFunc),
-		cache:   &sync.Map{},
 	}
 
 	engine.RegisterFunc("Fake.name", fakeName)
@@ -37,6 +35,8 @@ func New() *TemplateEngine {
 	engine.RegisterMethod("ToUpper", methodToUpper)
 	engine.RegisterMethod("ToLower", methodToLower)
 	engine.RegisterMethod("Trim", methodTrim)
+	engine.RegisterMethod("Clone", methodClone)
+	engine.RegisterMethod("Replace", methodReplace)
 
 	return engine
 }
@@ -55,8 +55,7 @@ func (e *TemplateEngine) RegisterMethod(name string, fn MethodFunc) {
 
 func (e *TemplateEngine) Execute(template string) (any, error) {
 	if isPureDirective(template) {
-		directive := extractDirective(template)
-		return e.processDirective(directive)
+		return e.processDirective(extractDirective(template))
 	}
 
 	re := regexp.MustCompile(`\{\{\s*(.*?)\s*}}`)
@@ -81,34 +80,19 @@ func (e *TemplateEngine) Execute(template string) (any, error) {
 	return result.String(), nil
 }
 
-func isPureDirective(template string) bool {
-	trimmed := strings.TrimSpace(template)
-	if !strings.HasPrefix(trimmed, "{{") || !strings.HasSuffix(trimmed, "}}") {
-		return false
-	}
-
-	content := trimmed[2 : len(trimmed)-2]
-	return !strings.Contains(content, "{{") && !strings.Contains(content, "}}")
-}
-
-func extractDirective(template string) string {
-	return strings.TrimSpace(template[2 : len(template)-2])
-}
-
 func (e *TemplateEngine) processDirective(directive string) (any, error) {
-	if val, ok := e.cache.Load(directive); ok {
-		return val, nil
-	}
-
 	parts := strings.Split(directive, ".")
-	if len(parts) < 2 {
+	if len(parts) < 1 {
 		return nil, fmt.Errorf("invalid directive format")
 	}
+
+	fmt.Printf("directive: %s parts: %v\n", directive, parts)
 
 	var value any
 	var err error
 	processed := 0
 
+	// Попытка найти генератор
 	for i := 0; i < len(parts); i++ {
 		current := strings.Join(parts[:i+1], ".")
 		if generator, ok := e.getGenerator(current); ok {
@@ -129,10 +113,21 @@ func (e *TemplateEngine) processDirective(directive string) (any, error) {
 		}
 	}
 
+	// 🔧 Новый блок: если генератор не найден — считаем, что это литерал
 	if value == nil {
-		return nil, fmt.Errorf("no generator found for directive")
+		// строка до первого метода — это значение
+		var literalParts []string
+		for i := 0; i < len(parts); i++ {
+			if strings.Contains(parts[i], "(") {
+				break
+			}
+			literalParts = append(literalParts, parts[i])
+			processed++
+		}
+		value = strings.Join(literalParts, ".")
 	}
 
+	// Обработка методов
 	for i := processed; i < len(parts); i++ {
 		if strings.Contains(parts[i], "(") {
 			methodName := strings.Split(parts[i], "(")[0]
@@ -154,7 +149,6 @@ func (e *TemplateEngine) processDirective(directive string) (any, error) {
 		}
 	}
 
-	e.cache.Store(directive, value)
 	return value, nil
 }
 
@@ -170,4 +164,18 @@ func (e *TemplateEngine) getMethod(name string) (MethodFunc, bool) {
 	defer e.mu.RUnlock()
 	fn, ok := e.methods[name]
 	return fn, ok
+}
+
+func isPureDirective(template string) bool {
+	trimmed := strings.TrimSpace(template)
+	if !strings.HasPrefix(trimmed, "{{") || !strings.HasSuffix(trimmed, "}}") {
+		return false
+	}
+
+	content := trimmed[2 : len(trimmed)-2]
+	return !strings.Contains(content, "{{") && !strings.Contains(content, "}}")
+}
+
+func extractDirective(template string) string {
+	return strings.TrimSpace(template[2 : len(template)-2])
 }

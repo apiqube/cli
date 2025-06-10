@@ -8,23 +8,19 @@ spec:
   target: http://127.0.0.1:8081
   cases:
 
-    - name: Create New User
+    - name: Create New Array of User
       method: POST
-      endpoint: /users
+      endpoint: /users-batch
       assert:
         - target: status
           equals: 201
       body:
-        name: "{{ Fake.name }}"
-        email: "{{ Fake.email }}"
-        age: "{{ Fake.uint.10.100 }}"
-        address:
-          street: "{{ Fake.email }}"
-          number: "{{ Fake.uint.1.10.ToString() }}"
-      save:
-        request:
-          body:
-            req: "*"
-        response:
-          body:
-            res: "*"
+        users:
+          __repeat: 2
+          __template:
+            name: "{{ Fake.name }}"
+            email: "{{ Fake.email }}"
+            age: "{{ Fake.uint.10.100 }}"
+            address:
+              street: "{{ Body.users.#.name.ToLower().Replace(' ','_')}}_{{ Body.users.#.age }}_{{ Fake.uint.10.100.ToString() }}"
+              number: "{{ Fake.uint.1.10.ToString() }}"
