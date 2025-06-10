@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 func NormalizeJSON(m manifests.Manifest) ([]byte, error) {

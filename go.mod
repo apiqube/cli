@@ -9,7 +9,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/dgraph-io/badger/v4 v4.7.0
 	github.com/go-playground/validator/v10 v10.26.0
-	github.com/golang/mock v1.6.0
+	github.com/goccy/go-yaml v1.18.0
 	github.com/google/uuid v1.6.0
 	github.com/pterm/pterm v0.12.80
 	github.com/spf13/cobra v1.9.1

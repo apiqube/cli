@@ -9,7 +9,7 @@ import (
 	"runtime"
 
 	"github.com/apiqube/cli/internal/core/manifests"
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 var ErrFileNotEdited = errors.New("file was not edited")

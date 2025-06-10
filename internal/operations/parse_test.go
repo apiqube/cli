@@ -3,7 +3,7 @@ package operations
 import (
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 	"testing"
 
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"

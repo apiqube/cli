@@ -104,12 +104,13 @@ func TestNormalize_StableHashes(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			hashes := make([]string, 0, runs*2)
+			hashesYAML := make([]string, 0, runs)
+			hashesJSON := make([]string, 0, runs)
 			var wg sync.WaitGroup
 			var mu sync.Mutex
 
 			for i := 0; i < runs; i++ {
-				wg.Add(1)
+				wg.Add(2)
 				go func() {
 					defer wg.Done()
 					data, err := NormalizeYAML(tc.manifest)
@@ -117,16 +118,32 @@ func TestNormalize_StableHashes(t *testing.T) {
 						t.Errorf("NormalizeYAML failed: %v", err)
 						return
 					}
-					h := hash(data)
 					mu.Lock()
-					hashes = append(hashes, h)
+					hashesYAML = append(hashesYAML, hash(data))
+					mu.Unlock()
+				}()
+				go func() {
+					defer wg.Done()
+					data, err := NormalizeJSON(tc.manifest)
+					if err != nil {
+						t.Errorf("NormalizeJSON failed: %v", err)
+						return
+					}
+					mu.Lock()
+					hashesJSON = append(hashesYAML, hash(data))
 					mu.Unlock()
 				}()
 			}
 			wg.Wait()
-			for i := 1; i < len(hashes); i++ {
-				if hashes[i] != hashes[0] {
-					t.Errorf("Hashes not equal for manifest %s: %v", tc.name, hashes)
+			for i := 1; i < len(hashesYAML); i++ {
+				if hashesYAML[i] != hashesYAML[0] {
+					t.Errorf("YAML hashes not equal for manifest %s: %v", tc.name, hashesYAML)
+				}
+			}
+
+			for i := 1; i < len(hashesJSON); i++ {
+				if hashesJSON[i] != hashesJSON[0] {
+					t.Errorf("JSON hashes not equal for manifest %s: %v", tc.name, hashesJSON)
 				}
 			}
 		})

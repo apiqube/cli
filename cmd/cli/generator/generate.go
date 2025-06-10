@@ -10,8 +10,8 @@ import (
 	"github.com/apiqube/cli/internal/core/store"
 	"github.com/apiqube/cli/internal/operations"
 	"github.com/apiqube/cli/ui/cli"
+	"github.com/goccy/go-yaml"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 var Cmd = &cobra.Command{
