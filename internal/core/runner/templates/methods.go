@@ -19,10 +19,10 @@ func methodToLower(value any, _ ...string) (any, error) {
 	return strings.ToLower(fmt.Sprintf("%v", value)), nil
 }
 
-func methodTrim(value any, _ ...string) (any, error) {
-	return strings.TrimSpace(fmt.Sprintf("%v", value)), nil
+func methodTrimSpace(value any, _ ...string) (any, error) {
+	return strings.TrimSpace(fmt.Sprint(value)), nil
 }
-func methodClone(value any, _ ...string) (any, error) { return value, nil }
+
 func methodReplace(value any, args ...string) (any, error) {
 	if len(args) < 2 {
 		return value, nil

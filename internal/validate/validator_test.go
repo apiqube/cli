@@ -292,16 +292,14 @@ var (
 							},
 						},
 						Save: &tests.Save{
-							Body: map[string]string{"foo": "bar"},
-							Headers: map[string]string{
-								"Authorization": "Bearer token",
+							Request: &tests.SaveEntry{
+								Body: map[string]string{"foo": "bar"},
+								Headers: []string{
+									"Authorization",
+								},
 							},
-							Status: true,
-							Body:   true,
-							All:    true,
-							Group:  "custom_save_group",
 						},
-						Pass: []tests.Pass{
+						Pass: []*tests.Pass{
 							{
 								From: "headers",
 								Map:  map[string]string{"Authorization": "Bearer token"},

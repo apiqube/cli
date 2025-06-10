@@ -3,11 +3,12 @@ package form
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 	"github.com/apiqube/cli/internal/core/runner/templates"
-	"regexp"
-	"strings"
 )
 
 // Runner is the main form processing engine

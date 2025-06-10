@@ -65,7 +65,7 @@ func fakeInt(args ...string) (any, error) {
 		}
 	}
 
-	if minInt >= maxInt {
+	if minInt > maxInt {
 		minInt, maxInt = maxInt, minInt-1
 	}
 

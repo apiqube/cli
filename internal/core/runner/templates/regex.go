@@ -2,8 +2,9 @@ package templates
 
 import (
 	"fmt"
-	"github.com/brianvoe/gofakeit/v7"
 	"strings"
+
+	"github.com/brianvoe/gofakeit/v7"
 )
 
 func regex(args ...string) (any, error) {
