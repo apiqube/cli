@@ -11,8 +11,8 @@ import (
 	"github.com/apiqube/cli/internal/core/store"
 	"github.com/apiqube/cli/internal/validate"
 	"github.com/apiqube/cli/ui/cli"
+	"github.com/goccy/go-yaml"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 func init() {
@@ -124,5 +124,5 @@ func printPostApplySummary(mans []manifests.Manifest) {
 }
 
 func indentYAMLError(err *yaml.TypeError) string {
-	return "  " + strings.Join(err.Errors, "\n  ")
+	return fmt.Sprintf("   %s\n  ", err.Error())
 }

@@ -1,10 +1,11 @@
 package form
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
@@ -42,16 +43,18 @@ func NewRunner() *Runner {
 	}
 }
 
+// RegisterDirective allows registering custom directives
+func (r *Runner) RegisterDirective(handler DirectiveHandler) {
+	if executor, ok := r.processor.(*CompositeProcessor).mapProcessor.directiveHandler.(*defaultDirectiveExecutor); ok {
+		executor.RegisterDirective(handler)
+	}
+}
+
 // Apply processes a string input with pass mappings and template resolution
 func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string, pass []*tests.Pass) string {
 	result := input
-
-	// Apply pass mappings first
 	result = r.applyPassMappings(ctx, result, pass)
-
-	// Apply template resolution
 	result = r.applyTemplateResolution(ctx, result)
-
 	return result
 }
 
@@ -61,23 +64,34 @@ func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any,
 		return nil
 	}
 
-	// Process the body using the main processor
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
+
 	processed := r.processor.Process(ctx, body, pass, nil, []int{})
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
 
-	// Convert result to map
 	if processedMap, ok := processed.(map[string]any); ok {
-		// Resolve references in the processed data
 		resolved := r.referenceResolver.Resolve(ctx, processedMap, processedMap, pass, []int{})
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
 
-		if resolvedMap, ok := resolved.(map[string]any); ok {
-			// Debug output (can be removed or made configurable)
+		if resolvedMap, is := resolved.(map[string]any); is {
 			if data, err := json.MarshalIndent(resolvedMap, "", "  "); err == nil {
 				fmt.Println(string(data))
 			}
 			return resolvedMap
 		}
 	}
-
 	return body
 }
 
@@ -86,9 +100,14 @@ func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]
 	if headers == nil {
 		return nil
 	}
-
 	result := make(map[string]string, len(headers))
 	for key, value := range headers {
+		select {
+		case <-ctx.Done():
+			return result
+		default:
+		}
+
 		processedKey := r.processHeaderValue(ctx, key, pass)
 		processedValue := r.processHeaderValue(ctx, value, pass)
 		result[processedKey] = processedValue
@@ -96,11 +115,20 @@ func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]
 	return result
 }
 
-// Private helper methods
+// GetTemplateEngine returns the underlying template engine for advanced usage
+func (r *Runner) GetTemplateEngine() *templates.TemplateEngine {
+	return r.templateEngine
+}
 
+// Private helper methods
 func (r *Runner) applyPassMappings(ctx interfaces.ExecutionContext, input string, pass []*tests.Pass) string {
 	result := input
 	for _, p := range pass {
+		select {
+		case <-ctx.Done():
+			return result
+		default:
+		}
 		if p.Map != nil {
 			for placeholder, mapKey := range p.Map {
 				if strings.Contains(result, placeholder) {
@@ -117,38 +145,38 @@ func (r *Runner) applyPassMappings(ctx interfaces.ExecutionContext, input string
 func (r *Runner) applyTemplateResolution(ctx interfaces.ExecutionContext, input string) string {
 	reg := regexp.MustCompile(`\{\{\s*([^}\s]+)\s*}}`)
 	return reg.ReplaceAllStringFunc(input, func(match string) string {
+		select {
+		case <-ctx.Done():
+			return match
+		default:
+		}
 		key := strings.Trim(match, "{} \t")
-
 		if val, ok := ctx.Get(key); ok {
 			return fmt.Sprintf("%v", val)
 		}
-
 		if strings.HasPrefix(key, "Fake.") {
 			if val, err := r.templateEngine.Execute(match); err == nil {
 				return fmt.Sprintf("%v", val)
 			}
 		}
-
 		return match
 	})
 }
 
 func (r *Runner) processHeaderValue(ctx interfaces.ExecutionContext, value string, pass []*tests.Pass) string {
+	select {
+	case <-ctx.Done():
+		return value
+	default:
+	}
 	processed := r.processor.Process(ctx, value, pass, nil, []int{})
+	select {
+	case <-ctx.Done():
+		return value
+	default:
+	}
 	if str, ok := processed.(string); ok {
 		return str
 	}
 	return fmt.Sprintf("%v", processed)
-}
-
-// RegisterDirective allows registering custom directives
-func (r *Runner) RegisterDirective(handler DirectiveHandler) {
-	if executor, ok := r.processor.(*CompositeProcessor).mapProcessor.directiveHandler.(*defaultDirectiveExecutor); ok {
-		executor.RegisterDirective(handler)
-	}
-}
-
-// GetTemplateEngine returns the underlying template engine for advanced usage
-func (r *Runner) GetTemplateEngine() *templates.TemplateEngine {
-	return r.templateEngine
 }

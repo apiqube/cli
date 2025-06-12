@@ -1,0 +1,18 @@
+{{/*
+  Manifest component for the test report
+*/}}
+<div class="bg-white rounded shadow p-4">
+  <h2 class="text-xl font-semibold mb-2">Manifest: {{ .ManifestID }}</h2>
+  <div class="mb-2 text-sm text-gray-500">Target: <span class="font-mono">{{ .Target }}</span></div>
+  <div class="mb-2 flex flex-wrap gap-4">
+    <span>Total: <span class="font-bold">{{ .TotalCases }}</span></span>
+    <span>Passed: <span class="font-bold text-green-600">{{ .PassedCases }}</span></span>
+    <span>Failed: <span class="font-bold text-red-600">{{ .FailedCases }}</span></span>
+    <span>Time: <span class="font-mono">{{ .TotalTime }}</span></span>
+  </div>
+  <ul class="divide-y divide-gray-200">
+    {{ range .Cases }}
+      {{ template "case.gohtml" . }}
+    {{ end }}
+  </ul>
+</div>

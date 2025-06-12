@@ -1,14 +1,15 @@
 package io
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/goccy/go-json"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/operations"
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 func WriteCombined(path string, format operations.ParseFormat, mans ...manifests.Manifest) error {

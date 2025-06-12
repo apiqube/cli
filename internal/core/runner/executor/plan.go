@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/apiqube/cli/internal/report"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
 	"github.com/apiqube/cli/internal/core/runner/hooks"
@@ -130,6 +132,20 @@ func (r *DefaultPlanRunner) RunPlan(ctx interfaces.ExecutionContext, manifest ma
 			return err
 		}
 	}
+
+	// TODO: TEMPL CODE HERE !!!
+	htmlReportGenerator, err := report.NewHTMLReportGenerator()
+	if err != nil {
+		fmt.Println("ERROR:", err)
+		return nil
+	}
+
+	reporter := report.NewReportService(htmlReportGenerator)
+	if err = reporter.GenerateReports(ctx); err != nil {
+		fmt.Println("ERROR:", err)
+		return nil
+	}
+	// TODO: END
 
 	return nil
 }

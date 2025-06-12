@@ -2,7 +2,8 @@ package save
 
 import (
 	"fmt"
-	"time"
+
+	"github.com/apiqube/cli/internal/core/runner/interfaces"
 )
 
 type Result struct {
@@ -10,8 +11,8 @@ type Result struct {
 	CaseName   string
 	Target     string
 	Method     string
-	Duration   time.Duration
-	StatusCode int
+
+	ResultCase *interfaces.CaseResult
 
 	Request  *Entry
 	Response *Entry
@@ -22,6 +23,6 @@ type Entry struct {
 	Body    map[string]any
 }
 
-func FormSaveKey(manifestID, caseName, suffix string) string {
-	return fmt.Sprintf("%s.%s.%s.%s", KeyPrefix, manifestID, caseName, suffix)
+func FormSaveKey(manifestID, suffix string) string {
+	return fmt.Sprintf("%s.%s.%s", KeyPrefix, manifestID, suffix)
 }

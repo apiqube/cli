@@ -2,9 +2,10 @@ package operations
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/goccy/go-json"
 
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
 
@@ -16,7 +17,7 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests/kinds/servers"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/services"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/load"
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 type rawManifest struct {
