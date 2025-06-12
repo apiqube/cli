@@ -66,6 +66,6 @@ jobs:
         uses: go-semantic-release/action@v1
         with:
           hooks: goreleaser
-          config: .go-semantic-release.yaml
+          allow-initial-development-versions: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
