@@ -1,0 +1,28 @@
+branches:
+  - main
+
+tags:
+  prefix: "v"
+
+version-range:
+  v0: minor
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^test:"
+      - "^chore: update$"
+      - "^docs: update$"
+      - "^chore: schema$"
+      - "^chore: typo$"
+      - "^chore: auto-update generated files$"
+      - "^chore: update schema$"
+      - "^chore: schema update$"
+      - "^chore\(deps\): "
+      - "^(build|ci): "
+      - "merge conflict"
+      - "Merge pull request"
+      - "Merge remote-tracking branch"
+      - "Merge branch"
+      - "go mod tidy"
