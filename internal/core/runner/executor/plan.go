@@ -3,8 +3,9 @@ package executor
 import (
 	"errors"
 	"fmt"
-	"github.com/apiqube/cli/internal/report"
 	"sync"
+
+	"github.com/apiqube/cli/internal/report"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"

@@ -1,8 +1,9 @@
 package save
 
 import (
-	"github.com/goccy/go-json"
 	"net/http"
+
+	"github.com/goccy/go-json"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
@@ -45,7 +46,7 @@ func (e *Extractor) Extract(ctx interfaces.ExecutionContext, man manifests.Manif
 
 	defer func() {
 		if val, ok := ctx.Get(key); !ok {
-			var results = []*Result{result}
+			results := []*Result{result}
 			ctx.Set(key, results)
 		} else {
 			results := val.([]*Result)
