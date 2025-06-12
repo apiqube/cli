@@ -1,0 +1,37 @@
+{{/*
+  Base template for the test report
+*/}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Report</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom styles if needed */
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <div class="container mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-6">Test Report</h1>
+    <div class="mb-4 text-sm text-gray-500">Generated at: {{ formatTime .GeneratedAt }}</div>
+    <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white rounded shadow p-4">
+        <h2 class="text-lg font-semibold mb-2">Summary</h2>
+        <ul class="space-y-1">
+          <li>Total Cases: <span class="font-bold">{{ .TotalCases }}</span></li>
+          <li>Passed: <span class="font-bold text-green-600">{{ .PassedCases }}</span></li>
+          <li>Failed: <span class="font-bold text-red-600">{{ .FailedCases }}</span></li>
+          <li>Total Time: <span class="font-mono">{{ .TotalTime }}</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="space-y-8">
+      {{ range .ManifestStats }}
+        {{ template "manifest.gohtml" . }}
+      {{ end }}
+    </div>
+  </div>
+</body>
+</html>

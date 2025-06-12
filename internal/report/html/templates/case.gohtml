@@ -1,0 +1,23 @@
+{{/*
+  Case component for the test report
+*/}}
+<li class="py-3">
+  <div class="flex items-center justify-between">
+    <div>
+      <span class="font-mono text-base">{{ .Name }}</span>
+      <span class="ml-2 px-2 py-1 rounded {{ if .Success }}bg-green-100 text-green-700{{ else }}bg-red-100 text-red-700{{ end }}">
+        {{ statusText .Success }}
+      </span>
+      <span class="ml-4 text-xs text-gray-500">Method: <span class="font-mono">{{ .Method }}</span></span>
+      <span class="ml-4 text-xs text-gray-500">Status: <span class="font-mono">{{ .StatusCode }}</span></span>
+      <span class="ml-4 text-xs text-gray-500">Time: <span class="font-mono">{{ .Duration }}</span></span>
+    </div>
+  </div>
+  {{ if .Errors }}
+    <ul class="mt-2 ml-4 text-sm text-red-500 list-disc">
+      {{ range .Errors }}
+        <li>{{ . }}</li>
+      {{ end }}
+    </ul>
+  {{ end }}
+</li>

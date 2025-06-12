@@ -1,12 +1,14 @@
 version: 2
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
 builds:
   - main: ./cmd/qube
     id: "qube"
     binary: qube
     ldflags:
-      - -s -w -X github.com/apiqube/cli/cmd/cli.Version={{.Version}}
-      - -s -w -X github.com/apiqube/cli/cmd/cli.Commit={{.ShortCommit}}
-      - -s -w -X github.com/apiqube/cli/cmd/cli.Date={{.Date}}
+      - -s -w -X github.com/apiqube/cli/cmd/cli.Version={{.Version}} -X github.com/apiqube/cli/cmd/cli.Commit={{.ShortCommit}} -X github.com/apiqube/cli/cmd/cli.Date={{.Date}}
     env:
       - CGO_ENABLED=0
     goos: [linux, darwin, windows]

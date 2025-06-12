@@ -1,11 +1,8 @@
 package save
 
 import (
-	"fmt"
-	"net/http"
-	"strings"
-
 	"github.com/goccy/go-json"
+	"net/http"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
@@ -25,7 +22,7 @@ func NewExtractor() *Extractor {
 }
 
 func (e *Extractor) Extract(ctx interfaces.ExecutionContext, man manifests.Manifest, c tests.HttpCase, resp *http.Response, reqBody, respBody []byte, caseResult *interfaces.CaseResult) {
-	key := FormSaveKey(man.GetID(), c.Name, ResultKeySuffix)
+	key := FormSaveKey(man.GetID(), ResultKeySuffix)
 
 	result := &Result{
 		ManifestID: man.GetID(),
@@ -47,20 +44,14 @@ func (e *Extractor) Extract(ctx interfaces.ExecutionContext, man manifests.Manif
 	}
 
 	defer func() {
-		var builder strings.Builder
-
-		builder.WriteString("\nExtractor:")
-		builder.WriteString(fmt.Sprintf("\nID: %s\nCase: %s\nTarget: %s\n Status: %d", result.ManifestID, result.CaseName, result.Target, result.ResultCase.StatusCode))
-
-		reqData, _ := json.MarshalIndent(result.Request, "", " ")
-		builder.WriteString(fmt.Sprintf("\n\tRequest: %v", string(reqData)))
-
-		resData, _ := json.MarshalIndent(result.Response, "", " ")
-		builder.WriteString(fmt.Sprintf("\n\tResponse: %v", string(resData)))
-
-		ctx.GetOutput().Logf(interfaces.DebugLevel, builder.String())
-
-		ctx.Set(key, result)
+		if val, ok := ctx.Get(key); !ok {
+			var results = []*Result{result}
+			ctx.Set(key, results)
+		} else {
+			results := val.([]*Result)
+			results = append(results, result)
+			ctx.Set(key, results)
+		}
 	}()
 
 	if c.Save != nil {

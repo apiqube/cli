@@ -23,6 +23,6 @@ type Entry struct {
 	Body    map[string]any
 }
 
-func FormSaveKey(manifestID, caseName, suffix string) string {
-	return fmt.Sprintf("%s.%s.%s.%s", KeyPrefix, manifestID, caseName, suffix)
+func FormSaveKey(manifestID, suffix string) string {
+	return fmt.Sprintf("%s.%s.%s", KeyPrefix, manifestID, suffix)
 }
