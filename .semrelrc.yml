@@ -1,0 +1,8 @@
+{
+  "plugins": {
+    "version": {
+      "override": "0.1.0",
+      "strategy": "minor"
+    }
+  }
+}
