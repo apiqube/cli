@@ -1,39 +1,40 @@
 # ApiQube CLI
 
-**ApiQube** is a powerful, plugin-extensible CLI tool for building, executing, and monitoring tests for modern microservice applications — from simple HTTP APIs to complex multi-container systems.
-
-Part of the [ApiQube](https://github.com/apiqube) ecosystem.
+**ApiQube CLI** is a powerful, extensible command-line tool designed for building, executing, and monitoring tests for modern microservice applications—from simple HTTP APIs to complex multi-container systems. It is part of the [ApiQube](https://github.com/apiqube) ecosystem.
 
 ---
 
 ## 🚀 Features
 
--  **Plugin architecture** — extend Qube with custom actions
--  **Test execution engine** — define `use-cases`, test flows, and assertions via YAML
--  **Docker-native** — spin up containers, stub databases, and environments for each test
--  **Plan builder** — build and apply test execution plans (like `kubectl apply`)
--  **Load testing support** — stress your services with real use cases
--  **Live metric collection** — Prometheus integration, metrics agents for Go, JS, Python
--  **Future Wails UI** — desktop testing studio with visual flow and live dashboards
--  **CI-ready** — easily integrate with GitHub Actions / GitLab CI
--  **Interactive CLI** — powered by [Bubbletea](https://github.com/charmbracelet/bubbletea)
+- **Plugin Architecture**: Easily extend the CLI with custom plugins and actions.
+- **Test Execution Engine**: Define use-cases, test flows, and assertions using YAML manifests.
+- **Docker-Native**: Seamlessly spin up containers, stub databases, and create isolated environments for each test.
+- **Plan Builder**: Build and apply test execution plans, similar to `kubectl apply`.
+- **Load Testing Support**: Stress-test your services with real-world use cases.
+- **Live Metric Collection**: Integrates with Prometheus and supports metrics agents for Go, JavaScript, and Python.
+- **Future Wails UI**: Desktop testing studio with visual flow editing and live dashboards (coming soon).
+- **CI-Ready**: Easily integrates with GitHub Actions and GitLab CI for automated testing.
+- **Interactive CLI**: Built with [Bubbletea](https://github.com/charmbracelet/bubbletea) for a modern terminal experience.
 
 ---
 
 ## 📦 Installation
 
-### ✅ Prebuilt (recommended)
+### Prebuilt Binaries (Recommended)
 
-TBA via releases or `go-semantic-release`. For now:
+Prebuilt releases will be available soon via GitHub Releases and `go-semantic-release`. For now, build from source:
 
 ```bash
 git clone https://github.com/apiqube/cli.git
 cd cli
 task build
-cp ./bin/qube.exe ~/bin/qube  # or any PATH directory
+cp ./bin/qube.exe ~/bin/qube  # or any directory in your PATH
 ```
 
+---
+
 ## 🧪 Usage
+
 ```bash
 ApiQube is a powerful test manager for apps and APIs
 
@@ -55,11 +56,48 @@ Flags:
 Use "qube [command] --help" for more information about a command.
 ```
 
+---
+
+## 📝 Example
+
+Create a YAML manifest describing your test plan, then apply it:
+
+```bash
+qube apply -f my-test-plan.yaml
+```
+
+Search for existing manifests:
+
+```bash
+qube search --filter "service=api"
+```
+
+Rollback to a previous manifest version:
+
+```bash
+qube rollback --id my-service --version 2
+```
+
+---
+
 ## 🌍 Roadmap
-- [ ] CLI core
-- [ ] YAML-driven testing flows
+
+- [x] CLI core
+- [x] YAML-driven testing flows
+- [ ] Visual test plan editor
 - [ ] Plugin marketplace
 - [ ] Built-in Prometheus integration
 - [ ] Web dashboard (with Wails)
 - [ ] GitHub/GitLab CI integration
-- [ ] Visual test plan editor
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open issues or pull requests on [GitHub](https://github.com/apiqube/cli).
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
