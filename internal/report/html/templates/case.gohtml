@@ -1,23 +1,88 @@
 {{/*
-  Case component for the test report
+  Case component for the test report (refactored, pretty Request/Response)
 */}}
 <li class="py-3">
-  <div class="flex items-center justify-between">
-    <div>
-      <span class="font-mono text-base">{{ .Name }}</span>
-      <span class="ml-2 px-2 py-1 rounded {{ if .Success }}bg-green-100 text-green-700{{ else }}bg-red-100 text-red-700{{ end }}">
-        {{ statusText .Success }}
-      </span>
-      <span class="ml-4 text-xs text-gray-500">Method: <span class="font-mono">{{ .Method }}</span></span>
-      <span class="ml-4 text-xs text-gray-500">Status: <span class="font-mono">{{ .StatusCode }}</span></span>
-      <span class="ml-4 text-xs text-gray-500">Time: <span class="font-mono">{{ .Duration }}</span></span>
+  <div x-data="{ open: false }" class="border-b pb-2">
+    <div class="flex items-center justify-between cursor-pointer" @click="open = !open">
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-base">{{ .Name }}</span>
+        <span class="ml-2 px-2 py-1 rounded {{ if .Success }}bg-green-100 text-green-700{{ else }}bg-red-100 text-red-700{{ end }}">
+          <svg class="inline w-4 h-4 mr-1 align-text-bottom {{ if .Success }}text-green-600{{ else }}text-red-600{{ end }}" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 6.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 000-1.414z" /></svg>
+          {{ statusText .Success }}
+        </span>
+        <span class="ml-2 px-2 py-1 rounded {{ if eq (assertText .Assert) "PASSED" }}bg-green-100 text-green-700{{ else }}bg-red-100 text-red-700{{ end }}">
+          Assert: {{ assertText .Assert }}
+        </span>
+        <span class="ml-4 text-xs text-gray-500">Method: <span class="font-mono">{{ .Method }}</span></span>
+        <span class="ml-4 text-xs text-gray-500">Status: <span class="font-mono">{{ .StatusCode }}</span></span>
+        <span class="ml-4 text-xs text-gray-500">Time: <span class="font-mono">{{ .Duration }}</span></span>
+      </div>
+      <button class="ml-4 text-blue-500 hover:underline text-xs" @click.stop="open = !open" x-text="open ? 'Hide details' : 'Show details'"></button>
+    </div>
+    <div x-show="open" class="mt-3 bg-gray-50 rounded p-3 text-sm" style="display: none;">
+      {{ if .Errors }}
+        <div class="mb-2">
+          <span class="font-bold text-red-600">Errors:</span>
+          <ul class="ml-4 list-disc text-red-500">
+            {{ range .Errors }}
+              <li>{{ . }}</li>
+            {{ end }}
+          </ul>
+        </div>
+      {{ end }}
+      {{ if .Details }}
+        <div class="mb-2">
+          <span class="font-bold">Details:</span>
+          <pre class="bg-gray-200 rounded p-2 overflow-x-auto">{{ printf "%#v" .Details }}</pre>
+        </div>
+      {{ end }}
+      {{ if .Values }}
+        <div class="mb-2">
+          <span class="font-bold">Values:</span>
+          <pre class="bg-gray-200 rounded p-2 overflow-x-auto">{{ printf "%#v" .Values }}</pre>
+        </div>
+      {{ end }}
+      {{ if .Request }}
+        <div class="mb-2">
+          <span class="font-bold">Request:</span>
+          {{ if .Request.Headers }}
+            <div class="mb-1">Headers:</div>
+            <table class="mb-2 text-xs bg-white border rounded w-full">
+              <thead><tr><th class="text-left px-2 py-1 border-b">Key</th><th class="text-left px-2 py-1 border-b">Value</th></tr></thead>
+              <tbody>
+                {{ range $k, $v := .Request.Headers }}
+                  <tr><td class="px-2 py-1 border-b">{{ $k }}</td><td class="px-2 py-1 border-b">{{ $v }}</td></tr>
+                {{ end }}
+              </tbody>
+            </table>
+          {{ end }}
+          {{ if .Request.Body }}
+            <div class="mb-1">Body:</div>
+            <pre class="bg-gray-200 rounded p-2 overflow-x-auto">{{ prettyJSON .Request.Body }}</pre>
+          {{ end }}
+        </div>
+      {{ end }}
+      {{ if .Response }}
+        <div class="mb-2">
+          <span class="font-bold">Response:</span>
+          {{ if .Response.Headers }}
+            <div class="mb-1">Headers:</div>
+            <table class="mb-2 text-xs bg-white border rounded w-full">
+              <thead><tr><th class="text-left px-2 py-1 border-b">Key</th><th class="text-left px-2 py-1 border-b">Value</th></tr></thead>
+              <tbody>
+                {{ range $k, $v := .Response.Headers }}
+                  <tr><td class="px-2 py-1 border-b">{{ $k }}</td><td class="px-2 py-1 border-b">{{ $v }}</td></tr>
+                {{ end }}
+              </tbody>
+            </table>
+          {{ end }}
+          {{ if .Response.Body }}
+            <div class="mb-1">Body:</div>
+            <pre class="bg-gray-200 rounded p-2 overflow-x-auto">{{ prettyJSON .Response.Body }}</pre>
+          {{ end }}
+        </div>
+      {{ end }}
     </div>
   </div>
-  {{ if .Errors }}
-    <ul class="mt-2 ml-4 text-sm text-red-500 list-disc">
-      {{ range .Errors }}
-        <li>{{ . }}</li>
-      {{ end }}
-    </ul>
-  {{ end }}
 </li>
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>

@@ -3,6 +3,7 @@ package executor
 import (
 	"errors"
 	"fmt"
+	"github.com/apiqube/cli/internal/report/html"
 	"sync"
 
 	"github.com/apiqube/cli/internal/report"
@@ -134,7 +135,7 @@ func (r *DefaultPlanRunner) RunPlan(ctx interfaces.ExecutionContext, manifest ma
 	}
 
 	// TODO: TEMPL CODE HERE !!!
-	htmlReportGenerator, err := report.NewHTMLReportGenerator()
+	htmlReportGenerator, err := html.NewHTMLReportGenerator()
 	if err != nil {
 		fmt.Println("ERROR:", err)
 		return nil

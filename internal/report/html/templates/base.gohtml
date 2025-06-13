@@ -1,5 +1,5 @@
 {{/*
-  Base template for the test report
+  Base template for the test report (refactored, no manifest nav)
 */}}
 <!DOCTYPE html>
 <html lang="en">
@@ -8,13 +8,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test Report</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
   <style>
-    /* Custom styles if needed */
+    .scrollbar-thin::-webkit-scrollbar { height: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-900">
   <div class="container mx-auto py-8">
-    <h1 class="text-3xl font-bold mb-6">Test Report</h1>
+    <h1 class="text-3xl font-bold mb-6">API Qube Test Report</h1>
     <div class="mb-4 text-sm text-gray-500">Generated at: {{ formatTime .GeneratedAt }}</div>
     <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-white rounded shadow p-4">
@@ -24,12 +26,20 @@
           <li>Passed: <span class="font-bold text-green-600">{{ .PassedCases }}</span></li>
           <li>Failed: <span class="font-bold text-red-600">{{ .FailedCases }}</span></li>
           <li>Total Time: <span class="font-mono">{{ .TotalTime }}</span></li>
+          <li>
+            Success Rate:
+            <span class="font-bold {{ if eq .TotalCases 0 }}text-gray-400{{ else if eq .FailedCases 0 }}text-green-600{{ else if eq .PassedCases 0 }}text-red-600{{ else }}text-yellow-600{{ end }}">
+              {{ if eq .TotalCases 0 }}0%{{ else }}{{ printf "%.1f" (mul (div (float64 .PassedCases) (float64 .TotalCases)) 100) }}%{{ end }}
+            </span>
+          </li>
         </ul>
       </div>
     </div>
     <div class="space-y-8">
       {{ range .ManifestStats }}
-        {{ template "manifest.gohtml" . }}
+        <div>
+          {{ template "manifest.gohtml" . }}
+        </div>
       {{ end }}
     </div>
   </div>

@@ -33,5 +33,5 @@ func (s *Service) CollectResults(ctx interfaces.ExecutionContext) []*save.Result
 }
 
 func (s *Service) GenerateReports(ctx interfaces.ExecutionContext) error {
-	return s.generator.Generate(s.CollectResults(ctx))
+	return s.generator.Generate(ctx)
 }
