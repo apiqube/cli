@@ -8,26 +8,19 @@ spec:
   target: http://127.0.0.1:8081
   cases:
 
-    - name: Create New Array of User
-      method: POST
-      endpoint: /users-batch
+    - name: Fetch User From Server
+      alias: fetch-user
+      method: GET
+      endpoint: /users/3
       assert:
         - target: status
-          equals: 201
+          equals: 200
+
+    - name: Create User With Data From Previous Response
+      method: POST
+      endpoint: /users
+      assert:
+        - target: status
+          equals: 200
       body:
-        users:
-          __repeat: 2
-          __template:
-            name: "{{ Fake.name }}"
-            email: "{{ Fake.email }}"
-            age: "{{ Fake.uint.10.100 }}"
-            address:
-              street: "{{ Fake.address }}"
-              number: "{{ Regex(\"^[a-z]{5,10}@[a-z]{5,10}\\.(com|net|org)$\") }}"
-      save:
-        request:
-          body:
-            users: "*"
-        response:
-          body:
-            data: "*"
+        user: "{{ fetch-user.response.body }}"

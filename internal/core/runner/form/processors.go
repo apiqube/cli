@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 )
 
@@ -20,18 +19,18 @@ func NewStringProcessor(templateResolver TemplateResolver) *StringProcessor {
 	}
 }
 
-func (p *StringProcessor) Process(ctx interfaces.ExecutionContext, value any, pass []*tests.Pass, processedData map[string]any, indexStack []int) any {
+func (p *StringProcessor) Process(ctx interfaces.ExecutionContext, value any, processedData map[string]any, indexStack []int) any {
 	str, ok := value.(string)
 	if !ok {
 		return value
 	}
 
 	if p.isCompleteTemplate(str) {
-		result, _ := p.templateResolver.Resolve(ctx, str, pass, processedData, indexStack)
+		result, _ := p.templateResolver.Resolve(ctx, str, processedData, indexStack)
 		return result
 	}
 
-	return p.processMixedString(ctx, str, pass, processedData, indexStack)
+	return p.processMixedString(ctx, str, processedData, indexStack)
 }
 
 func (p *StringProcessor) isCompleteTemplate(str string) bool {
@@ -39,14 +38,14 @@ func (p *StringProcessor) isCompleteTemplate(str string) bool {
 	return strings.HasPrefix(str, "{{") && strings.HasSuffix(str, "}}") && strings.Count(str, "{{") == 1
 }
 
-func (p *StringProcessor) processMixedString(ctx interfaces.ExecutionContext, str string, pass []*tests.Pass, processedData map[string]any, indexStack []int) any {
+func (p *StringProcessor) processMixedString(ctx interfaces.ExecutionContext, str string, processedData map[string]any, indexStack []int) any {
 	templateRegex := regexp.MustCompile(`\{\{\s*(.*?)\s*}}`)
 	var err error
 
 	result := templateRegex.ReplaceAllStringFunc(str, func(match string) string {
 		// Extract inner content without brackets
 		inner := strings.TrimSpace(match[2 : len(match)-2])
-		processed, e := p.templateResolver.Resolve(ctx, inner, pass, processedData, indexStack)
+		processed, e := p.templateResolver.Resolve(ctx, inner, processedData, indexStack)
 		if e != nil {
 			err = e
 			return match
@@ -73,7 +72,7 @@ func NewMapProcessor(valueProcessor Processor, directiveHandler DirectiveExecuto
 	}
 }
 
-func (p *MapProcessor) Process(ctx interfaces.ExecutionContext, value any, pass []*tests.Pass, processedData map[string]any, indexStack []int) any {
+func (p *MapProcessor) Process(ctx interfaces.ExecutionContext, value any, processedData map[string]any, indexStack []int) any {
 	m, ok := value.(map[string]any)
 	if !ok {
 		return value
@@ -81,7 +80,7 @@ func (p *MapProcessor) Process(ctx interfaces.ExecutionContext, value any, pass 
 
 	// Check for directives first
 	if p.directiveHandler.CanHandle(value) {
-		if result, err := p.directiveHandler.Execute(ctx, value, pass, processedData, indexStack); err == nil {
+		if result, err := p.directiveHandler.Execute(ctx, value, processedData, indexStack); err == nil {
 			return result
 		}
 	}
@@ -90,7 +89,7 @@ func (p *MapProcessor) Process(ctx interfaces.ExecutionContext, value any, pass 
 	result := make(map[string]any, len(m))
 	// Always pass merged processedData (global + current object) for every field
 	for k, v := range m {
-		result[k] = p.valueProcessor.Process(ctx, v, pass, mergeProcessedData(processedData, result), indexStack)
+		result[k] = p.valueProcessor.Process(ctx, v, mergeProcessedData(processedData, result), indexStack)
 	}
 	return result
 }
@@ -106,7 +105,7 @@ func NewArrayProcessor(valueProcessor Processor) *ArrayProcessor {
 	}
 }
 
-func (p *ArrayProcessor) Process(ctx interfaces.ExecutionContext, value any, pass []*tests.Pass, processedData map[string]any, indexStack []int) any {
+func (p *ArrayProcessor) Process(ctx interfaces.ExecutionContext, value any, processedData map[string]any, indexStack []int) any {
 	arr, ok := value.([]any)
 	if !ok {
 		return value
@@ -114,7 +113,7 @@ func (p *ArrayProcessor) Process(ctx interfaces.ExecutionContext, value any, pas
 
 	result := make([]any, len(arr))
 	for i, item := range arr {
-		result[i] = p.valueProcessor.Process(ctx, item, pass, processedData, indexStack)
+		result[i] = p.valueProcessor.Process(ctx, item, processedData, indexStack)
 	}
 	return result
 }
@@ -136,14 +135,14 @@ func NewCompositeProcessor(templateResolver TemplateResolver, directiveHandler D
 	return processor
 }
 
-func (p *CompositeProcessor) Process(ctx interfaces.ExecutionContext, value any, pass []*tests.Pass, processedData map[string]any, indexStack []int) any {
+func (p *CompositeProcessor) Process(ctx interfaces.ExecutionContext, value any, processedData map[string]any, indexStack []int) any {
 	switch v := value.(type) {
 	case string:
-		return p.stringProcessor.Process(ctx, v, pass, processedData, indexStack)
+		return p.stringProcessor.Process(ctx, v, processedData, indexStack)
 	case map[string]any:
-		return p.mapProcessor.Process(ctx, v, pass, processedData, indexStack)
+		return p.mapProcessor.Process(ctx, v, processedData, indexStack)
 	case []any:
-		return p.arrayProcessor.Process(ctx, v, pass, processedData, indexStack)
+		return p.arrayProcessor.Process(ctx, v, processedData, indexStack)
 	default:
 		return v
 	}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 )
 
@@ -44,7 +43,7 @@ func (e *defaultDirectiveExecutor) CanHandle(value any) bool {
 	return false
 }
 
-func (e *defaultDirectiveExecutor) Execute(ctx interfaces.ExecutionContext, value any, pass []*tests.Pass, processedData map[string]any, indexStack []int) (any, error) {
+func (e *defaultDirectiveExecutor) Execute(ctx interfaces.ExecutionContext, value any, processedData map[string]any, indexStack []int) (any, error) {
 	valMap, ok := value.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("directive executor: expected map input")
@@ -57,7 +56,7 @@ func (e *defaultDirectiveExecutor) Execute(ctx interfaces.ExecutionContext, valu
 				// Check dependencies
 				e.checkDependencies(handler, valMap)
 
-				return handler.Execute(ctx, e.processor, valMap, pass, processedData, indexStack)
+				return handler.Execute(ctx, e.processor, valMap, processedData, indexStack)
 			}
 		}
 	}

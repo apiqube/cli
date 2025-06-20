@@ -12,6 +12,9 @@ bin
 .qodo
 cover.svg
 
+# Temp lock
+examples/complex-http-tests/reports
+
 # Test binary, built with `go test -c`
 *.test
 
