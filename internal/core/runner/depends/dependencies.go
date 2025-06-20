@@ -10,12 +10,6 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests"
 )
 
-var priorityOrder = map[string]int{
-	manifests.ValuesKind:  100,
-	manifests.ServerKind:  40,
-	manifests.ServiceKind: 30,
-}
-
 type GraphResult struct {
 	Graph          map[string][]string
 	ExecutionOrder []string
@@ -57,8 +51,10 @@ func BuildGraphWithPriority(mans []manifests.Manifest) (*GraphResult, error) {
 		}
 	}
 
+	// Use priority queue for topological sorting with priorities
+	// Lower priority number = higher execution priority (executes first)
 	priorityQueue := collections.NewPriorityQueue[*Node](func(a, b *Node) bool {
-		return a.Priority > b.Priority
+		return a.Priority < b.Priority // Lower priority number first
 	})
 
 	for id, degree := range inDegree {
@@ -101,7 +97,7 @@ func getPriority(kind string) int {
 	if p, ok := priorityOrder[kind]; ok {
 		return p
 	}
-	return 0
+	return 100 // Default low priority for unknown kinds
 }
 
 func findCyclicNodes(inDegree map[string]int) []string {

@@ -204,6 +204,14 @@ type KindPriorityRule struct {
 	priorities map[string]int
 }
 
+var priorities = map[string]int{
+	manifests.ValuesKind:       1,
+	manifests.ServerKind:       10,
+	manifests.ServiceKind:      20,
+	manifests.HttpTestKind:     30,
+	manifests.HttpLoadTestKind: 40,
+}
+
 func NewKindPriorityRule() *KindPriorityRule {
 	return &KindPriorityRule{
 		priorities: priorities,

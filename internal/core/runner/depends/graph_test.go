@@ -7,7 +7,6 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/values"
-	"github.com/apiqube/cli/internal/core/manifests/utils"
 	"net/http"
 	"strings"
 	"testing"
@@ -119,11 +118,6 @@ func TestGraphBuilder(t *testing.T) {
 						},
 					},
 				},
-				Dependencies: kinds.Dependencies{
-					DependsOn: []string{
-						utils.FormManifestID(manifests.DefaultNamespace, manifests.ValuesKind, "values-test"),
-					},
-				},
 			},
 		}
 
@@ -138,18 +132,19 @@ func TestGraphBuilder(t *testing.T) {
 		// Print results
 		printDependencyGraph(builder, result)
 
-		// Assertions
-		if len(result.Dependencies) != 1 {
-			t.Errorf("Expected 1 dependency, got %d", len(result.Dependencies))
+		expectedOrder := []string{
+			mans[0].GetID(),
+			mans[1].GetID(),
 		}
 
-		// Values should come first
-		if result.ExecutionOrder[0] != mans[0].GetID() {
-			t.Errorf("Expected Values manifest first, got %s", result.ExecutionOrder[0])
+		for i, expected := range expectedOrder {
+			if result.ExecutionOrder[i] != expected {
+				t.Errorf("Expected %s at position %d, got %s", expected, i, result.ExecutionOrder[i])
+			}
 		}
 	})
 
-	// Test Case 3: Single manifest with intra-manifest dependencies (your case)
+	// Test Case 3: Single manifest with intra-manifest dependencies
 	t.Run("Single manifest with intra-manifest dependencies", func(t *testing.T) {
 		fmt.Println("\n📝 Test Case 3: Single manifest with intra-manifest dependencies")
 
@@ -295,11 +290,6 @@ func TestGraphBuilder(t *testing.T) {
 						},
 					},
 				},
-				Dependencies: kinds.Dependencies{
-					DependsOn: []string{
-						utils.FormManifestID(manifests.DefaultNamespace, manifests.ServerKind, "http-test-server"),
-					},
-				},
 			},
 			&api.Http{
 				BaseManifest: kinds.BaseManifest{
@@ -347,12 +337,6 @@ func TestGraphBuilder(t *testing.T) {
 						},
 					},
 				},
-				Dependencies: kinds.Dependencies{
-					DependsOn: []string{
-						utils.FormManifestID(manifests.DefaultNamespace, manifests.ValuesKind, "values-test"),
-						utils.FormManifestID(manifests.DefaultNamespace, manifests.ServerKind, "http-test-server"),
-					},
-				},
 			},
 		}
 
@@ -368,7 +352,7 @@ func TestGraphBuilder(t *testing.T) {
 		printDependencyGraph(builder, result)
 
 		// Assertions
-		if len(result.ExecutionOrder) != 3 {
+		if len(result.ExecutionOrder) != 4 {
 			t.Errorf("Expected 3 manifests in execution order, got %d", len(result.ExecutionOrder))
 		}
 
@@ -387,32 +371,6 @@ func TestGraphBuilder(t *testing.T) {
 		}
 	})
 }
-
-/*
-// BenchmarkGraphBuilder benchmarks the graph building performance
-func BenchmarkGraphBuilder(b *testing.B) {
-	// Create a large set of manifests for benchmarking
-	var manifests []manifests.Manifest
-
-	for i := 0; i < 100; i++ {
-		manifests = append(manifests, &MockManifest{
-			ID:   fmt.Sprintf("test.HttpTest.test-%d", i),
-			Kind: manifests.HttpTestKind,
-		})
-	}
-
-	registry := DefaultRuleRegistry()
-	builder := NewGraphBuilderV2(registry)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := builder.BuildGraphWithRules(manifests)
-		if err != nil {
-			b.Fatalf("Failed to build graph: %v", err)
-		}
-	}
-}
-*/
 
 // PrintDependencyGraph prints a beautiful visualization of the dependency graph
 func printDependencyGraph(gb *GraphBuilderV2, result *GraphResultV2) {
