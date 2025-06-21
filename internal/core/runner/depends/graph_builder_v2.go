@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/apiqube/cli/internal/collections"
@@ -402,18 +403,17 @@ func (gb *GraphBuilderV2) calculateSaveRequirements(result *GraphResultV2) {
 func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, dependencies []Dependency) ([]string, error) {
 	// Initialize in-degree count for each manifest
 	inDegree := make(map[string]int)
+	manifestIDs := make([]string, 0, len(manifests))
 	for _, manifest := range manifests {
-		inDegree[manifest.GetID()] = 0
+		id := manifest.GetID()
+		inDegree[id] = 0
+		manifestIDs = append(manifestIDs, id)
 	}
 
-	// Calculate in-degrees from inter-manifest dependencies
-	// A manifest has incoming edge if it depends on another manifest
+	// Calculate in-degrees from all inter-manifest dependencies
 	for _, dep := range dependencies {
 		fromBase := gb.getBaseManifestID(dep.From)
 		toBase := gb.getBaseManifestID(dep.To)
-
-		// Only count dependencies between different manifests
-		// fromBase depends on toBase, so fromBase gets an incoming edge
 		if fromBase != toBase {
 			if _, exists := inDegree[fromBase]; exists && dep.Type != DependencyTypeTemplate {
 				inDegree[fromBase]++
@@ -421,47 +421,59 @@ func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, de
 		}
 	}
 
-	// Use priority queue for topological sorting with priorities
-	// Lower priority number = higher execution priority (executes first)
+	// Use priority queue for topological sorting with priorities and deterministic order
 	priorityQueue := collections.NewPriorityQueue[*Node](func(a, b *Node) bool {
-		return a.Priority > b.Priority // Lower priority number first
+		return a.Priority > b.Priority
 	})
 
-	// Add all nodes with zero in-degree to the queue
-	for manifestID, degree := range inDegree {
+	// Collect all nodes with zero in-degree
+	zeroInDegreeNodes := make([]*Node, 0)
+	for id, degree := range inDegree {
 		if degree == 0 {
-			priority := gb.manifestPriority[manifestID]
-			heap.Push(priorityQueue, &Node{
-				ID:       manifestID,
-				Priority: priority,
+			zeroInDegreeNodes = append(zeroInDegreeNodes, &Node{
+				ID:       id,
+				Priority: gb.manifestPriority[id],
 			})
 		}
 	}
 
-	var executionOrder []string
+	// Sort for deterministic behavior
+	sort.Slice(zeroInDegreeNodes, func(i, j int) bool {
+		if zeroInDegreeNodes[i].Priority != zeroInDegreeNodes[j].Priority {
+			return zeroInDegreeNodes[i].Priority < zeroInDegreeNodes[j].Priority
+		}
+		return zeroInDegreeNodes[i].ID < zeroInDegreeNodes[j].ID
+	})
 
-	// Process nodes in topological order with priority
+	executionOrder := make([]string, 0, len(manifests))
+
 	for priorityQueue.Len() > 0 {
-		current := heap.Pop(priorityQueue).(*Node).ID
+		current := priorityQueue.Pop().(*Node).ID
 		executionOrder = append(executionOrder, current)
 
-		// Process dependencies where current is the target (dependency)
-		// When we execute current, we can reduce in-degree of manifests that depend on it
+		newNodes := make([]*Node, 0)
 		for _, dep := range dependencies {
 			fromBase := gb.getBaseManifestID(dep.From)
 			toBase := gb.getBaseManifestID(dep.To)
-
-			// If current is the target (toBase), reduce in-degree of dependent (fromBase)
 			if toBase == current && fromBase != toBase {
 				inDegree[fromBase]--
 				if inDegree[fromBase] == 0 {
-					priority := gb.manifestPriority[fromBase]
-					heap.Push(priorityQueue, &Node{
+					newNodes = append(newNodes, &Node{
 						ID:       fromBase,
-						Priority: priority,
+						Priority: gb.manifestPriority[fromBase],
 					})
 				}
 			}
+		}
+		// Сортируем кандидатов по приоритету и ID для детерминизма
+		sort.Slice(newNodes, func(i, j int) bool {
+			if newNodes[i].Priority != newNodes[j].Priority {
+				return newNodes[i].Priority < newNodes[j].Priority
+			}
+			return newNodes[i].ID < newNodes[j].ID
+		})
+		for _, node := range newNodes {
+			heap.Push(priorityQueue, node)
 		}
 	}
 

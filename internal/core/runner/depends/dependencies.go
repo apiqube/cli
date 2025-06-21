@@ -3,6 +3,7 @@ package depends
 import (
 	"container/heap"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/apiqube/cli/internal/collections"
@@ -26,6 +27,7 @@ func BuildGraphWithPriority(mans []manifests.Manifest) (*GraphResult, error) {
 	idToNode := make(map[string]manifests.Manifest)
 	nodePriority := make(map[string]int)
 
+	// Initialize all manifests
 	for _, node := range mans {
 		id := node.GetID()
 		idToNode[id] = node
@@ -38,6 +40,7 @@ func BuildGraphWithPriority(mans []manifests.Manifest) (*GraphResult, error) {
 		}
 	}
 
+	// Build dependency graph
 	for _, man := range mans {
 		if dep, has := man.(manifests.Dependencies); has {
 			id := man.GetID()
@@ -54,16 +57,36 @@ func BuildGraphWithPriority(mans []manifests.Manifest) (*GraphResult, error) {
 	// Use priority queue for topological sorting with priorities
 	// Lower priority number = higher execution priority (executes first)
 	priorityQueue := collections.NewPriorityQueue[*Node](func(a, b *Node) bool {
-		return a.Priority < b.Priority // Lower priority number first
+		// First compare by priority (lower number = higher priority)
+		if a.Priority != b.Priority {
+			return a.Priority < b.Priority
+		}
+		// If priorities are equal, sort by ID for deterministic behavior
+		return a.ID < b.ID
 	})
 
+	// Add all nodes with zero in-degree to the queue
+	var zeroInDegreeNodes []*Node
 	for id, degree := range inDegree {
 		if degree == 0 {
-			heap.Push(priorityQueue, &Node{
+			zeroInDegreeNodes = append(zeroInDegreeNodes, &Node{
 				ID:       id,
 				Priority: nodePriority[id],
 			})
 		}
+	}
+
+	// Sort for deterministic behavior
+	sort.Slice(zeroInDegreeNodes, func(i, j int) bool {
+		if zeroInDegreeNodes[i].Priority != zeroInDegreeNodes[j].Priority {
+			return zeroInDegreeNodes[i].Priority < zeroInDegreeNodes[j].Priority
+		}
+		return zeroInDegreeNodes[i].ID < zeroInDegreeNodes[j].ID
+	})
+
+	// Add to priority queue
+	for _, node := range zeroInDegreeNodes {
+		heap.Push(priorityQueue, node)
 	}
 
 	var order []string
@@ -71,7 +94,11 @@ func BuildGraphWithPriority(mans []manifests.Manifest) (*GraphResult, error) {
 		current := heap.Pop(priorityQueue).(*Node).ID
 		order = append(order, current)
 
-		for _, neighbor := range graph[current] {
+		// Process neighbors in sorted order for deterministic behavior
+		neighbors := graph[current]
+		sort.Strings(neighbors)
+
+		for _, neighbor := range neighbors {
 			inDegree[neighbor]--
 			if inDegree[neighbor] == 0 {
 				heap.Push(priorityQueue, &Node{
