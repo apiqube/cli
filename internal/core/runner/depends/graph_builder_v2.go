@@ -168,7 +168,7 @@ func (gb *GraphBuilderV2) analyzeAllDependencies(manifests []manifests.Manifest)
 }
 
 // analyzeSmartTemplateDependencies creates inter-manifest dependencies based on template analysis
-func (gb *GraphBuilderV2) analyzeSmartTemplateDependencies(mans []manifests.Manifest, existingDeps []Dependency) ([]Dependency, error) {
+func (gb *GraphBuilderV2) analyzeSmartTemplateDependencies(mans []manifests.Manifest, _ []Dependency) ([]Dependency, error) {
 	var smartDeps []Dependency
 	aliasToManifest := make(map[string]string)
 

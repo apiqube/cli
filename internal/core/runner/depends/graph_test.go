@@ -505,7 +505,7 @@ func TestGraphBuilder(t *testing.T) {
 								Endpoint: "/users",
 								Body: map[string]any{
 									"user": "{{ Values.values-test-1.user }}",
-									"role": "{{ users.roles.roles.3 }}",
+									"role": "{{ users-roles.roles.3 }}",
 								},
 							},
 						},
@@ -529,20 +529,12 @@ func TestGraphBuilder(t *testing.T) {
 					Cases: []api.HttpCase{
 						{
 							HttpCase: tests.HttpCase{
-								Name:     "HTTP Test Case",
-								Alias:    stringPtr("fetch-cars"),
-								Method:   http.MethodGet,
-								Endpoint: "/cars",
-							},
-						},
-						{
-							HttpCase: tests.HttpCase{
 								Name:     "HTTP Test Case With Internal And External Dependencies",
 								Method:   http.MethodDelete,
 								Endpoint: "/users/{{ fetch-users.response.body.users.0.id }}",
 								Body: map[string]any{
-									"name":   "{{ fetch-users.response.body.users.0.name }}",
-									"number": "{{ Values.values-test-2.number }}",
+									"name": "{{ fetch-users.response.body.users.0.name }}",
+									"role": "{{ users-roles.roles.3 }}",
 								},
 							},
 						},
@@ -552,8 +544,8 @@ func TestGraphBuilder(t *testing.T) {
 								Method:   http.MethodPost,
 								Endpoint: "/users",
 								Body: map[string]any{
-									"user": "{{ Values.values-test-1.user }}",
-									"role": "{{ users.roles.roles.3 }}",
+									"user":   "{{ Values.values-test-1.user }}",
+									"number": "{{ Values.values-test-2.number }}",
 								},
 							},
 						},
