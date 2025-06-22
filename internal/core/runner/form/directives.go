@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 )
 
 // DirectiveHandler defines the interface for directive handlers
 type DirectiveHandler interface {
-	Execute(ctx interfaces.ExecutionContext, runner Processor, input any, pass []*tests.Pass, processedData map[string]any, indexStack []int) (any, error)
+	Execute(ctx interfaces.ExecutionContext, runner Processor, input any, processedData map[string]any, indexStack []int) (any, error)
 	Name() string
 	Dependencies() []string
 }
@@ -36,7 +35,7 @@ func (r *repeatDirective) Dependencies() []string {
 	return r.dependencies
 }
 
-func (r *repeatDirective) Execute(ctx interfaces.ExecutionContext, processor Processor, input any, pass []*tests.Pass, processedData map[string]any, indexStack []int) (any, error) {
+func (r *repeatDirective) Execute(ctx interfaces.ExecutionContext, processor Processor, input any, processedData map[string]any, indexStack []int) (any, error) {
 	inputMap, ok := input.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("__repeat: expected map input")
@@ -76,7 +75,7 @@ func (r *repeatDirective) Execute(ctx interfaces.ExecutionContext, processor Pro
 	}
 	for i := 0; i < count; i++ {
 		newStack := append(indexStack[:len(indexStack):len(indexStack)], i)
-		processed := processor.Process(ctx, tmpl, pass, processedData, newStack)
+		processed := processor.Process(ctx, tmpl, processedData, newStack)
 		results = append(results, processed)
 		// Если processed — map, сразу положить его в processedData[arrKey][i]
 		if processedData != nil {
@@ -98,7 +97,7 @@ func (r *repeatDirective) Execute(ctx interfaces.ExecutionContext, processor Pro
 					for k, v := range m {
 						if submap, is := v.(map[string]any); is {
 							// Переобработать вложенную map с актуальным processedData
-							m[k] = processor.Process(ctx, submap, pass, mergeProcessedData(processedData, m), []int{i})
+							m[k] = processor.Process(ctx, submap, mergeProcessedData(processedData, m), []int{i})
 						}
 					}
 					arr[i] = m

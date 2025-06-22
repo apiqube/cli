@@ -7,7 +7,6 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 	"github.com/apiqube/cli/internal/core/runner/templates"
 )
@@ -51,15 +50,14 @@ func (r *Runner) RegisterDirective(handler DirectiveHandler) {
 }
 
 // Apply processes a string input with pass mappings and template resolution
-func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string, pass []*tests.Pass) string {
+func (r *Runner) Apply(ctx interfaces.ExecutionContext, input string) string {
 	result := input
-	result = r.applyPassMappings(ctx, result, pass)
 	result = r.applyTemplateResolution(ctx, result)
 	return result
 }
 
 // ApplyBody processes a map body with full form processing capabilities
-func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any, pass []*tests.Pass) map[string]any {
+func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any) map[string]any {
 	if body == nil {
 		return nil
 	}
@@ -70,7 +68,7 @@ func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any,
 	default:
 	}
 
-	processed := r.processor.Process(ctx, body, pass, nil, []int{})
+	processed := r.processor.Process(ctx, body, nil, []int{})
 	select {
 	case <-ctx.Done():
 		return nil
@@ -78,7 +76,7 @@ func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any,
 	}
 
 	if processedMap, ok := processed.(map[string]any); ok {
-		resolved := r.referenceResolver.Resolve(ctx, processedMap, processedMap, pass, []int{})
+		resolved := r.referenceResolver.Resolve(ctx, processedMap, processedMap, []int{})
 		select {
 		case <-ctx.Done():
 			return nil
@@ -96,7 +94,7 @@ func (r *Runner) ApplyBody(ctx interfaces.ExecutionContext, body map[string]any,
 }
 
 // MapHeaders processes header mappings
-func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]string, pass []*tests.Pass) map[string]string {
+func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]string) map[string]string {
 	if headers == nil {
 		return nil
 	}
@@ -108,8 +106,8 @@ func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]
 		default:
 		}
 
-		processedKey := r.processHeaderValue(ctx, key, pass)
-		processedValue := r.processHeaderValue(ctx, value, pass)
+		processedKey := r.processHeaderValue(ctx, key)
+		processedValue := r.processHeaderValue(ctx, value)
 		result[processedKey] = processedValue
 	}
 	return result
@@ -118,28 +116,6 @@ func (r *Runner) MapHeaders(ctx interfaces.ExecutionContext, headers map[string]
 // GetTemplateEngine returns the underlying template engine for advanced usage
 func (r *Runner) GetTemplateEngine() *templates.TemplateEngine {
 	return r.templateEngine
-}
-
-// Private helper methods
-func (r *Runner) applyPassMappings(ctx interfaces.ExecutionContext, input string, pass []*tests.Pass) string {
-	result := input
-	for _, p := range pass {
-		select {
-		case <-ctx.Done():
-			return result
-		default:
-		}
-		if p.Map != nil {
-			for placeholder, mapKey := range p.Map {
-				if strings.Contains(result, placeholder) {
-					if val, ok := ctx.Get(mapKey); ok {
-						result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", val))
-					}
-				}
-			}
-		}
-	}
-	return result
 }
 
 func (r *Runner) applyTemplateResolution(ctx interfaces.ExecutionContext, input string) string {
@@ -163,13 +139,13 @@ func (r *Runner) applyTemplateResolution(ctx interfaces.ExecutionContext, input 
 	})
 }
 
-func (r *Runner) processHeaderValue(ctx interfaces.ExecutionContext, value string, pass []*tests.Pass) string {
+func (r *Runner) processHeaderValue(ctx interfaces.ExecutionContext, value string) string {
 	select {
 	case <-ctx.Done():
 		return value
 	default:
 	}
-	processed := r.processor.Process(ctx, value, pass, nil, []int{})
+	processed := r.processor.Process(ctx, value, nil, []int{})
 	select {
 	case <-ctx.Done():
 		return value

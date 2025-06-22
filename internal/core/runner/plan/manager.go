@@ -10,6 +10,7 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/plan"
 	"github.com/apiqube/cli/internal/core/manifests/utils"
+	"github.com/apiqube/cli/internal/core/runner/depends"
 )
 
 var kindPriority = map[string]int{
@@ -24,6 +25,7 @@ const defaultPriority = 10_000
 
 type Manager interface {
 	Generate() (*plan.Plan, error)
+	GenerateV2() (*plan.Plan, *depends.GraphResultV2, error)
 	CheckPlan(*plan.Plan) error
 }
 
@@ -142,6 +144,89 @@ func (g *basicManager) Generate() (*plan.Plan, error) {
 	meta.SetCreatedBy("plan-generator")
 
 	return &newPlan, nil
+}
+
+// GenerateV2 generates plan using the new V2 dependency system
+func (g *basicManager) GenerateV2() (*plan.Plan, *depends.GraphResultV2, error) {
+	if len(g.manifests) == 0 {
+		return nil, nil, fmt.Errorf("manifests not provided for generating the plan")
+	}
+
+	// Convert map to slice for V2 system
+	var manifestSlice []manifests.Manifest
+	for _, m := range g.manifests {
+		if m.GetKind() != manifests.PlanKind {
+			manifestSlice = append(manifestSlice, m)
+		}
+	}
+
+	// Create rule registry with default rules
+	registry := depends.DefaultRuleRegistry()
+
+	// Build graph using V2 system
+	builder := depends.NewGraphBuilderV2(registry)
+	graphResult, err := builder.BuildGraphWithRules(manifestSlice)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to build dependency graph: %w", err)
+	}
+
+	// Convert execution order to stages
+	stages := g.createStagesFromExecutionOrder(graphResult.ExecutionOrder, g.manifests)
+
+	// Create plan
+	var newPlan plan.Plan
+	newPlan.Default()
+	newPlan.Spec.Stages = stages
+
+	// Generate hash
+	planData, err := operations.NormalizeYAML(&newPlan)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail while generating plan hash: %v", err)
+	}
+
+	planHash, err := utils.CalculateContentHash(planData)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail while calculation plan hash: %v", err)
+	}
+
+	meta := newPlan.GetMeta()
+	meta.SetHash(planHash)
+	meta.SetCreatedBy("plan-generator-v2")
+
+	return &newPlan, graphResult, nil
+}
+
+// createStagesFromExecutionOrder creates stages from V2 execution order
+func (g *basicManager) createStagesFromExecutionOrder(executionOrder []string, manifests map[string]manifests.Manifest) []plan.Stage {
+	// Group manifests by kind and dependency level
+	var stages []plan.Stage
+	var current []string
+	var currentKind string
+
+	for _, id := range executionOrder {
+		m, exists := manifests[id]
+		if !exists {
+			continue
+		}
+
+		kind := m.GetKind()
+
+		// If kind changes, create a new stage
+		if currentKind != "" && kind != currentKind && len(current) > 0 {
+			stages = append(stages, makeStage(current, manifests, g.mode, g.stableSort, g.parallel))
+			current = []string{}
+		}
+
+		current = append(current, id)
+		currentKind = kind
+	}
+
+	// Add remaining manifests
+	if len(current) > 0 {
+		stages = append(stages, makeStage(current, manifests, g.mode, g.stableSort, g.parallel))
+	}
+
+	return stages
 }
 
 func groupByLayers(sorted []string, mans map[string]manifests.Manifest, mode string, stable, parallel bool) []plan.Stage {

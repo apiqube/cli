@@ -50,18 +50,29 @@ var Cmd = &cobra.Command{
 		}
 
 		cli.Success("All manifests valid")
-		cli.Info("Generating plan...")
+		cli.Info("Generating plan with V2 dependency system...")
 
 		manager := runner.NewPlanManagerBuilder().
 			WithManifests(loadedManifests...).Build()
 
-		planManifest, err := manager.Generate()
+		// Use V2 plan generation with dependency analysis
+		planManifest, graphResult, err := manager.GenerateV2()
 		if err != nil {
-			cli.Errorf("Failed to generate plan: %v", err)
+			cli.Errorf("Failed to generate V2 plan: %v", err)
 			return
 		}
 
-		cli.Successf("Plan successfully generated")
+		cli.Successf("V2 Plan successfully generated")
+
+		// Print dependency analysis if verbose
+		if len(graphResult.SaveRequirements) > 0 {
+			cli.Info("Dependency analysis completed:")
+			for manifestID, req := range graphResult.SaveRequirements {
+				if req.Required {
+					cli.Infof("  %s will save data for", manifestID)
+				}
+			}
+		}
 
 		ctxBuilder := context.NewCtxBuilder().
 			WithContext(cmd.Context()).
@@ -70,15 +81,17 @@ var Cmd = &cobra.Command{
 		registry := executor.NewDefaultExecutorRegistry()
 		hooksRunner := hooks.NewDefaultHooksRunner()
 
-		planRunner := executor.NewDefaultPlanRunner(registry, hooksRunner)
+		// Use V2 plan runner with dependency support
+		planRunner := executor.NewV2PlanRunner(registry, hooksRunner, graphResult)
 
 		runCtx := ctxBuilder.Build()
 
 		if err = planRunner.RunPlan(runCtx, planManifest); err != nil {
+			cli.Errorf("Plan execution failed: %v", err)
 			return
 		}
 
-		cli.Successf("Plan successfully runned")
+		cli.Successf("V2 Plan successfully executed")
 	},
 }
 

@@ -5,7 +5,6 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 	"github.com/apiqube/cli/internal/core/runner/templates"
 )
@@ -23,7 +22,7 @@ func NewDefaultTemplateResolver(templateEngine *templates.TemplateEngine, valueE
 	}
 }
 
-func (r *DefaultTemplateResolver) Resolve(ctx interfaces.ExecutionContext, templateStr string, _ []*tests.Pass, processedData map[string]any, indexStack []int) (any, error) {
+func (r *DefaultTemplateResolver) Resolve(ctx interfaces.ExecutionContext, templateStr string, processedData map[string]any, indexStack []int) (any, error) {
 	templateStr = strings.TrimSpace(templateStr)
 	content := templateStr
 	// If input was wrapped in {{ }}, remove them for processing

@@ -1,7 +1,9 @@
 package report
 
-import "github.com/apiqube/cli/internal/core/runner/save"
+import (
+	"github.com/apiqube/cli/internal/core/runner/interfaces"
+)
 
 type Generator interface {
-	Generate(results []*save.Result) error
+	Generate(ctx interfaces.ExecutionContext) error
 }

@@ -11,11 +11,9 @@ type Result struct {
 	CaseName   string
 	Target     string
 	Method     string
-
 	ResultCase *interfaces.CaseResult
-
-	Request  *Entry
-	Response *Entry
+	Request    *Entry
+	Response   *Entry
 }
 
 type Entry struct {

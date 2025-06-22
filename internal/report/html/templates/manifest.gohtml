@@ -1,18 +1,40 @@
 {{/*
-  Manifest component for the test report
+  Manifest component for the test report (refactored, no Manifest block, Target moved)
 */}}
-<div class="bg-white rounded shadow p-4">
-  <h2 class="text-xl font-semibold mb-2">Manifest: {{ .ManifestID }}</h2>
-  <div class="mb-2 text-sm text-gray-500">Target: <span class="font-mono">{{ .Target }}</span></div>
-  <div class="mb-2 flex flex-wrap gap-4">
+<div x-data="{ open: false }" class="bg-white rounded shadow p-4 mb-4 border">
+  <div class="flex items-center justify-between cursor-pointer" @click="open = !open">
+    <div class="flex items-center gap-3">
+      <span class="text-xl font-semibold font-mono">{{ .ManifestID }}</span>
+      <span class="ml-2 px-2 py-1 rounded bg-gray-200 text-xs">{{ .Kind }}</span>
+      <span class="ml-2 px-2 py-1 rounded bg-gray-200 text-xs">{{ .Namespace }}</span>
+      <span class="ml-2 px-2 py-1 rounded bg-gray-200 text-xs">{{ .Name }}</span>
+      <span class="ml-4 px-2 py-1 rounded {{ if eq .FailedCases 0 }}bg-green-100 text-green-700{{ else }}bg-red-100 text-red-700{{ end }} font-bold">
+        {{ if eq .FailedCases 0 }}
+          <svg class="inline w-4 h-4 mr-1 align-text-bottom text-green-600" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 6.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 000-1.414z" /></svg>
+          PASSED
+        {{ else }}
+          <svg class="inline w-4 h-4 mr-1 align-text-bottom text-red-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm-2-9a1 1 0 012 0v2a1 1 0 01-2 0V9zm2 4a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
+          FAILED
+        {{ end }}
+      </span>
+    </div>
+    <button class="ml-4 text-blue-500 hover:underline text-xs" @click.stop="open = !open" x-text="open ? 'Hide cases' : 'Show cases'"></button>
+  </div>
+  <div class="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
     <span>Total: <span class="font-bold">{{ .TotalCases }}</span></span>
     <span>Passed: <span class="font-bold text-green-600">{{ .PassedCases }}</span></span>
     <span>Failed: <span class="font-bold text-red-600">{{ .FailedCases }}</span></span>
-    <span>Time: <span class="font-mono">{{ .TotalTime }}</span></span>
+    <span>Time: <span class="font-mono">{{ formatDuration .TotalTime }}</span></span>
   </div>
-  <ul class="divide-y divide-gray-200">
-    {{ range .Cases }}
-      {{ template "case.gohtml" . }}
-    {{ end }}
-  </ul>
+  <div class="mt-2 text-sm text-blue-900">
+    <span class="font-bold">Target:</span> <span class="font-mono">{{ .Target }}</span>
+  </div>
+  <div x-show="open" class="mt-4" style="display: none;">
+    <ul class="divide-y divide-gray-200">
+      {{ range .Cases }}
+        {{ template "case.gohtml" . }}
+      {{ end }}
+    </ul>
+  </div>
 </div>
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
