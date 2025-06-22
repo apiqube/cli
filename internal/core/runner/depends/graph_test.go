@@ -373,8 +373,8 @@ func TestGraphBuilder(t *testing.T) {
 	})
 
 	// Test Case 5: Multiple manifests with hard dependencies
-	t.Run("Multiple manifests with mixed dependencies", func(t *testing.T) {
-		fmt.Println("\n📝 Test Case 4: Multiple manifests with mixed dependencies")
+	t.Run("Multiple manifests with hard dependencies", func(t *testing.T) {
+		fmt.Println("\n📝 Test Case 5: Multiple manifests with hard dependencies")
 
 		mans := []manifests.Manifest{
 			&values.Values{
@@ -390,8 +390,6 @@ func TestGraphBuilder(t *testing.T) {
 					Data map[string]any `yaml:",inline" json:",inline" validate:"required,min=1,dive"`
 				}{
 					Data: map[string]any{
-						"data_1": 1,
-						"data_2": []int{1, 2, 3},
 						"user": struct {
 							Name  string
 							Email string
@@ -456,7 +454,7 @@ func TestGraphBuilder(t *testing.T) {
 					Cases: []api.HttpCase{
 						{
 							HttpCase: tests.HttpCase{
-								Name:     "Simple HTTP Test Case",
+								Name:     "Fetch all user's roles from API",
 								Alias:    stringPtr("users-roles"),
 								Method:   http.MethodGet,
 								Endpoint: "/roles",
