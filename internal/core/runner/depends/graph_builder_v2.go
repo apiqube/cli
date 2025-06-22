@@ -1,13 +1,11 @@
 package depends
 
 import (
-	"container/heap"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 
-	"github.com/apiqube/cli/internal/collections"
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 )
@@ -370,10 +368,11 @@ func (gb *GraphBuilderV2) calculateSaveRequirements(result *GraphResultV2) {
 			result.SaveRequirements[toManifest] = req
 
 			// Update test case alias info if applicable
+			var paths []string
 			if alias, ok := dep.Metadata["alias"].(string); ok {
 				if aliasInfo, exists := result.TestCaseAliases[alias]; exists {
 					aliasInfo.Consumers = append(aliasInfo.Consumers, dep.From)
-					if paths, ok := dep.Metadata["required_paths"].([]string); ok {
+					if paths, ok = dep.Metadata["required_paths"].([]string); ok {
 						aliasInfo.RequiredPaths = append(aliasInfo.RequiredPaths, paths...)
 					}
 					result.TestCaseAliases[alias] = aliasInfo
@@ -421,12 +420,7 @@ func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, de
 		}
 	}
 
-	// Use priority queue for topological sorting with priorities and deterministic order
-	priorityQueue := collections.NewPriorityQueue[*Node](func(a, b *Node) bool {
-		return a.Priority > b.Priority
-	})
-
-	// Collect all nodes with zero in-degree
+	// Use a slice as a queue for topological sorting with priorities and deterministic order
 	zeroInDegreeNodes := make([]*Node, 0)
 	for id, degree := range inDegree {
 		if degree == 0 {
@@ -446,16 +440,18 @@ func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, de
 	})
 
 	executionOrder := make([]string, 0, len(manifests))
+	queue := zeroInDegreeNodes
 
-	for priorityQueue.Len() > 0 {
-		current := priorityQueue.Pop().(*Node).ID
-		executionOrder = append(executionOrder, current)
+	for len(queue) > 0 {
+		currentNode := queue[0]
+		queue = queue[1:]
+		executionOrder = append(executionOrder, currentNode.ID)
 
 		newNodes := make([]*Node, 0)
 		for _, dep := range dependencies {
 			fromBase := gb.getBaseManifestID(dep.From)
 			toBase := gb.getBaseManifestID(dep.To)
-			if toBase == current && fromBase != toBase {
+			if toBase == currentNode.ID && fromBase != toBase {
 				inDegree[fromBase]--
 				if inDegree[fromBase] == 0 {
 					newNodes = append(newNodes, &Node{
@@ -472,9 +468,7 @@ func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, de
 			}
 			return newNodes[i].ID < newNodes[j].ID
 		})
-		for _, node := range newNodes {
-			heap.Push(priorityQueue, node)
-		}
+		queue = append(queue, newNodes...)
 	}
 
 	// Check for cycles

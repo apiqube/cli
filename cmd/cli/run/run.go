@@ -69,7 +69,7 @@ var Cmd = &cobra.Command{
 			cli.Info("Dependency analysis completed:")
 			for manifestID, req := range graphResult.SaveRequirements {
 				if req.Required {
-					cli.Infof("  %s will save data for: %v", manifestID, req.UsedBy)
+					cli.Infof("  %s will save data for", manifestID)
 				}
 			}
 		}

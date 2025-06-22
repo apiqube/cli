@@ -7,7 +7,6 @@ metadata:
 spec:
   target: http://127.0.0.1:8081
   cases:
-
     - name: Fetch User From Server
       alias: fetch-user
       method: GET
@@ -21,6 +20,6 @@ spec:
       endpoint: /users
       assert:
         - target: status
-          equals: 200
+          equals: 201
       body:
-        user: "{{ fetch-user.response.body }}"
+        user: "{{ fetch-user.response.body.user }}"

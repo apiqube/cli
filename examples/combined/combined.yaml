@@ -57,7 +57,7 @@ spec:
             Authorization: some_jwt_token
             type: some_data
           body:
-            email: example_email
+            email: "{{ Values.simple-save.users.username.0 }}"
             password: example_password
             username: example_username
           expected:
