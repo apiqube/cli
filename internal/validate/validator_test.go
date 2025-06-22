@@ -299,12 +299,6 @@ var (
 								},
 							},
 						},
-						Pass: []*tests.Pass{
-							{
-								From: "headers",
-								Map:  map[string]string{"Authorization": "Bearer token"},
-							},
-						},
 						Timeout:  time.Second,
 						Parallel: false,
 						Details: []string{

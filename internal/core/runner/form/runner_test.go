@@ -157,7 +157,7 @@ func TestRunner_Apply(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := runner.Apply(ctx, tt.input, nil)
+			result := runner.Apply(ctx, tt.input)
 			if result != tt.expected {
 				t.Errorf("Apply() = %v, want %v", result, tt.expected)
 			}
@@ -209,7 +209,7 @@ func TestRunner_ApplyBody(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := runner.ApplyBody(ctx, tt.input, nil)
+			result := runner.ApplyBody(ctx, tt.input)
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("ApplyBody() = %v, want %v", result, tt.expected)
 			}
@@ -232,7 +232,7 @@ func TestRunner_MapHeaders(t *testing.T) {
 		"Content-Type":  "application/json",
 	}
 
-	result := runner.MapHeaders(ctx, input, nil)
+	result := runner.MapHeaders(ctx, input)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("MapHeaders() = %v, want %v", result, expected)
 	}

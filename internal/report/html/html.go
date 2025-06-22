@@ -3,13 +3,14 @@ package html
 import (
 	"embed"
 	"fmt"
-	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/runner/interfaces"
-	"github.com/goccy/go-json"
 	"html/template"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/runner/interfaces"
+	"github.com/goccy/go-json"
 
 	"github.com/apiqube/cli/internal/core/runner/save"
 )
@@ -76,7 +77,7 @@ func buildReportViewData(ctx interfaces.ExecutionContext) *ViewData {
 		return nil
 	}
 
-	var reportMap = make(map[string]*ManifestReport)
+	reportMap := make(map[string]*ManifestReport)
 	var totalCases, passedCases, failedCases int
 	var totalTime time.Duration
 
@@ -200,7 +201,7 @@ func (g *ReportGenerator) Generate(ctx interfaces.ExecutionContext) error {
 	data := buildReportViewData(ctx)
 
 	reportsDir := "reports"
-	if err := os.MkdirAll(reportsDir, 0755); err != nil {
+	if err := os.MkdirAll(reportsDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create reports directory: %w", err)
 	}
 	outputPath := filepath.Join(reportsDir, fmt.Sprintf("report_%s.html", time.Now().Format("2006-01-02-150405")))

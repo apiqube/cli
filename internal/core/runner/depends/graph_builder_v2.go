@@ -402,11 +402,9 @@ func (gb *GraphBuilderV2) calculateSaveRequirements(result *GraphResultV2) {
 func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, dependencies []Dependency) ([]string, error) {
 	// Initialize in-degree count for each manifest
 	inDegree := make(map[string]int)
-	manifestIDs := make([]string, 0, len(manifests))
 	for _, manifest := range manifests {
 		id := manifest.GetID()
 		inDegree[id] = 0
-		manifestIDs = append(manifestIDs, id)
 	}
 
 	// Calculate in-degrees from all inter-manifest dependencies

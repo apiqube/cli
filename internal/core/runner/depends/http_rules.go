@@ -2,10 +2,11 @@ package depends
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/internal/core/manifests"
-	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 	"reflect"
 	"regexp"
+
+	"github.com/apiqube/cli/internal/core/manifests"
+	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 )
 
 // HttpTestDependencyRule handles HTTP test specific dependencies
@@ -285,6 +286,7 @@ func (r *IntraManifestDependencyRule) findIntraManifestReferences(testCase api.H
 // findReferencesInStruct recursively finds template references in struct fields
 func (r *IntraManifestDependencyRule) findReferencesInStruct(v reflect.Value, path string, references *[]HttpTemplateReference) {
 	templateRegex := regexp.MustCompile(`\{\{\s*([a-zA-Z][a-zA-Z0-9_-]*)\.(.*?)\s*}}`)
+	var newPath string
 
 	switch v.Kind() {
 	case reflect.String:
@@ -302,7 +304,6 @@ func (r *IntraManifestDependencyRule) findReferencesInStruct(v reflect.Value, pa
 	case reflect.Map:
 		for _, key := range v.MapKeys() {
 			keyStr := fmt.Sprintf("%v", key.Interface())
-			newPath := path
 			if path != "" {
 				newPath = fmt.Sprintf("%s.%s", path, keyStr)
 			} else {
@@ -312,7 +313,7 @@ func (r *IntraManifestDependencyRule) findReferencesInStruct(v reflect.Value, pa
 		}
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < v.Len(); i++ {
-			newPath := fmt.Sprintf("%s[%d]", path, i)
+			newPath = fmt.Sprintf("%s[%d]", path, i)
 			r.findReferencesInStruct(v.Index(i), newPath, references)
 		}
 	case reflect.Struct:
@@ -320,7 +321,6 @@ func (r *IntraManifestDependencyRule) findReferencesInStruct(v reflect.Value, pa
 		for i := 0; i < v.NumField(); i++ {
 			field := t.Field(i)
 			if field.IsExported() {
-				newPath := path
 				if path != "" {
 					newPath = fmt.Sprintf("%s.%s", path, field.Name)
 				} else {

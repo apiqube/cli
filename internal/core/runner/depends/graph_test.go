@@ -2,15 +2,16 @@ package depends
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+	"testing"
+
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/servers"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/values"
 	"github.com/apiqube/cli/internal/core/manifests/utils"
-	"net/http"
-	"strings"
-	"testing"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 )
@@ -264,7 +265,8 @@ func TestGraphBuilder(t *testing.T) {
 					Health:  "",
 					Headers: map[string]string{
 						"Content-Type": "application/json",
-					}},
+					},
+				},
 			},
 			&api.Http{
 				BaseManifest: kinds.BaseManifest{
@@ -435,7 +437,8 @@ func TestGraphBuilder(t *testing.T) {
 					Health:  "",
 					Headers: map[string]string{
 						"Content-Type": "application/json",
-					}},
+					},
+				},
 			},
 			&api.Http{
 				BaseManifest: kinds.BaseManifest{
@@ -569,7 +572,7 @@ func TestGraphBuilder(t *testing.T) {
 		}
 
 		_, kind, _ := utils.ParseManifestID(mans[0].GetID())
-		var prev = priorities[kind]
+		prev := priorities[kind]
 		for i := 1; i < len(result.ExecutionOrder); i++ {
 			if _, kind, _ = utils.ParseManifestID(result.ExecutionOrder[i]); prev > priorities[kind] {
 				t.Errorf("Expected %s to have lower priority than %s (%d), got %d", result.ExecutionOrder[i], result.ExecutionOrder[i-1], prev, priorities[kind])
