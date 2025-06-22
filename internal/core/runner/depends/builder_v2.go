@@ -1,43 +1,8 @@
 package depends
 
-// GraphBuilderV2 is the new modular graph builder
-type GraphBuilderV2 struct {
-	ruleRegistry *RuleRegistry
-}
-
-func NewGraphBuilderV2(registry *RuleRegistry) *GraphBuilderV2 {
-	if registry == nil {
-		registry = DefaultRuleRegistry()
-	}
-	return &GraphBuilderV2{
-		ruleRegistry: registry,
-	}
-}
-
-// GraphResultV2 contains enhanced graph information
-type GraphResultV2 struct {
-	Graph             map[string][]string        // adjacency list (inter-manifest only)
-	ExecutionOrder    []string                   // topologically sorted order
-	Dependencies      []Dependency               // inter-manifest dependencies only
-	AllDependencies   []Dependency               // all discovered dependencies (inter + intra)
-	SaveRequirements  map[string]SaveRequirement // what each manifest needs to save
-	Metadata          map[string]map[string]any  // additional metadata per manifest
-	IntraManifestDeps map[string][]Dependency    // intra-manifest dependencies grouped by manifest
-}
-
-// SaveRequirement defines what data a manifest should save for others
-type SaveRequirement struct {
-	Required      bool     // whether saving is required
-	ManifestID    string   // ID of the manifest that provides data
-	RequiredPaths []string // specific paths to save (renamed from Paths for consistency)
-	Paths         []string // alias for RequiredPaths for backward compatibility
-	UsedBy        []string // which manifests will use this data (alias for Consumers)
-	Consumers     []string // which manifests will consume this data
-}
-
 // AddRule adds a new rule to the registry
 func (gb *GraphBuilderV2) AddRule(rule DependencyRule) {
-	gb.ruleRegistry.Register(rule)
+	gb.registry.Register(rule)
 }
 
 // GetSaveRequirement returns save requirement for a manifest

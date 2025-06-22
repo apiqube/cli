@@ -7,6 +7,7 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/values"
+	"github.com/apiqube/cli/internal/core/manifests/utils"
 	"net/http"
 	"strings"
 	"testing"
@@ -367,6 +368,221 @@ func TestGraphBuilder(t *testing.T) {
 		for i, expected := range expectedOrder {
 			if result.ExecutionOrder[i] != expected {
 				t.Errorf("Expected %s at position %d, got %s", expected, i, result.ExecutionOrder[i])
+			}
+		}
+	})
+
+	// Test Case 5: Multiple manifests with hard dependencies
+	t.Run("Multiple manifests with mixed dependencies", func(t *testing.T) {
+		fmt.Println("\n📝 Test Case 4: Multiple manifests with mixed dependencies")
+
+		mans := []manifests.Manifest{
+			&values.Values{
+				BaseManifest: kinds.BaseManifest{
+					Version: "v1",
+					Kind:    manifests.ValuesKind,
+					Metadata: kinds.Metadata{
+						Name:      "values-test-1",
+						Namespace: manifests.DefaultNamespace,
+					},
+				},
+				Spec: struct {
+					Data map[string]any `yaml:",inline" json:",inline" validate:"required,min=1,dive"`
+				}{
+					Data: map[string]any{
+						"data_1": 1,
+						"data_2": []int{1, 2, 3},
+						"user": struct {
+							Name  string
+							Email string
+						}{
+							Name:  "user_1",
+							Email: "user_1@example.com",
+						},
+					},
+				},
+			},
+			&values.Values{
+				BaseManifest: kinds.BaseManifest{
+					Version: "v1",
+					Kind:    manifests.ValuesKind,
+					Metadata: kinds.Metadata{
+						Name:      "values-test-2",
+						Namespace: manifests.DefaultNamespace,
+					},
+				},
+				Spec: struct {
+					Data map[string]any `yaml:",inline" json:",inline" validate:"required,min=1,dive"`
+				}{
+					Data: map[string]any{
+						"number": 1,
+					},
+				},
+			},
+			&servers.Server{
+				BaseManifest: kinds.BaseManifest{
+					Version: "v1",
+					Kind:    manifests.ServerKind,
+					Metadata: kinds.Metadata{
+						Name:      "http-test-server",
+						Namespace: manifests.DefaultNamespace,
+					},
+				},
+				Spec: struct {
+					BaseURL string            `yaml:"baseUrl" json:"baseUrl" validate:"required,url"`
+					Health  string            `yaml:"health" json:"health" validate:"omitempty,max=100"`
+					Headers map[string]string `yaml:"headers,omitempty" json:"headers" validate:"omitempty,max=20"`
+				}{
+					BaseURL: "http://127.0.0.1:8080",
+					Health:  "",
+					Headers: map[string]string{
+						"Content-Type": "application/json",
+					}},
+			},
+			&api.Http{
+				BaseManifest: kinds.BaseManifest{
+					Version: "v1",
+					Kind:    manifests.HttpTestKind,
+					Metadata: kinds.Metadata{
+						Name:      "http-test-roles",
+						Namespace: manifests.DefaultNamespace,
+					},
+				},
+				Spec: struct {
+					Target string         `yaml:"target,omitempty" json:"target,omitempty" validate:"required"`
+					Cases  []api.HttpCase `yaml:"cases" json:"cases" validate:"required,min=1,max=100,dive"`
+				}{
+					Target: "http://127.0.0.1:8080",
+					Cases: []api.HttpCase{
+						{
+							HttpCase: tests.HttpCase{
+								Name:     "Simple HTTP Test Case",
+								Alias:    stringPtr("users-roles"),
+								Method:   http.MethodGet,
+								Endpoint: "/roles",
+							},
+						},
+					},
+				},
+			},
+			&api.Http{
+				BaseManifest: kinds.BaseManifest{
+					Version: "v1",
+					Kind:    manifests.HttpTestKind,
+					Metadata: kinds.Metadata{
+						Name:      "http-test-users",
+						Namespace: manifests.DefaultNamespace,
+					},
+				},
+				Spec: struct {
+					Target string         `yaml:"target,omitempty" json:"target,omitempty" validate:"required"`
+					Cases  []api.HttpCase `yaml:"cases" json:"cases" validate:"required,min=1,max=100,dive"`
+				}{
+					Target: "http://127.0.0.1:8080",
+					Cases: []api.HttpCase{
+						{
+							HttpCase: tests.HttpCase{
+								Name:     "Simple HTTP Test Case",
+								Alias:    stringPtr("fetch-users"),
+								Method:   http.MethodGet,
+								Endpoint: "/users",
+							},
+						},
+						{
+							HttpCase: tests.HttpCase{
+								Name:     "HTTP Test Case With Internal Dependencies",
+								Method:   http.MethodDelete,
+								Endpoint: "/users/{{ fetch-users.response.body.users.0.id }}",
+								Body: map[string]any{
+									"name": "{{ fetch-users.response.body.users.0.name }}",
+								},
+							},
+						},
+						{
+							HttpCase: tests.HttpCase{
+								Name:     "HTTP Test Case With Explicit Values Dependencies",
+								Method:   http.MethodPost,
+								Endpoint: "/users",
+								Body: map[string]any{
+									"user": "{{ Values.values-test-1.user }}",
+									"role": "{{ users.roles.roles.3 }}",
+								},
+							},
+						},
+					},
+				},
+			},
+			&api.Http{
+				BaseManifest: kinds.BaseManifest{
+					Version: "v1",
+					Kind:    manifests.HttpTestKind,
+					Metadata: kinds.Metadata{
+						Name:      "http-test-cars",
+						Namespace: manifests.DefaultNamespace,
+					},
+				},
+				Spec: struct {
+					Target string         `yaml:"target,omitempty" json:"target,omitempty" validate:"required"`
+					Cases  []api.HttpCase `yaml:"cases" json:"cases" validate:"required,min=1,max=100,dive"`
+				}{
+					Target: "http://127.0.0.1:8080",
+					Cases: []api.HttpCase{
+						{
+							HttpCase: tests.HttpCase{
+								Name:     "HTTP Test Case",
+								Alias:    stringPtr("fetch-cars"),
+								Method:   http.MethodGet,
+								Endpoint: "/cars",
+							},
+						},
+						{
+							HttpCase: tests.HttpCase{
+								Name:     "HTTP Test Case With Internal And External Dependencies",
+								Method:   http.MethodDelete,
+								Endpoint: "/users/{{ fetch-users.response.body.users.0.id }}",
+								Body: map[string]any{
+									"name":   "{{ fetch-users.response.body.users.0.name }}",
+									"number": "{{ Values.values-test-2.number }}",
+								},
+							},
+						},
+						{
+							HttpCase: tests.HttpCase{
+								Name:     "HTTP Test Case With Explicit Values Dependencies",
+								Method:   http.MethodPost,
+								Endpoint: "/users",
+								Body: map[string]any{
+									"user": "{{ Values.values-test-1.user }}",
+									"role": "{{ users.roles.roles.3 }}",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		registry := DefaultRuleRegistry()
+		builder := NewGraphBuilderV2(registry)
+
+		result, err := builder.BuildGraphWithRules(mans)
+		if err != nil {
+			t.Fatalf("Failed to build graph: %v", err)
+		}
+
+		// Print results
+		printDependencyGraph(builder, result)
+
+		// Assertions
+		if len(result.ExecutionOrder) != len(mans) {
+			t.Errorf("Expected %d manifests in execution order, got %d", len(mans), len(result.ExecutionOrder))
+		}
+
+		_, kind, _ := utils.ParseManifestID(mans[0].GetID())
+		var prev = priorities[kind]
+		for i := 1; i < len(result.ExecutionOrder); i++ {
+			if _, kind, _ = utils.ParseManifestID(result.ExecutionOrder[i]); prev > priorities[kind] {
+				t.Errorf("Expected %s to have lower priority than %s (%d), got %d", result.ExecutionOrder[i], result.ExecutionOrder[i-1], prev, priorities[kind])
 			}
 		}
 	})
