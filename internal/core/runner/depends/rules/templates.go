@@ -2,9 +2,10 @@ package rules
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/utils"
-	"regexp"
 )
 
 const TemplateRuleName = "Template"

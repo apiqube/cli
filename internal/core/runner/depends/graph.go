@@ -2,11 +2,12 @@ package depends
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/internal/core/manifests/kinds"
-	"github.com/apiqube/cli/internal/core/runner/depends/rules"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/apiqube/cli/internal/core/manifests/kinds"
+	"github.com/apiqube/cli/internal/core/runner/depends/rules"
 
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"

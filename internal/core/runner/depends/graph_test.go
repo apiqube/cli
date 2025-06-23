@@ -2,10 +2,11 @@ package depends
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/internal/core/runner/depends/rules"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/apiqube/cli/internal/core/runner/depends/rules"
 
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/servers"
