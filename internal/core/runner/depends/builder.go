@@ -1,7 +1,9 @@
 package depends
 
+import "github.com/apiqube/cli/internal/core/runner/depends/rules"
+
 // AddRule adds a new rule to the registry
-func (gb *GraphBuilderV2) AddRule(rule DependencyRule) {
+func (gb *GraphBuilder) AddRule(rule rules.DependencyRule) {
 	gb.registry.Register(rule)
 }
 
@@ -12,8 +14,8 @@ func (gr *GraphResultV2) GetSaveRequirement(manifestID string) (SaveRequirement,
 }
 
 // GetDependenciesFor returns all dependencies for a manifest
-func (gr *GraphResultV2) GetDependenciesFor(manifestID string) []Dependency {
-	var deps []Dependency
+func (gr *GraphResultV2) GetDependenciesFor(manifestID string) []rules.Dependency {
+	var deps []rules.Dependency
 	for _, dep := range gr.Dependencies {
 		if dep.From == manifestID {
 			deps = append(deps, dep)
@@ -23,8 +25,8 @@ func (gr *GraphResultV2) GetDependenciesFor(manifestID string) []Dependency {
 }
 
 // GetDependentsOf returns dependencies that depend on the given manifest
-func (gr *GraphResultV2) GetDependentsOf(manifestID string) []Dependency {
-	var dependents []Dependency
+func (gr *GraphResultV2) GetDependentsOf(manifestID string) []rules.Dependency {
+	var dependents []rules.Dependency
 	for _, dep := range gr.Dependencies {
 		if dep.To == manifestID {
 			dependents = append(dependents, dep)
@@ -33,23 +35,12 @@ func (gr *GraphResultV2) GetDependentsOf(manifestID string) []Dependency {
 	return dependents
 }
 
-// GetDependenciesOf returns dependencies that the given manifest depends on
-func (gr *GraphResultV2) GetDependenciesOf(manifestID string) []Dependency {
-	var dependencies []Dependency
-	for _, dep := range gr.Dependencies {
-		if dep.From == manifestID {
-			dependencies = append(dependencies, dep)
-		}
-	}
-	return dependencies
-}
-
 // GetIntraManifestDependencies returns intra-manifest dependencies for a given manifest
-func (gr *GraphResultV2) GetIntraManifestDependencies(manifestID string) []Dependency {
+func (gr *GraphResultV2) GetIntraManifestDependencies(manifestID string) []rules.Dependency {
 	if deps, exists := gr.IntraManifestDeps[manifestID]; exists {
 		return deps
 	}
-	return []Dependency{}
+	return []rules.Dependency{}
 }
 
 // HasIntraManifestDependencies checks if a manifest has intra-manifest dependencies

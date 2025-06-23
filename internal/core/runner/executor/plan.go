@@ -55,8 +55,8 @@ func (r *V2PlanRunner) RunPlan(ctx interfaces.ExecutionContext, manifest manifes
 		// This is a simplified approach - in production you might want to pass the graph result directly
 		allManifests := ctx.GetAllManifests()
 		registry := depends.DefaultRuleRegistry()
-		builder := depends.NewGraphBuilderV2(registry)
-		graphResult, err := builder.BuildGraphWithRules(allManifests)
+		builder := depends.NewGraphBuilder(registry)
+		graphResult, err := builder.Build(allManifests)
 		if err != nil {
 			return fmt.Errorf("failed to initialize dependency analysis: %w", err)
 		}

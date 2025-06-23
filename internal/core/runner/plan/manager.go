@@ -164,8 +164,8 @@ func (g *basicManager) GenerateV2() (*plan.Plan, *depends.GraphResultV2, error) 
 	registry := depends.DefaultRuleRegistry()
 
 	// Build graph using V2 system
-	builder := depends.NewGraphBuilderV2(registry)
-	graphResult, err := builder.BuildGraphWithRules(manifestSlice)
+	builder := depends.NewGraphBuilder(registry)
+	graphResult, err := builder.Build(manifestSlice)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to build dependency graph: %w", err)
 	}

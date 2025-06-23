@@ -3,6 +3,7 @@ package depends
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/apiqube/cli/internal/core/runner/depends/rules"
 	"strings"
 
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
@@ -204,17 +205,15 @@ func (pm *PassManager) notifyWaitingConsumers(manifestID string, result TestResu
 	dependents := pm.graphResult.GetDependentsOf(manifestID)
 
 	for _, dep := range dependents {
-		if dep.Type == DependencyTypeTemplate || dep.Type == DependencyTypeValue {
+		if dep.Type == rules.DependencyTypeTemplate || dep.Type == rules.DependencyTypeValue {
 			// Send complete result
 			pm.ctx.SafeSend(manifestID, result)
 
 			// Send specific paths if specified in metadata
-			if paths, ok := dep.Metadata["required_paths"].([]string); ok {
-				for _, path := range paths {
-					if value, err := pm.extractValueByPath(result, path); err == nil {
-						key := fmt.Sprintf("%s.%s", manifestID, path)
-						pm.ctx.SafeSend(key, value)
-					}
+			for _, path := range dep.Metadata.Paths {
+				if value, err := pm.extractValueByPath(result, path); err == nil {
+					key := fmt.Sprintf("%s.%s", manifestID, path)
+					pm.ctx.SafeSend(key, value)
 				}
 			}
 		}
