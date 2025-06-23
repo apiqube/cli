@@ -7,7 +7,7 @@ import (
 	"regexp"
 )
 
-const TemplateRuleName = "template"
+const TemplateRuleName = "Template"
 
 // TemplateDependencyRule handles template-based dependencies ({{ alias.path }})
 type TemplateDependencyRule struct {

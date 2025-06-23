@@ -35,7 +35,7 @@ type V2PlanRunner struct {
 	passManager *depends.PassManager
 }
 
-func NewV2PlanRunner(registry interfaces.ExecutorRegistry, hooksRunner hooks.Runner, graphResult *depends.GraphResultV2) *V2PlanRunner {
+func NewV2PlanRunner(registry interfaces.ExecutorRegistry, hooksRunner hooks.Runner, graphResult *depends.Result) *V2PlanRunner {
 	return &V2PlanRunner{
 		registry:    registry,
 		hooksRunner: hooksRunner,

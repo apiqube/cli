@@ -25,7 +25,7 @@ const defaultPriority = 10_000
 
 type Manager interface {
 	Generate() (*plan.Plan, error)
-	GenerateV2() (*plan.Plan, *depends.GraphResultV2, error)
+	GenerateV2() (*plan.Plan, *depends.Result, error)
 	CheckPlan(*plan.Plan) error
 }
 
@@ -147,7 +147,7 @@ func (g *basicManager) Generate() (*plan.Plan, error) {
 }
 
 // GenerateV2 generates plan using the new V2 dependency system
-func (g *basicManager) GenerateV2() (*plan.Plan, *depends.GraphResultV2, error) {
+func (g *basicManager) GenerateV2() (*plan.Plan, *depends.Result, error) {
 	if len(g.manifests) == 0 {
 		return nil, nil, fmt.Errorf("manifests not provided for generating the plan")
 	}

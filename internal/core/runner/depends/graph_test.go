@@ -583,7 +583,7 @@ func TestGraphBuilder(t *testing.T) {
 }
 
 // PrintDependencyGraph prints a beautiful visualization of the dependency graph
-func printDependencyGraph(_ *GraphBuilder, result *GraphResultV2) {
+func printDependencyGraph(_ *Builder, result *Result) {
 	fmt.Println("\n" + strings.Repeat("=", 80))
 	fmt.Println("🔗 DEPENDENCY GRAPH VISUALIZATION")
 	fmt.Println(strings.Repeat("=", 80))

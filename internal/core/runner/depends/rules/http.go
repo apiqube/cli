@@ -9,7 +9,7 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 )
 
-const HttpTestDependencyRuleName = "http_test"
+const HttpTestDependencyRuleName = "Http Test"
 
 // HttpTestDependencyRule handles HTTP test specific dependencies
 type HttpTestDependencyRule struct {

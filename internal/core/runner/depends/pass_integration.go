@@ -13,10 +13,10 @@ import (
 type PassManager struct {
 	ctx              interfaces.ExecutionContext
 	saveRequirements map[string]SaveRequirement
-	graphResult      *GraphResultV2
+	graphResult      *Result
 }
 
-func NewPassManager(ctx interfaces.ExecutionContext, graphResult *GraphResultV2) *PassManager {
+func NewPassManager(ctx interfaces.ExecutionContext, graphResult *Result) *PassManager {
 	return &PassManager{
 		ctx:              ctx,
 		saveRequirements: graphResult.SaveRequirements,

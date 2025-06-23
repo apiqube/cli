@@ -5,7 +5,7 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 )
 
-const KindPriorityRuleName = "kind_priority"
+const KindPriorityRuleName = "Kind Priority"
 
 // KindPriorityRule handles kind-based priorities
 type KindPriorityRule struct {
