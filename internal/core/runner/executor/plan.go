@@ -28,7 +28,7 @@ func NewRunner(registry interfaces.ExecutorRegistry, hooksRunner hooks.Runner, g
 	return &Runner{
 		registry:    registry,
 		hooksRunner: hooksRunner,
-		passManager: nil, // Will be initialized when context is available
+		passManager: depends.NewPassManager(graph),
 		graph:       graph,
 	}
 }
@@ -37,11 +37,6 @@ func (r *Runner) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifes
 	p, ok := manifest.(*plan.Plan)
 	if !ok {
 		return errors.New("invalid manifest type, expected Plan kind")
-	}
-
-	// Initialize PassManager if not already done
-	if r.passManager == nil {
-		r.passManager = depends.NewPassManager(ctx, r.graph)
 	}
 
 	defer r.passManager.Close()
@@ -58,7 +53,7 @@ func (r *Runner) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifes
 	}
 
 	if p.Spec.Hooks != nil {
-		if err = r.runHooksWithContext(ctx, hooks.BeforeRun, p.Spec.Hooks.BeforeRun); err != nil {
+		if err = r.runHooks(ctx, hooks.BeforeRun, p.Spec.Hooks.BeforeRun); err != nil {
 			output.Logf(interfaces.ErrorLevel, "%s plan before start hooks running failed\nReason: %s", planRunnerOutputPrefix, err.Error())
 			return err
 		}
@@ -74,7 +69,7 @@ func (r *Runner) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifes
 		output.Logf(interfaces.InfoLevel, "%s %s stage starting...", planRunnerOutputPrefix, stageName)
 
 		if stage.Hooks != nil {
-			if err = r.runHooksWithContext(ctx, hooks.BeforeRun, stage.Hooks.BeforeRun); err != nil {
+			if err = r.runHooks(ctx, hooks.BeforeRun, stage.Hooks.BeforeRun); err != nil {
 				output.Logf(interfaces.ErrorLevel, "%s stage %s before start hooks running failed\nReason: %s", planRunnerOutputPrefix, stageName, err.Error())
 				return err
 			}
@@ -82,9 +77,9 @@ func (r *Runner) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifes
 
 		var execErr error
 		if stage.Parallel {
-			execErr = r.runManifestsParallelV2(ctx, stage.Manifests)
+			execErr = r.runManifestsParallel(ctx, stage.Manifests)
 		} else {
-			execErr = r.runManifestsStrictV2(ctx, stage.Manifests)
+			execErr = r.runManifestsStrict(ctx, stage.Manifests)
 		}
 
 		if err = ctx.Err(); err != nil {
@@ -93,7 +88,7 @@ func (r *Runner) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifes
 		}
 
 		if stage.Hooks != nil {
-			if err = r.runHooksWithContext(ctx, hooks.AfterRun, stage.Hooks.AfterRun); err != nil {
+			if err = r.runHooks(ctx, hooks.AfterRun, stage.Hooks.AfterRun); err != nil {
 				output.Logf(interfaces.ErrorLevel, "%s stage %s after finish hooks running failed: %s", planRunnerOutputPrefix, stageName, err.Error())
 				return err
 			}
@@ -103,14 +98,14 @@ func (r *Runner) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifes
 			output.Logf(interfaces.ErrorLevel, "%s stage %s failed\nReason: %s", planRunnerOutputPrefix, stageName, execErr.Error())
 
 			if stage.Hooks != nil {
-				if err = r.runHooksWithContext(ctx, hooks.OnFailure, stage.Hooks.OnFailure); err != nil {
+				if err = r.runHooks(ctx, hooks.OnFailure, stage.Hooks.OnFailure); err != nil {
 					output.Logf(interfaces.ErrorLevel, "%s stage %s on failure hooks running failed\nReason: %s", planRunnerOutputPrefix, stageName, err.Error())
 					return err
 				}
 			}
 
 			if p.Spec.Hooks != nil {
-				if err = r.runHooksWithContext(ctx, hooks.OnFailure, p.Spec.Hooks.OnFailure); err != nil {
+				if err = r.runHooks(ctx, hooks.OnFailure, p.Spec.Hooks.OnFailure); err != nil {
 					output.Logf(interfaces.ErrorLevel, "%s plan on failure hooks running failed\nReason: %s", planRunnerOutputPrefix, err.Error())
 					return errors.Join(execErr, err)
 				}
@@ -120,7 +115,7 @@ func (r *Runner) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifes
 		}
 
 		if stage.Hooks != nil {
-			if err = r.runHooksWithContext(ctx, hooks.OnSuccess, stage.Hooks.OnSuccess); err != nil {
+			if err = r.runHooks(ctx, hooks.OnSuccess, stage.Hooks.OnSuccess); err != nil {
 				output.Logf(interfaces.ErrorLevel, "%s stage %s on success hooks running failed\nReason: %s", planRunnerOutputPrefix, stageName, err.Error())
 				return err
 			}
@@ -133,12 +128,12 @@ func (r *Runner) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifes
 	}
 
 	if p.Spec.Hooks != nil {
-		if err = r.runHooksWithContext(ctx, hooks.AfterRun, p.Spec.Hooks.AfterRun); err != nil {
+		if err = r.runHooks(ctx, hooks.AfterRun, p.Spec.Hooks.AfterRun); err != nil {
 			output.Logf(interfaces.ErrorLevel, "%s plan after finish hooks running failed\nReason: %s", planRunnerOutputPrefix, err.Error())
 			return err
 		}
 
-		if err = r.runHooksWithContext(ctx, hooks.OnSuccess, p.Spec.Hooks.OnSuccess); err != nil {
+		if err = r.runHooks(ctx, hooks.OnSuccess, p.Spec.Hooks.OnSuccess); err != nil {
 			output.Logf(interfaces.ErrorLevel, "%s plan on success hooks running failed\nReason: %s", planRunnerOutputPrefix, err.Error())
 			return err
 		}
@@ -147,7 +142,7 @@ func (r *Runner) Run(ctx interfaces.ExecutionContext, manifest manifests.Manifes
 	return nil
 }
 
-func (r *Runner) runManifestsStrictV2(ctx interfaces.ExecutionContext, manifestIDs []string) error {
+func (r *Runner) runManifestsStrict(ctx interfaces.ExecutionContext, manifestIDs []string) error {
 	var man manifests.Manifest
 	var err error
 
@@ -188,7 +183,7 @@ func (r *Runner) runManifestsStrictV2(ctx interfaces.ExecutionContext, manifestI
 	return nil
 }
 
-func (r *Runner) runManifestsParallelV2(ctx interfaces.ExecutionContext, manifestIDs []string) error {
+func (r *Runner) runManifestsParallel(ctx interfaces.ExecutionContext, manifestIDs []string) error {
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(manifestIDs))
 
@@ -250,7 +245,7 @@ func (r *Runner) runManifestsParallelV2(ctx interfaces.ExecutionContext, manifes
 	return nil
 }
 
-func (r *Runner) runHooksWithContext(ctx interfaces.ExecutionContext, event hooks.HookEvent, actions []hooks.Action) error {
+func (r *Runner) runHooks(ctx interfaces.ExecutionContext, event hooks.HookEvent, actions []hooks.Action) error {
 	if len(actions) == 0 {
 		return nil
 	}

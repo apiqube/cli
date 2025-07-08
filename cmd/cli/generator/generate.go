@@ -39,7 +39,7 @@ var Cmd = &cobra.Command{
 		manager := runner.NewPlanManagerBuilder().
 			WithManifests(loadedManifests...).Build()
 
-		planManifest, err := manager.Generate()
+		planManifest, _, err := manager.Generate()
 		if err != nil {
 			cli.Errorf("Failed to generate plan: %v", err)
 			return

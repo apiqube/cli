@@ -2,29 +2,28 @@ package depends
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/internal/core/runner/depends/rules"
-	"github.com/goccy/go-json"
-	"github.com/tidwall/gjson"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/apiqube/cli/internal/core/runner/depends/rules"
+	"github.com/goccy/go-json"
+	"github.com/tidwall/gjson"
 
 	"github.com/apiqube/cli/internal/core/runner/interfaces"
 )
 
 // PassManager handles automatic data passing between tests
 type PassManager struct {
-	ctx              interfaces.ExecutionContext
 	mx               sync.RWMutex
 	saveRequirements map[string]SaveRequirement
 	graphResult      *Result
 	channels         map[string]chan any
 }
 
-func NewPassManager(ctx interfaces.ExecutionContext, graphResult *Result) *PassManager {
+func NewPassManager(graphResult *Result) *PassManager {
 	return &PassManager{
-		ctx:              ctx,
 		mx:               sync.RWMutex{},
 		saveRequirements: graphResult.SaveRequirements,
 		graphResult:      graphResult,
@@ -45,7 +44,7 @@ func (m *PassManager) ShouldSaveResult(manifestID string) bool {
 }
 
 // SaveTestResult saves test result data for future use
-func (m *PassManager) SaveTestResult(manifestID string, data TestData) error {
+func (m *PassManager) SaveTestResult(ctx interfaces.ExecutionContext, manifestID string, data TestData) error {
 	req, exists := m.saveRequirements[manifestID]
 	if !exists || !req.Required {
 		return nil // No need to save
@@ -55,16 +54,16 @@ func (m *PassManager) SaveTestResult(manifestID string, data TestData) error {
 	for _, path := range req.Paths {
 		value, err := m.extractValueByPath(data, path)
 		if err != nil {
-			m.ctx.GetOutput().Logf(interfaces.ErrorLevel, "failed to extract value for path: %s", path)
+			ctx.GetOutput().Logf(interfaces.ErrorLevel, "failed to extract value for path: %s", path)
 			// Log warning but don't fail - the path might be optional
 			continue
 		}
 
 		key := fmt.Sprintf("%s.%s", manifestID, path)
-		m.ctx.SetTyped(key, value, reflect.TypeOf(value).Kind())
+		ctx.SetTyped(key, value, reflect.TypeOf(value).Kind())
 
 		// Send to PassStore channels for any waiting consumers
-		m.notifyConsumers(manifestID, data)
+		m.notifyConsumers(ctx, manifestID, data)
 	}
 
 	return nil
@@ -113,7 +112,7 @@ func (m *PassManager) extractValueByPath(result TestData, path string) (any, err
 }
 
 // notifyConsumers sends data to PassStore channels
-func (m *PassManager) notifyConsumers(manifestID string, result TestData) {
+func (m *PassManager) notifyConsumers(ctx interfaces.ExecutionContext, manifestID string, result TestData) {
 	// Get dependents of this manifest
 	dependents := m.graphResult.GetDependentsOf(manifestID)
 
@@ -127,20 +126,19 @@ func (m *PassManager) notifyConsumers(manifestID string, result TestData) {
 				from = dep.Metadata.Alias
 			}
 
-			ch, exists := m.channels[from]
+			_, exists := m.channels[from]
 			if !exists {
-				ch = m.ctx.Channel(from)
-				m.channels[from] = ch
+				m.channels[from] = ctx.Channel(from)
 			}
 
 			// Send complete result
-			m.ctx.SafeSend(from, result)
+			ctx.SafeSend(from, result)
 
 			// Send specific paths if specified in metadata
 			for _, path := range dep.Metadata.Paths {
 				if value, err := m.extractValueByPath(result, path); err == nil {
 					key := fmt.Sprintf("%s.%s", from, path)
-					m.ctx.SafeSend(key, value)
+					ctx.SafeSend(key, value)
 				}
 			}
 		}
@@ -148,51 +146,51 @@ func (m *PassManager) notifyConsumers(manifestID string, result TestData) {
 }
 
 // WaitForDependency waits for a dependency to be available
-func (m *PassManager) WaitForDependency(manifestID, dependencyAlias, path string) (any, error) {
+func (m *PassManager) WaitForDependency(ctx interfaces.ExecutionContext, dependencyAlias, path string) (any, error) {
 	// Try to get from DataStore first (synchronous)
 	key := fmt.Sprintf("%s.%s", dependencyAlias, path)
-	if value, exists := m.ctx.Get(key); exists {
+	if value, exists := ctx.Get(key); exists {
 		return value, nil
 	}
 
 	// If not available, wait on channel (asynchronous)
-	ch := m.ctx.Channel(key)
+	ch := ctx.Channel(key)
 	select {
 	case value := <-ch:
 		return value, nil
-	case <-m.ctx.Done():
+	case <-ctx.Done():
 		return nil, fmt.Errorf("context cancelled while waiting for dependency %s", key)
 	}
 }
 
 // GetDependencyValue gets a dependency value with fallback to waiting
-func (m *PassManager) GetDependencyValue(manifestID, dependencyAlias, path string) (any, error) {
+func (m *PassManager) GetDependencyValue(ctx interfaces.ExecutionContext, dependencyAlias, path string) (any, error) {
 	// First try direct access
 	fullKey := fmt.Sprintf("%s.%s", dependencyAlias, path)
-	if value, exists := m.ctx.Get(fullKey); exists {
+	if value, exists := ctx.Get(fullKey); exists {
 		return value, nil
 	}
 
 	// Try getting the full result and extracting the path
-	if result, exists := m.ctx.Get(dependencyAlias); exists {
+	if result, exists := ctx.Get(dependencyAlias); exists {
 		if testResult, ok := result.(TestData); ok {
 			return m.extractValueByPath(testResult, path)
 		}
 	}
 
 	// Last resort: wait for the dependency
-	return m.WaitForDependency(manifestID, dependencyAlias, path)
+	return m.WaitForDependency(ctx, dependencyAlias, path)
 }
 
 // ResolveTemplateValue resolves a template value like "{{ users-list.response.body.data[0].id }}"
-func (m *PassManager) ResolveTemplateValue(manifestID, templateStr string) (any, error) {
+func (m *PassManager) ResolveTemplateValue(ctx interfaces.ExecutionContext, templateStr string) (any, error) {
 	// Parse template string to extract alias and path
 	alias, path, err := m.parseTemplateString(templateStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return m.GetDependencyValue(manifestID, alias, path)
+	return m.GetDependencyValue(ctx, alias, path)
 }
 
 // parseTemplateString parses "{{ alias.path }}" format

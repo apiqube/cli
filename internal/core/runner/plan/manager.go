@@ -2,9 +2,10 @@ package plan
 
 import (
 	"fmt"
-	"github.com/apiqube/cli/internal/core/runner/depends/rules"
 	"sort"
 	"strings"
+
+	"github.com/apiqube/cli/internal/core/runner/depends/rules"
 
 	"github.com/apiqube/cli/internal/operations"
 
