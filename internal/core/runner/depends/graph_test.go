@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apiqube/cli/internal/core/runner/depends/rules"
+
 	"github.com/apiqube/cli/internal/core/manifests/kinds"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/servers"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests"
@@ -51,10 +53,10 @@ func TestGraphBuilder(t *testing.T) {
 			},
 		}
 
-		registry := DefaultRuleRegistry()
-		builder := NewGraphBuilderV2(registry)
+		registry := rules.DefaultRuleRegistry()
+		builder := NewGraphBuilder(registry)
 
-		result, err := builder.BuildGraphWithRules(mans)
+		result, err := builder.Build(mans...)
 		if err != nil {
 			t.Fatalf("Failed to build graph: %v", err)
 		}
@@ -123,10 +125,10 @@ func TestGraphBuilder(t *testing.T) {
 			},
 		}
 
-		registry := DefaultRuleRegistry()
-		builder := NewGraphBuilderV2(registry)
+		registry := rules.DefaultRuleRegistry()
+		builder := NewGraphBuilder(registry)
 
-		result, err := builder.BuildGraphWithRules(mans)
+		result, err := builder.Build(mans...)
 		if err != nil {
 			t.Fatalf("Failed to build graph: %v", err)
 		}
@@ -190,10 +192,10 @@ func TestGraphBuilder(t *testing.T) {
 			},
 		}
 
-		registry := DefaultRuleRegistry()
-		builder := NewGraphBuilderV2(registry)
+		registry := rules.DefaultRuleRegistry()
+		builder := NewGraphBuilder(registry)
 
-		result, err := builder.BuildGraphWithRules(mans)
+		result, err := builder.Build(mans...)
 		if err != nil {
 			t.Fatalf("Failed to build graph: %v", err)
 		}
@@ -212,7 +214,7 @@ func TestGraphBuilder(t *testing.T) {
 		}
 
 		// Should have no inter-manifest dependencies (no cycles)
-		if len(result.Dependencies) != 1 {
+		if len(result.Dependencies) != 0 {
 			t.Errorf("Expected no inter-manifest dependencies, got %d", len(result.Dependencies))
 		}
 	})
@@ -343,10 +345,10 @@ func TestGraphBuilder(t *testing.T) {
 			},
 		}
 
-		registry := DefaultRuleRegistry()
-		builder := NewGraphBuilderV2(registry)
+		registry := rules.DefaultRuleRegistry()
+		builder := NewGraphBuilder(registry)
 
-		result, err := builder.BuildGraphWithRules(mans)
+		result, err := builder.Build(mans...)
 		if err != nil {
 			t.Fatalf("Failed to build graph: %v", err)
 		}
@@ -555,10 +557,10 @@ func TestGraphBuilder(t *testing.T) {
 			},
 		}
 
-		registry := DefaultRuleRegistry()
-		builder := NewGraphBuilderV2(registry)
+		registry := rules.DefaultRuleRegistry()
+		builder := NewGraphBuilder(registry)
 
-		result, err := builder.BuildGraphWithRules(mans)
+		result, err := builder.Build(mans...)
 		if err != nil {
 			t.Fatalf("Failed to build graph: %v", err)
 		}
@@ -572,17 +574,17 @@ func TestGraphBuilder(t *testing.T) {
 		}
 
 		_, kind, _ := utils.ParseManifestID(mans[0].GetID())
-		prev := priorities[kind]
+		prev := kinds.PriorityMap[kind]
 		for i := 1; i < len(result.ExecutionOrder); i++ {
-			if _, kind, _ = utils.ParseManifestID(result.ExecutionOrder[i]); prev > priorities[kind] {
-				t.Errorf("Expected %s to have lower priority than %s (%d), got %d", result.ExecutionOrder[i], result.ExecutionOrder[i-1], prev, priorities[kind])
+			if _, kind, _ = utils.ParseManifestID(result.ExecutionOrder[i]); prev > kinds.PriorityMap[kind] {
+				t.Errorf("Expected %s to have lower priority than %s (%d), got %d", result.ExecutionOrder[i], result.ExecutionOrder[i-1], prev, kinds.PriorityMap[kind])
 			}
 		}
 	})
 }
 
 // PrintDependencyGraph prints a beautiful visualization of the dependency graph
-func printDependencyGraph(gb *GraphBuilderV2, result *GraphResultV2) {
+func printDependencyGraph(_ *Builder, result *Result) {
 	fmt.Println("\n" + strings.Repeat("=", 80))
 	fmt.Println("🔗 DEPENDENCY GRAPH VISUALIZATION")
 	fmt.Println(strings.Repeat("=", 80))
@@ -591,24 +593,9 @@ func printDependencyGraph(gb *GraphBuilderV2, result *GraphResultV2) {
 	fmt.Println("\n📋 EXECUTION ORDER:")
 	fmt.Println(strings.Repeat("-", 40))
 	for i, manifestID := range result.ExecutionOrder {
-		priority := gb.getManifestPriorityByID(manifestID)
+		_, kind, _ := utils.ParseManifestID(manifestID)
+		priority := kinds.PriorityMap[kind]
 		fmt.Printf("  %d. %s (priority: %d)\n", i+1, manifestID, priority)
-	}
-
-	// Print inter-manifest dependencies
-	fmt.Println("\n🔄 INTER-MANIFEST DEPENDENCIES:")
-	fmt.Println(strings.Repeat("-", 40))
-	if len(result.Dependencies) == 0 {
-		fmt.Println("  ✅ No inter-manifest dependencies found")
-	} else {
-		for _, dep := range result.Dependencies {
-			fmt.Printf("  %s ──(%s)──> %s\n", dep.From, dep.Type, dep.To)
-			if dep.Metadata != nil {
-				for key, value := range dep.Metadata {
-					fmt.Printf("    └─ %s: %v\n", key, value)
-				}
-			}
-		}
 	}
 
 	// Print intra-manifest dependencies
@@ -621,11 +608,13 @@ func printDependencyGraph(gb *GraphBuilderV2, result *GraphResultV2) {
 			fmt.Printf("  📦 %s:\n", manifestID)
 			for _, dep := range deps {
 				fmt.Printf("    %s ──(%s)──> %s\n", dep.From, dep.Type, dep.To)
-				if dep.Metadata != nil {
-					for key, value := range dep.Metadata {
-						fmt.Printf("      └─ %s: %v\n", key, value)
-					}
-				}
+				m := dep.Metadata
+				fmt.Printf("      └─ %s: %v\n", "alias", m.Alias)
+				fmt.Printf("      └─ %s: %v\n", "paths", m.Paths)
+				fmt.Printf("      └─ %s: %v\n", "locations", m.Locations)
+				fmt.Printf("      └─ %s: %v\n", "Save", m.Save)
+				fmt.Printf("      └─ %s: %v\n", "Case Name", m.CaseName)
+				fmt.Printf("      └─ %s: %v\n", "Manifest Kind", m.ManifestKind)
 			}
 		}
 	}

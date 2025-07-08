@@ -6,35 +6,29 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/apiqube/cli/internal/core/manifests/kinds"
+	"github.com/apiqube/cli/internal/core/runner/depends/rules"
+
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 )
 
-var priorityOrder = map[string]int{
-	manifests.ValuesKind:       1,
-	manifests.ServerKind:       10,
-	manifests.ServiceKind:      20,
-	manifests.HttpTestKind:     30,
-	manifests.HttpLoadTestKind: 40,
-}
-
-// GraphBuilderV2 builds dependency graphs using rule-based analysis
-type GraphBuilderV2 struct {
-	registry         *RuleRegistry
+// Builder builds dependency graphs using rule-based analysis
+type Builder struct {
+	registry         *rules.RuleRegistry
 	manifestPriority map[string]int
 	templateRegex    *regexp.Regexp
 }
 
-// GraphResultV2 represents the result of graph building with enhanced metadata
-type GraphResultV2 struct {
-	Graph              map[string][]string          // Adjacency list representation
-	ExecutionOrder     []string                     // Topologically sorted execution order
-	Dependencies       []Dependency                 // All inter-manifest dependencies
-	IntraManifestDeps  map[string][]Dependency      // Dependencies within manifests
-	SaveRequirements   map[string]SaveRequirement   // What data needs to be saved
-	ManifestPriorities map[string]int               // Priority of each manifest
-	AliasToManifest    map[string]string            // Maps alias to manifest ID
-	TestCaseAliases    map[string]TestCaseAliasInfo // Maps alias to test case info
+// Result represents the result of graph building with enhanced metadata
+type Result struct {
+	Graph             map[string][]string           // Adjacency list representation
+	ExecutionOrder    []string                      // Topologically sorted execution order
+	Dependencies      []rules.Dependency            // All inter-manifest dependencies
+	IntraManifestDeps map[string][]rules.Dependency // Dependencies within manifests
+	SaveRequirements  map[string]SaveRequirement    // What data needs to be saved
+	AliasToManifest   map[string]string             // Maps alias to manifest ID
+	TestCaseAliases   map[string]TestCaseAliasInfo  // Maps alias to test case info
 }
 
 // SaveRequirement defines what data needs to be saved from a manifest execution
@@ -54,49 +48,57 @@ type TestCaseAliasInfo struct {
 	Consumers     []string // Which manifests/test cases consume this alias
 }
 
-// NewGraphBuilderV2 creates a new graph builder with rule registry
-func NewGraphBuilderV2(registry *RuleRegistry) *GraphBuilderV2 {
-	return &GraphBuilderV2{
+type Node struct {
+	ID       string
+	Priority int
+}
+
+// NewGraphBuilder creates a new graph builder with rule registry
+func NewGraphBuilder(registry *rules.RuleRegistry) *Builder {
+	if registry == nil {
+		registry = rules.DefaultRuleRegistry()
+	}
+
+	return &Builder{
 		registry:         registry,
 		manifestPriority: make(map[string]int),
 		templateRegex:    regexp.MustCompile(`\{\{\s*([a-zA-Z][a-zA-Z0-9_-]*)\.(.*?)\s*}}`),
 	}
 }
 
-// BuildGraphWithRules builds dependency graph using registered rules
-func (gb *GraphBuilderV2) BuildGraphWithRules(manifests []manifests.Manifest) (*GraphResultV2, error) {
-	result := &GraphResultV2{
-		Graph:              make(map[string][]string),
-		Dependencies:       make([]Dependency, 0),
-		IntraManifestDeps:  make(map[string][]Dependency),
-		SaveRequirements:   make(map[string]SaveRequirement),
-		ManifestPriorities: make(map[string]int),
-		AliasToManifest:    make(map[string]string),
-		TestCaseAliases:    make(map[string]TestCaseAliasInfo),
+// Build builds dependency graph using registered rules
+func (b *Builder) Build(manifests ...manifests.Manifest) (*Result, error) {
+	result := &Result{
+		Graph:             make(map[string][]string),
+		Dependencies:      make([]rules.Dependency, 0),
+		IntraManifestDeps: make(map[string][]rules.Dependency),
+		SaveRequirements:  make(map[string]SaveRequirement),
+		AliasToManifest:   make(map[string]string),
+		TestCaseAliases:   make(map[string]TestCaseAliasInfo),
 	}
 
 	// Step 1: Initialize manifest priorities and collect aliases
-	if err := gb.initializeManifests(manifests, result); err != nil {
+	if err := b.initializeManifests(manifests, result); err != nil {
 		return nil, err
 	}
 
-	// Step 2: Analyze dependencies using all rules (but ignore explicit dependencies)
-	allDependencies, err := gb.analyzeAllDependencies(manifests)
+	// Step 2: Analyze dependencies using all rules
+	allDependencies, err := b.analyzeDependencies(manifests)
 	if err != nil {
 		return nil, err
 	}
 
 	// Step 3: Separate inter-manifest and intra-manifest dependencies
-	gb.categorizeDependencies(allDependencies, result)
+	b.categorizeDependencies(allDependencies, result)
 
 	// Step 4: Build adjacency graph from dependencies
-	gb.buildAdjacencyGraph(result)
+	b.buildAdjacencyGraph(result)
 
 	// Step 5: Calculate save requirements
-	gb.calculateSaveRequirements(result)
+	b.calculateSaveRequirements(result)
 
 	// Step 6: Build execution order using topological sort with priorities
-	executionOrder, err := gb.buildExecutionOrder(manifests, result.Dependencies)
+	executionOrder, err := b.buildExecutionOrder(manifests, result.Dependencies)
 	if err != nil {
 		return nil, err
 	}
@@ -106,29 +108,21 @@ func (gb *GraphBuilderV2) BuildGraphWithRules(manifests []manifests.Manifest) (*
 }
 
 // initializeManifests sets up manifest priorities and collects alias information
-func (gb *GraphBuilderV2) initializeManifests(manifests []manifests.Manifest, result *GraphResultV2) error {
-	for _, manifest := range manifests {
+func (b *Builder) initializeManifests(mans []manifests.Manifest, result *Result) error {
+	var err error
+
+	for _, manifest := range mans {
 		manifestID := manifest.GetID()
 
 		// Set priority
-		priority := gb.getManifestPriority(manifest)
-		gb.manifestPriority[manifestID] = priority
-		result.ManifestPriorities[manifestID] = priority
+		priority := b.getManifestPriority(manifest)
+		b.manifestPriority[manifestID] = priority
 
-		// Collect test case aliases for HTTP tests
-		if httpTest, ok := manifest.(*api.Http); ok {
-			for i, testCase := range httpTest.Spec.Cases {
-				if testCase.Alias != nil {
-					alias := *testCase.Alias
-					result.AliasToManifest[alias] = manifestID
-					result.TestCaseAliases[alias] = TestCaseAliasInfo{
-						ManifestID:    manifestID,
-						Alias:         alias,
-						TestCaseIndex: i,
-						RequiredPaths: make([]string, 0),
-						Consumers:     make([]string, 0),
-					}
-				}
+		// Collect initial info
+		switch manifest.GetKind() {
+		case manifests.HttpTestKind:
+			if err = b.setUpHttpManifest(manifest.(*api.Http), result); err != nil {
+				return err
 			}
 		}
 	}
@@ -136,18 +130,39 @@ func (gb *GraphBuilderV2) initializeManifests(manifests []manifests.Manifest, re
 	return nil
 }
 
-// analyzeAllDependencies analyzes dependencies using all registered rules
-func (gb *GraphBuilderV2) analyzeAllDependencies(manifests []manifests.Manifest) ([]Dependency, error) {
-	var allDependencies []Dependency
+func (b *Builder) setUpHttpManifest(httpTest *api.Http, result *Result) error {
+	id := httpTest.GetID()
+	for i, testCase := range httpTest.Spec.Cases {
+		if testCase.Alias != nil {
+			alias := *testCase.Alias
+			if alreadyAddedID, exists := result.AliasToManifest[alias]; !exists {
+				result.AliasToManifest[alias] = id
+				result.TestCaseAliases[alias] = TestCaseAliasInfo{
+					ManifestID:    id,
+					Alias:         alias,
+					TestCaseIndex: i,
+					RequiredPaths: make([]string, 0),
+					Consumers:     make([]string, 0),
+				}
+			} else {
+				if id == alreadyAddedID {
+					caseIndex := result.TestCaseAliases[alias].TestCaseIndex
+					return fmt.Errorf("found duplicate alias %s in manifest %s cases [#%d - %s] and [#%d - %s]", alias, id, caseIndex+1, httpTest.Spec.Cases[caseIndex].Name, i+1, testCase.Name)
+				}
+				return fmt.Errorf("found duplicate alias %s for manifests %s and %s case [#%d - %s]", alias, alreadyAddedID, id, i, testCase.Name)
+			}
+		}
+	}
+	return nil
+}
+
+// analyzeDependencies analyzes dependencies using all registered rules
+func (b *Builder) analyzeDependencies(manifests []manifests.Manifest) ([]rules.Dependency, error) {
+	var allDependencies []rules.Dependency
 
 	for _, manifest := range manifests {
-		for _, rule := range gb.registry.GetRules() {
+		for _, rule := range b.registry.GetRules() {
 			if rule.CanHandle(manifest) {
-				// Skip explicit dependency rule - we want to build dependencies ourselves
-				if rule.Name() == "explicit" {
-					continue
-				}
-
 				deps, err := rule.AnalyzeDependencies(manifest)
 				if err != nil {
 					return nil, fmt.Errorf("rule %s failed for manifest %s: %w", rule.Name(), manifest.GetID(), err)
@@ -158,7 +173,7 @@ func (gb *GraphBuilderV2) analyzeAllDependencies(manifests []manifests.Manifest)
 	}
 
 	// Add smart template-based dependencies
-	smartDeps, err := gb.analyzeSmartTemplateDependencies(manifests, allDependencies)
+	smartDeps, err := b.analyzeSmartTemplateDependencies(manifests, allDependencies)
 	if err != nil {
 		return nil, err
 	}
@@ -168,8 +183,8 @@ func (gb *GraphBuilderV2) analyzeAllDependencies(manifests []manifests.Manifest)
 }
 
 // analyzeSmartTemplateDependencies creates inter-manifest dependencies based on template analysis
-func (gb *GraphBuilderV2) analyzeSmartTemplateDependencies(mans []manifests.Manifest, _ []Dependency) ([]Dependency, error) {
-	var smartDeps []Dependency
+func (b *Builder) analyzeSmartTemplateDependencies(mans []manifests.Manifest, _ []rules.Dependency) ([]rules.Dependency, error) {
+	var smartDeps []rules.Dependency
 	aliasToManifest := make(map[string]string)
 
 	// Build alias to manifest mapping
@@ -189,7 +204,7 @@ func (gb *GraphBuilderV2) analyzeSmartTemplateDependencies(mans []manifests.Mani
 
 		if httpTest, ok := manifest.(*api.Http); ok {
 			// Find all template references in this manifest
-			templateRefs := gb.extractAllTemplateReferences(httpTest)
+			templateRefs := b.extractAllTemplateReferences(httpTest)
 
 			// Group by alias and create dependencies
 			aliasGroups := make(map[string][]string)
@@ -201,30 +216,28 @@ func (gb *GraphBuilderV2) analyzeSmartTemplateDependencies(mans []manifests.Mani
 				// Check if this alias refers to another manifest
 				if targetManifestID, exists := aliasToManifest[alias]; exists && targetManifestID != manifestID {
 					// This is an inter-manifest dependency
-					smartDeps = append(smartDeps, Dependency{
+					smartDeps = append(smartDeps, rules.Dependency{
 						From: manifestID,
 						To:   targetManifestID,
-						Type: DependencyTypeTemplate,
-						Metadata: map[string]any{
-							"alias":          alias,
-							"required_paths": paths,
-							"save_required":  true,
-							"smart_detected": true,
+						Type: rules.DependencyTypeTemplate,
+						Metadata: rules.DependencyMetadata{
+							Alias: alias,
+							Paths: paths,
+							Save:  true,
 						},
 					})
 				} else if alias == "Values" {
 					// Check if this is a reference to Values manifest
 					for _, valuesManifest := range mans {
 						if valuesManifest.GetKind() == manifests.ValuesKind {
-							smartDeps = append(smartDeps, Dependency{
+							smartDeps = append(smartDeps, rules.Dependency{
 								From: manifestID,
 								To:   valuesManifest.GetID(),
-								Type: DependencyTypeTemplate,
-								Metadata: map[string]any{
-									"alias":          alias,
-									"required_paths": paths,
-									"save_required":  true,
-									"smart_detected": true,
+								Type: rules.DependencyTypeValue,
+								Metadata: rules.DependencyMetadata{
+									Alias: alias,
+									Paths: paths,
+									Save:  true,
 								},
 							})
 							break
@@ -239,34 +252,34 @@ func (gb *GraphBuilderV2) analyzeSmartTemplateDependencies(mans []manifests.Mani
 }
 
 // extractAllTemplateReferences extracts all template references from an HTTP test
-func (gb *GraphBuilderV2) extractAllTemplateReferences(httpTest *api.Http) []TemplateReference {
-	var references []TemplateReference
+func (b *Builder) extractAllTemplateReferences(httpTest *api.Http) []rules.TemplateReference {
+	var references []rules.TemplateReference
 
 	for _, testCase := range httpTest.Spec.Cases {
 		// Check endpoint
-		refs := gb.findTemplateReferencesInString(testCase.Endpoint)
+		refs := b.findTemplateReferencesInString(testCase.Endpoint)
 		references = append(references, refs...)
 
 		// Check URL
-		refs = gb.findTemplateReferencesInString(testCase.Url)
+		refs = b.findTemplateReferencesInString(testCase.Url)
 		references = append(references, refs...)
 
 		// Check headers
 		for _, value := range testCase.Headers {
-			refs = gb.findTemplateReferencesInString(value)
+			refs = b.findTemplateReferencesInString(value)
 			references = append(references, refs...)
 		}
 
 		// Check body recursively
 		if testCase.Body != nil {
-			refs = gb.findTemplateReferencesInValue(testCase.Body)
+			refs = b.findTemplateReferencesInValue(testCase.Body)
 			references = append(references, refs...)
 		}
 
 		// Check assertions
 		for _, assert := range testCase.Assert {
 			if assert.Template != "" {
-				refs = gb.findTemplateReferencesInString(assert.Template)
+				refs = b.findTemplateReferencesInString(assert.Template)
 				references = append(references, refs...)
 			}
 		}
@@ -276,13 +289,13 @@ func (gb *GraphBuilderV2) extractAllTemplateReferences(httpTest *api.Http) []Tem
 }
 
 // findTemplateReferencesInString finds template references in a string
-func (gb *GraphBuilderV2) findTemplateReferencesInString(str string) []TemplateReference {
-	var references []TemplateReference
-	matches := gb.templateRegex.FindAllStringSubmatch(str, -1)
+func (b *Builder) findTemplateReferencesInString(str string) []rules.TemplateReference {
+	var references []rules.TemplateReference
+	matches := b.templateRegex.FindAllStringSubmatch(str, -1)
 
 	for _, match := range matches {
 		if len(match) >= 3 {
-			references = append(references, TemplateReference{
+			references = append(references, rules.TemplateReference{
 				Alias: match[1],
 				Path:  match[2],
 			})
@@ -293,23 +306,23 @@ func (gb *GraphBuilderV2) findTemplateReferencesInString(str string) []TemplateR
 }
 
 // findTemplateReferencesInValue recursively finds template references in any value
-func (gb *GraphBuilderV2) findTemplateReferencesInValue(value any) []TemplateReference {
-	var references []TemplateReference
+func (b *Builder) findTemplateReferencesInValue(value any) []rules.TemplateReference {
+	var references []rules.TemplateReference
 
 	switch v := value.(type) {
 	case string:
-		references = append(references, gb.findTemplateReferencesInString(v)...)
+		references = append(references, b.findTemplateReferencesInString(v)...)
 	case map[string]any:
 		for _, val := range v {
-			references = append(references, gb.findTemplateReferencesInValue(val)...)
+			references = append(references, b.findTemplateReferencesInValue(val)...)
 		}
 	case []any:
 		for _, val := range v {
-			references = append(references, gb.findTemplateReferencesInValue(val)...)
+			references = append(references, b.findTemplateReferencesInValue(val)...)
 		}
 	case map[any]any:
 		for _, val := range v {
-			references = append(references, gb.findTemplateReferencesInValue(val)...)
+			references = append(references, b.findTemplateReferencesInValue(val)...)
 		}
 	}
 
@@ -317,15 +330,15 @@ func (gb *GraphBuilderV2) findTemplateReferencesInValue(value any) []TemplateRef
 }
 
 // categorizeDependencies separates inter-manifest and intra-manifest dependencies
-func (gb *GraphBuilderV2) categorizeDependencies(allDependencies []Dependency, result *GraphResultV2) {
+func (b *Builder) categorizeDependencies(allDependencies []rules.Dependency, result *Result) {
 	for _, dep := range allDependencies {
-		fromManifest := gb.getBaseManifestID(dep.From)
-		toManifest := gb.getBaseManifestID(dep.To)
+		fromManifest := b.getBaseManifestID(dep.From)
+		toManifest := b.getBaseManifestID(dep.To)
 
 		if fromManifest == toManifest {
 			// Intra-manifest dependency
 			if result.IntraManifestDeps[fromManifest] == nil {
-				result.IntraManifestDeps[fromManifest] = make([]Dependency, 0)
+				result.IntraManifestDeps[fromManifest] = make([]rules.Dependency, 0)
 			}
 			result.IntraManifestDeps[fromManifest] = append(result.IntraManifestDeps[fromManifest], dep)
 		} else {
@@ -336,10 +349,10 @@ func (gb *GraphBuilderV2) categorizeDependencies(allDependencies []Dependency, r
 }
 
 // buildAdjacencyGraph builds the adjacency graph from dependencies
-func (gb *GraphBuilderV2) buildAdjacencyGraph(result *GraphResultV2) {
+func (b *Builder) buildAdjacencyGraph(result *Result) {
 	for _, dep := range result.Dependencies {
-		toManifest := gb.getBaseManifestID(dep.To)
-		fromManifest := gb.getBaseManifestID(dep.From)
+		toManifest := b.getBaseManifestID(dep.To)
+		fromManifest := b.getBaseManifestID(dep.From)
 
 		if result.Graph[toManifest] == nil {
 			result.Graph[toManifest] = make([]string, 0)
@@ -349,34 +362,27 @@ func (gb *GraphBuilderV2) buildAdjacencyGraph(result *GraphResultV2) {
 }
 
 // calculateSaveRequirements determines what data needs to be saved
-func (gb *GraphBuilderV2) calculateSaveRequirements(result *GraphResultV2) {
+func (b *Builder) calculateSaveRequirements(result *Result) {
 	// Process inter-manifest dependencies
 	for _, dep := range result.Dependencies {
-		if dep.Type == DependencyTypeTemplate {
-			toManifest := gb.getBaseManifestID(dep.To)
+		if dep.Type == rules.DependencyTypeTemplate {
+			toManifest := b.getBaseManifestID(dep.To)
 
 			// Update save requirement for the target manifest
 			req := result.SaveRequirements[toManifest]
 			req.Required = true
 			req.Consumers = append(req.Consumers, dep.From)
 
-			if paths, ok := dep.Metadata["required_paths"].([]string); ok {
-				req.RequiredPaths = append(req.RequiredPaths, paths...)
-				req.Paths = append(req.Paths, paths...)
-			}
+			req.RequiredPaths = append(req.RequiredPaths, dep.Metadata.Paths...)
+			req.Paths = append(req.Paths, dep.Metadata.Paths...)
 
 			result.SaveRequirements[toManifest] = req
 
 			// Update test case alias info if applicable
-			var paths []string
-			if alias, ok := dep.Metadata["alias"].(string); ok {
-				if aliasInfo, exists := result.TestCaseAliases[alias]; exists {
-					aliasInfo.Consumers = append(aliasInfo.Consumers, dep.From)
-					if paths, ok = dep.Metadata["required_paths"].([]string); ok {
-						aliasInfo.RequiredPaths = append(aliasInfo.RequiredPaths, paths...)
-					}
-					result.TestCaseAliases[alias] = aliasInfo
-				}
+			if aliasInfo, exists := result.TestCaseAliases[dep.Metadata.Alias]; exists {
+				aliasInfo.Consumers = append(aliasInfo.Consumers, dep.From)
+				aliasInfo.RequiredPaths = append(aliasInfo.RequiredPaths, dep.Metadata.Paths...)
+				result.TestCaseAliases[dep.Metadata.Alias] = aliasInfo
 			}
 		}
 	}
@@ -388,10 +394,8 @@ func (gb *GraphBuilderV2) calculateSaveRequirements(result *GraphResultV2) {
 		req.Consumers = append(req.Consumers, manifestID) // Self-consumer
 
 		for _, dep := range deps {
-			if paths, ok := dep.Metadata["required_paths"].([]string); ok {
-				req.RequiredPaths = append(req.RequiredPaths, paths...)
-				req.Paths = append(req.Paths, paths...)
-			}
+			req.RequiredPaths = append(req.RequiredPaths, dep.Metadata.Paths...)
+			req.Paths = append(req.Paths, dep.Metadata.Paths...)
 		}
 
 		result.SaveRequirements[manifestID] = req
@@ -399,7 +403,7 @@ func (gb *GraphBuilderV2) calculateSaveRequirements(result *GraphResultV2) {
 }
 
 // buildExecutionOrder creates topologically sorted execution order
-func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, dependencies []Dependency) ([]string, error) {
+func (b *Builder) buildExecutionOrder(manifests []manifests.Manifest, dependencies []rules.Dependency) ([]string, error) {
 	// Initialize in-degree count for each manifest
 	inDegree := make(map[string]int)
 	for _, manifest := range manifests {
@@ -409,10 +413,10 @@ func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, de
 
 	// Calculate in-degrees from all inter-manifest dependencies
 	for _, dep := range dependencies {
-		fromBase := gb.getBaseManifestID(dep.From)
-		toBase := gb.getBaseManifestID(dep.To)
+		fromBase := b.getBaseManifestID(dep.From)
+		toBase := b.getBaseManifestID(dep.To)
 		if fromBase != toBase {
-			if _, exists := inDegree[fromBase]; exists && dep.Type != DependencyTypeTemplate {
+			if _, exists := inDegree[fromBase]; exists && dep.Type != rules.DependencyTypeTemplate {
 				inDegree[fromBase]++
 			}
 		}
@@ -424,7 +428,7 @@ func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, de
 		if degree == 0 {
 			zeroInDegreeNodes = append(zeroInDegreeNodes, &Node{
 				ID:       id,
-				Priority: gb.manifestPriority[id],
+				Priority: b.manifestPriority[id],
 			})
 		}
 	}
@@ -447,14 +451,14 @@ func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, de
 
 		newNodes := make([]*Node, 0)
 		for _, dep := range dependencies {
-			fromBase := gb.getBaseManifestID(dep.From)
-			toBase := gb.getBaseManifestID(dep.To)
+			fromBase := b.getBaseManifestID(dep.From)
+			toBase := b.getBaseManifestID(dep.To)
 			if toBase == currentNode.ID && fromBase != toBase {
 				inDegree[fromBase]--
 				if inDegree[fromBase] == 0 {
 					newNodes = append(newNodes, &Node{
 						ID:       fromBase,
-						Priority: gb.manifestPriority[fromBase],
+						Priority: b.manifestPriority[fromBase],
 					})
 				}
 			}
@@ -484,29 +488,21 @@ func (gb *GraphBuilderV2) buildExecutionOrder(manifests []manifests.Manifest, de
 }
 
 // getManifestPriority returns priority for a manifest based on its kind
-func (gb *GraphBuilderV2) getManifestPriority(manifest manifests.Manifest) int {
+func (b *Builder) getManifestPriority(manifest manifests.Manifest) int {
 	kind := manifest.GetKind()
 
 	// Find kind priority rule
-	for _, rule := range gb.registry.GetRules() {
-		if kindRule, ok := rule.(*KindPriorityRule); ok {
-			return kindRule.GetKindPriority(kind)
+	for _, rule := range b.registry.GetRules() {
+		if rule.Name() == rules.KindPriorityRuleName {
+			return rule.(*rules.KindPriorityRule).GetKindPriority(kind)
 		}
 	}
 
-	return gb.getManifestPriorityByID(manifest.GetID())
-}
-
-// getManifestPriorityByID returns priority for a manifest by its ID
-func (gb *GraphBuilderV2) getManifestPriorityByID(manifestID string) int {
-	if priority, exists := gb.manifestPriority[manifestID]; exists {
-		return priority
-	}
-	return 0
+	return kinds.PriorityMap[kind]
 }
 
 // getBaseManifestID extracts base manifest ID from potentially extended ID
-func (gb *GraphBuilderV2) getBaseManifestID(id string) string {
+func (b *Builder) getBaseManifestID(id string) string {
 	// Remove any suffix after # (for test case aliases)
 	if idx := strings.Index(id, "#"); idx != -1 {
 		return id[:idx]

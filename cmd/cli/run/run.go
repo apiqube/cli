@@ -56,7 +56,7 @@ var Cmd = &cobra.Command{
 			WithManifests(loadedManifests...).Build()
 
 		// Use V2 plan generation with dependency analysis
-		planManifest, graphResult, err := manager.GenerateV2()
+		planManifest, graphResult, err := manager.Generate()
 		if err != nil {
 			cli.Errorf("Failed to generate V2 plan: %v", err)
 			return
@@ -82,11 +82,11 @@ var Cmd = &cobra.Command{
 		hooksRunner := hooks.NewDefaultHooksRunner()
 
 		// Use V2 plan runner with dependency support
-		planRunner := executor.NewV2PlanRunner(registry, hooksRunner, graphResult)
+		planRunner := executor.NewRunner(registry, hooksRunner, graphResult)
 
 		runCtx := ctxBuilder.Build()
 
-		if err = planRunner.RunPlan(runCtx, planManifest); err != nil {
+		if err = planRunner.Run(runCtx, planManifest); err != nil {
 			cli.Errorf("Plan execution failed: %v", err)
 			return
 		}

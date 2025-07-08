@@ -1,4 +1,4 @@
-package depends
+package rules
 
 import (
 	"fmt"
@@ -8,6 +8,8 @@ import (
 	"github.com/apiqube/cli/internal/core/manifests"
 	"github.com/apiqube/cli/internal/core/manifests/kinds/tests/api"
 )
+
+const HttpTestDependencyRuleName = "Http Test"
 
 // HttpTestDependencyRule handles HTTP test specific dependencies
 type HttpTestDependencyRule struct {
@@ -23,21 +25,20 @@ func NewHttpTestDependencyRule() *HttpTestDependencyRule {
 }
 
 func (r *HttpTestDependencyRule) Name() string {
-	return "http_test"
+	return HttpTestDependencyRuleName
 }
 
 func (r *HttpTestDependencyRule) CanHandle(manifest manifests.Manifest) bool {
-	_, ok := manifest.(*api.Http)
-	return ok
+	return manifest.GetKind() == manifests.HttpTestKind
 }
 
 func (r *HttpTestDependencyRule) AnalyzeDependencies(manifest manifests.Manifest) ([]Dependency, error) {
 	httpTest, ok := manifest.(*api.Http)
+	var dependencies []Dependency
 	if !ok {
-		return nil, nil
+		return dependencies, nil
 	}
 
-	var dependencies []Dependency
 	fromID := manifest.GetID()
 
 	// Analyze each test case
@@ -83,13 +84,13 @@ func (r *HttpTestDependencyRule) analyzeTestCase(manifestID string, testCase api
 			From: manifestID,
 			To:   toID,
 			Type: DependencyTypeTemplate,
-			Metadata: map[string]any{
-				"alias":           alias,
-				"required_paths":  requiredPaths,
-				"locations":       locations,
-				"save_required":   true,
-				"test_case_name":  testCase.Name,
-				"source_manifest": httpTest.GetKind(),
+			Metadata: DependencyMetadata{
+				Alias:        alias,
+				Paths:        requiredPaths,
+				Locations:    locations,
+				Save:         true,
+				CaseName:     testCase.Name,
+				ManifestKind: httpTest.GetKind(),
 			},
 		}
 
@@ -253,11 +254,10 @@ func (r *IntraManifestDependencyRule) AnalyzeDependencies(manifest manifests.Man
 					From: caseID,
 					To:   depID,
 					Type: DependencyTypeValue,
-					Metadata: map[string]any{
-						"alias":          ref.Alias,
-						"required_paths": []string{ref.Path},
-						"save_required":  true,
-						"intra_manifest": true,
+					Metadata: DependencyMetadata{
+						Alias: ref.Alias,
+						Paths: []string{ref.Path},
+						Save:  true,
 					},
 				}
 

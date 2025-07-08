@@ -16,7 +16,7 @@ type Executor interface {
 }
 
 type PlanRunner interface {
-	RunPlan(ctx ExecutionContext, plan manifests.Manifest) error
+	Run(ctx ExecutionContext, plan manifests.Manifest) error
 }
 
 type ExecutionContext interface {
